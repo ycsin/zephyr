@@ -307,9 +307,33 @@ static int spi_nor_access(const struct device *const dev,
 #define spi_nor_cmd_addr_write(dev, opcode, addr, src, length) \
 	spi_nor_access(dev, opcode, true, addr, (void *)src, length, true)
 
+/**
+ * @brief Wait until the flash is ready
+ *
+ * @note The device must be externally acquired before invoking this
+ * function.
+ *
+ * @param dev The device structure
+ * @return 0 on success, negative errno code otherwise
+ */
+static int spi_nor_wait_until_ready(const struct device *dev)
+{
+	int ret;
+	uint8_t reg;
+
+	do {
+		ret = spi_nor_cmd_read(dev, SPI_NOR_CMD_RDSR, &reg, 1);
+	} while (!ret && (reg & SPI_NOR_WIP_BIT));
+
+	return ret;
+}
+
 #if defined(CONFIG_SPI_NOR_SFDP_RUNTIME) || defined(CONFIG_FLASH_JESD216_API)
 /*
  * @brief Read content from the SFDP hierarchy
+ *
+ * @note The device must be externally acquired before invoking this
+ * function.
  *
  * @param dev Device struct
  * @param addr The address to send
@@ -398,6 +422,8 @@ static int exit_dpd(const struct device *const dev)
  *
  * This means taking the lock and, if necessary, waking the device
  * from deep power-down mode.
+ *
+ * This function will also wait until the device indicates it's ready.
  */
 static void acquire_device(const struct device *dev)
 {
@@ -410,6 +436,8 @@ static void acquire_device(const struct device *dev)
 	if (IS_ENABLED(CONFIG_SPI_NOR_IDLE_IN_DPD)) {
 		exit_dpd(dev);
 	}
+
+	spi_nor_wait_until_ready(dev);
 }
 
 /* Everything necessary to release access to the device.
@@ -430,24 +458,6 @@ static void release_device(const struct device *dev)
 	}
 }
 
-/**
- * @brief Wait until the flash is ready
- *
- * @param dev The device structure
- * @return 0 on success, negative errno code otherwise
- */
-static int spi_nor_wait_until_ready(const struct device *dev)
-{
-	int ret;
-	uint8_t reg;
-
-	do {
-		ret = spi_nor_cmd_read(dev, SPI_NOR_CMD_RDSR, &reg, 1);
-	} while (!ret && (reg & SPI_NOR_WIP_BIT));
-
-	return ret;
-}
-
 static int spi_nor_read(const struct device *dev, off_t addr, void *dest,
 			size_t size)
 {
@@ -460,8 +470,6 @@ static int spi_nor_read(const struct device *dev, off_t addr, void *dest,
 	}
 
 	acquire_device(dev);
-
-	spi_nor_wait_until_ready(dev);
 
 	ret = spi_nor_cmd_addr_read(dev, SPI_NOR_CMD_READ, addr, dest, size);
 
@@ -595,6 +603,9 @@ static int spi_nor_erase(const struct device *dev, off_t addr, size_t size)
 	return ret;
 }
 
+/* @note The device must be externally acquired before invoking this
+ * function.
+ */
 static int spi_nor_write_protection_set(const struct device *dev,
 					bool write_protect)
 {
@@ -621,8 +632,6 @@ static int spi_nor_sfdp_read(const struct device *dev, off_t addr,
 {
 	acquire_device(dev);
 
-	spi_nor_wait_until_ready(dev);
-
 	int ret = read_sfdp(dev, addr, dest, size);
 
 	release_device(dev);
@@ -640,8 +649,6 @@ static int spi_nor_read_jedec_id(const struct device *dev,
 	}
 
 	acquire_device(dev);
-
-	spi_nor_wait_until_ready(dev);
 
 	int ret = spi_nor_cmd_read(dev, SPI_NOR_CMD_RDID, id, SPI_NOR_MAX_ID_LEN);
 
