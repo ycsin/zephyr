@@ -108,6 +108,8 @@ source "drivers/sensor/isl29035/Kconfig"
 
 source "drivers/sensor/ism330dhcx/Kconfig"
 
+source "drivers/sensor/kx022/Kconfig"
+
 source "drivers/sensor/lis2dh/Kconfig"
 
 source "drivers/sensor/lis2ds12/Kconfig"
