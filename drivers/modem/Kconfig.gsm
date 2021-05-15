@@ -1,4 +1,5 @@
 # Copyright (c) 2020 Intel Corporation
+# Copyright (c) 2021 G-Technologies Sdn. Bhd.
 # SPDX-License-Identifier: Apache-2.0
 
 config MODEM_GSM_PPP
@@ -27,7 +28,19 @@ config MODEM_GSM_SIMCOM
 	help
 	  Use this if you have SIMCOM based modem like SIM800 etc.
 
+config MODEM_GSM_QUECTEL
+	bool "Quectel modem"
+	help
+	  Use this if you have Quectel based modem like EC21 etc.
+
 endchoice
+
+config MODEM_GSM_QUECTEL_GNSS
+	bool "Enables GNSS functions for Quectel modems"
+	depends on MODEM_GSM_QUECTEL
+	default n
+	help
+	  Enables GPS functions for Quectel modems that support GNSS.
 
 config MODEM_GSM_UART_NAME
 	string "UART device name the modem is connected to"
@@ -61,6 +74,14 @@ config GSM_PPP_AUTOSTART
 	  boot. Unselect this if you want to run application code before
 	  modem connects to network. See contents of "drivers/gsm_ppp.h"
 	  to get an idea of the API.
+
+config MODEM_GSM_REGISTER_TIMEOUT
+	int "Timeout for registering to cell tower"
+	default 60
+	help
+	  Before attaching to packet service, the cell tower registration is
+	  checked using AT+CREG. This setting dictates how much time in seconds
+	  we give the modem before giving up.
 
 config MODEM_GSM_ATTACH_TIMEOUT
 	int "Timeout for attaching to packet service"

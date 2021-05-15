@@ -1,8 +1,10 @@
 /*
  * Copyright (c) 2020 Intel Corporation
+ * Copyright (c) 2021 G-Technologies Sdn. Bhd.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+#define DT_DRV_COMPAT gsm_ppp
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(modem_gsm, CONFIG_MODEM_LOG_LEVEL);
@@ -22,14 +24,56 @@ LOG_MODULE_REGISTER(modem_gsm, CONFIG_MODEM_LOG_LEVEL);
 #include "modem_cmd_handler.h"
 #include "../console/gsm_mux.h"
 
+#ifdef CONFIG_NEWLIB_LIBC
+#include <time.h>
+#endif
+
+#if (CONFIG_MODEM_GSM_QUECTEL)
+#include "quectel-mdm.h"
+#endif
+
+#define GSM_UART_DEV_ID                 DT_INST_BUS(0)
+#define GSM_UART_DEV_NAME               DT_INST_BUS_LABEL(0)
 #define GSM_CMD_READ_BUF                128
 #define GSM_CMD_AT_TIMEOUT              K_SECONDS(2)
 #define GSM_CMD_SETUP_TIMEOUT           K_SECONDS(6)
 #define GSM_RX_STACK_SIZE               CONFIG_MODEM_GSM_RX_STACK_SIZE
 #define GSM_RECV_MAX_BUF                30
 #define GSM_RECV_BUF_SIZE               128
+#define GSM_REGISTER_DELAY_MSEC         1000
 #define GSM_ATTACH_RETRY_DELAY_MSEC     1000
 
+#ifdef CONFIG_NEWLIB_LIBC
+/* The ? can be a + or - */
+static const char TIME_STRING_FORMAT[] = "\"yy/MM/dd,hh:mm:ss?zz\"";
+#define TIME_STRING_DIGIT_STRLEN 2
+#define TIME_STRING_SEPARATOR_STRLEN 1
+#define TIME_STRING_PLUS_MINUS_INDEX (6 * 3)
+#define TIME_STRING_FIRST_SEPARATOR_INDEX 0
+#define TIME_STRING_FIRST_DIGIT_INDEX 1
+#define TIME_STRING_TO_TM_STRUCT_YEAR_OFFSET (2000 - 1900)
+
+/* Time structure min, max */
+#define TM_YEAR_RANGE 0, 99
+#define TM_MONTH_RANGE_PLUS_1 1, 12
+#define TM_DAY_RANGE 1, 31
+#define TM_HOUR_RANGE 0, 23
+#define TM_MIN_RANGE 0, 59
+#define TM_SEC_RANGE 0, 60 /* leap second */
+#define QUARTER_HOUR_RANGE 0, 96
+#define SECONDS_PER_QUARTER_HOUR (15 * 60)
+#define SIZE_OF_NUL 1
+#endif
+
+#if CONFIG_MODEM_GSM_QUECTEL_GNSS
+static const char quectel_nmea_str[5][16] = {
+	"gpsnmeatype\0",
+	"glonassnmeatype\0",
+	"galileonmeatype\0",
+	"beidounmeatype\0",
+	"gsvextnmeatype\0",
+};
+#endif
 
 /* During the modem setup, we first create DLCI control channel and then
  * PPP and AT channels. Currently the modem does not create possible GNSS
@@ -41,6 +85,15 @@ enum setup_state {
 	STATE_PPP_CHANNEL,
 	STATE_AT_CHANNEL,
 	STATE_DONE
+};
+
+enum network_state {
+	GSM_NOT_REGISTERED = 0,
+	GSM_HOME_NETWORK,
+	GSM_SEARCHING,
+	GSM_REGISTRATION_DENIED,
+	GSM_UNKNOWN,
+	GSM_ROAMING,
 };
 
 static struct gsm_modem {
@@ -61,6 +114,15 @@ static struct gsm_modem {
 	const struct device *ppp_dev;
 	const struct device *at_dev;
 	const struct device *control_dev;
+
+	enum network_state net_state;
+	int register_retries;
+
+#ifdef CONFIG_NEWLIB_LIBC
+	bool local_time_valid : 1;
+	int32_t local_time_offset;
+	struct tm local_time;
+#endif
 
 	struct net_if *iface;
 
@@ -105,13 +167,36 @@ MODEM_CMD_DEFINE(gsm_cmd_error)
 	return 0;
 }
 
+MODEM_CMD_DEFINE(gsm_cmd_cme_error)
+{
+	modem_cmd_handler_set_error(data, -EINVAL);
+	LOG_DBG("cme error: %d", atoi(argv[0]));
+	k_sem_give(&gsm.sem_response);
+	return 0;
+}
+
+#if CONFIG_MODEM_GSM_QUECTEL
+/* Handler: Modem ready. */
+MODEM_CMD_DEFINE(on_cmd_unsol_rdy)
+{
+	k_sem_give(&gsm.sem_response);
+	return 0;
+}
+#endif
+
 static const struct modem_cmd response_cmds[] = {
 	MODEM_CMD("OK", gsm_cmd_ok, 0U, ""),
 	MODEM_CMD("ERROR", gsm_cmd_error, 0U, ""),
+	MODEM_CMD("+CME ERROR: ", gsm_cmd_cme_error, 1U, ""),
 	MODEM_CMD("CONNECT", gsm_cmd_ok, 0U, ""),
 };
 
-#if defined(CONFIG_MODEM_SHELL)
+#if CONFIG_MODEM_GSM_QUECTEL
+static const struct modem_cmd unsol_cmds[] = {
+	MODEM_CMD("RDY", on_cmd_unsol_rdy, 0U, ""),
+};
+#endif
+
 #define MDM_MANUFACTURER_LENGTH  10
 #define MDM_MODEL_LENGTH         16
 #define MDM_REVISION_LENGTH      64
@@ -231,7 +316,6 @@ MODEM_CMD_DEFINE(on_cmd_atcmdinfo_iccid)
 	return 0;
 }
 #endif /* CONFIG_MODEM_SIM_NUMBERS */
-#endif /* CONFIG_MODEM_SHELL */
 
 static const struct setup_cmd setup_cmds[] = {
 	/* no echo */
@@ -241,24 +325,336 @@ static const struct setup_cmd setup_cmds[] = {
 	/* extender errors in numeric form */
 	SETUP_CMD_NOHANDLE("AT+CMEE=1"),
 
-#if defined(CONFIG_MODEM_SHELL)
+	SETUP_CMD_NOHANDLE("AT+QINDCFG=\"all\",0"),
+
 	/* query modem info */
 	SETUP_CMD("AT+CGMI", "", on_cmd_atcmdinfo_manufacturer, 0U, ""),
 	SETUP_CMD("AT+CGMM", "", on_cmd_atcmdinfo_model, 0U, ""),
 	SETUP_CMD("AT+CGMR", "", on_cmd_atcmdinfo_revision, 0U, ""),
-# if defined(CONFIG_MODEM_SIM_NUMBERS)
+#if(CONFIG_MODEM_SIM_NUMBERS)
 	SETUP_CMD("AT+CIMI", "", on_cmd_atcmdinfo_imsi, 0U, ""),
 	SETUP_CMD("AT+CCID", "", on_cmd_atcmdinfo_iccid, 0U, ""),
-# endif
-	SETUP_CMD("AT+CGSN", "", on_cmd_atcmdinfo_imei, 0U, ""),
 #endif
+	SETUP_CMD("AT+CGSN", "", on_cmd_atcmdinfo_imei, 0U, ""),
 
 	/* disable unsolicited network registration codes */
-	SETUP_CMD_NOHANDLE("AT+CREG=0"),
+	SETUP_CMD_NOHANDLE("AT+CREG=2"),
 
 	/* create PDP context */
 	SETUP_CMD_NOHANDLE("AT+CGDCONT=1,\"IP\",\"" CONFIG_MODEM_GSM_APN "\""),
 };
+
+#ifdef CONFIG_MODEM_GSM_QUECTEL_GNSS
+int quectel_gnss_cfg_outport(const struct device *dev, char* outport)
+{
+	int  ret;
+	char buf[sizeof("AT+QGPSCFG=\"outport\",\"#########\"")] = {0};
+	struct gsm_modem *gsm = dev->data;
+
+	snprintk(buf, sizeof(buf), "AT+QGPSCFG=\"outport\",\"%s\"", outport);
+
+	ret = modem_cmd_send(&gsm->context.iface, &gsm->context.cmd_handler,
+			NULL, 0U, buf, &gsm->sem_response,
+			GSM_CMD_AT_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERR("%s ret:%d", log_strdup(buf), ret);
+		errno = -ret;
+		return -1;
+	}
+
+	LOG_INF("Configured GNSS outport to %s", outport);
+
+	return ret;
+}
+
+int quectel_gnss_cfg_nmea(const struct device *dev, quectel_nmea_types_t gnss,
+			  quectel_nmea_type_t cfg)
+{
+	int  ret;
+	uint8_t val;
+	char buf[sizeof("AT+QGPSCFG=\"glonassnmeatype\",##")] = {0};
+	struct gsm_modem *gsm = dev->data;
+
+	switch(gnss)
+	{
+		case QUECTEL_NMEA_GPS:
+			val = (cfg.gps.vtg << 4 | cfg.gps.gsa << 3 |
+				cfg.gps.gsv << 2 | cfg.gps.rmc << 1 |
+				cfg.gps.gga);
+
+			LOG_INF("Configuring GPS NMEA: %X", val);
+
+			break;
+		case QUECTEL_NMEA_GLONASS:
+			val = (cfg.glonass.gns << 2 | cfg.glonass.gsa << 1 |
+				cfg.glonass.gsv);
+
+			LOG_INF("Configuring GLONASS NMEA: %X", val);
+
+			break;
+		case QUECTEL_NMEA_GALILEO:
+			val = (cfg.galileo.gsv);
+
+			LOG_INF("Configuring GALILEO NMEA: %X", val);
+
+			break;
+		case QUECTEL_NMEA_BEIDOU:
+			val = (cfg.beidou.gsv << 1 | cfg.beidou.gsa);
+
+			LOG_INF("Configuring BEIDOU NMEA: %X", val);
+
+			break;
+		case QUECTEL_NMEA_GSVEXT:
+			val = cfg.gsvext.enable;
+
+			LOG_INF("Configuring GSVEXT NMEA: %X", val);
+
+			break;
+		default:
+			LOG_ERR("Invalid quectel_nmea_types_t");
+			errno = -EINVAL;
+			return -1;
+	}
+
+	snprintk(buf, sizeof(buf), "AT+QGPSCFG=\"%s\",%u",
+				quectel_nmea_str[gnss], val);
+
+	ret = modem_cmd_send(&gsm->context.iface, &gsm->context.cmd_handler,
+				NULL, 0U, buf, &gsm->sem_response,
+				GSM_CMD_AT_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERR("%s ret:%d", log_strdup(buf), ret);
+		errno = -ret;
+		return -1;
+	}
+
+	return ret;
+}
+
+int quectel_gnss_cfg_gnss(const struct device *dev, quectel_gnss_conf_t cfg)
+{
+	int  ret;
+	char buf[sizeof("AT+QGPSCFG=\"gnssconfig\",#")] = {0};
+	struct gsm_modem *gsm = dev->data;
+
+	snprintk(buf, sizeof(buf), "AT+QGPSCFG=\"gnssconfig\",%u", cfg);
+
+	ret = modem_cmd_send(&gsm->context.iface, &gsm->context.cmd_handler,
+			NULL, 0U, buf, &gsm->sem_response,
+			GSM_CMD_AT_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERR("%s ret:%d", log_strdup(buf), ret);
+		errno = -ret;
+		return -1;
+	}
+
+	LOG_INF("Configured GNSS config: %d", (int)cfg);
+
+	return ret;
+}
+
+int quectel_gnss_enable(const struct device *dev, uint8_t fixmaxtime,
+			uint16_t fixmaxdist, uint16_t fixcount,
+			uint16_t fixrate)
+{
+	int  ret;
+	char buf[sizeof("AT+QGPS=1,###,####,####,#####")] = {0};
+	struct gsm_modem *gsm = dev->data;
+
+	if ((fixmaxtime == 0) ||
+		(fixmaxtime == 0) || (fixmaxtime > 1000) ||
+		(fixcount > 1000) ||
+		(fixrate == 0))
+	{
+		errno = -EINVAL;
+		return -1;
+	}
+
+	snprintk(buf, sizeof(buf), "AT+QGPS=1,%u,%u,%u,%u", fixmaxtime,
+							    fixmaxdist,
+							    fixcount,
+							    fixrate);
+
+	ret = modem_cmd_send(&gsm->context.iface, &gsm->context.cmd_handler,
+			NULL, 0U, buf, &gsm->sem_response,
+			GSM_CMD_AT_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERR("%s ret:%d", log_strdup(buf), ret);
+		errno = -ret;
+		return -1;
+	}
+
+	LOG_INF("Enabled Quectel GNSS");
+
+	return ret;
+}
+
+int quectel_gnss_disable(const struct device *dev)
+{
+    int  ret;
+    struct gsm_modem *gsm = dev->data;
+    ret = modem_cmd_send(&gsm->context.iface, &gsm->context.cmd_handler,
+                    NULL, 0U, "AT+QGPSEND", &gsm->sem_response,
+                    GSM_CMD_AT_TIMEOUT);
+    if (ret < 0) {
+        LOG_ERR("AT+QGPSEND ret:%d", ret);
+        errno = -ret;
+        return -1;
+    }
+
+    LOG_INF("Disabled Quectel GNSS");
+
+    return ret;
+}
+#endif /* #if CONFIG_MODEM_QUECTEL_GNSS */
+
+#ifdef CONFIG_NEWLIB_LIBC
+static bool valid_time_string(const char *time_string)
+{
+	size_t offset, i;
+
+	/* Ensure that all the expected delimiters are present */
+	offset = TIME_STRING_DIGIT_STRLEN + TIME_STRING_SEPARATOR_STRLEN;
+	i = TIME_STRING_FIRST_SEPARATOR_INDEX;
+
+	for (; i < TIME_STRING_PLUS_MINUS_INDEX; i += offset) {
+		if (time_string[i] != TIME_STRING_FORMAT[i]) {
+			return false;
+		}
+	}
+	/* The last character is the offset from UTC and can be either
+	 * positive or negative.  The last " is also handled here.
+	 */
+	if ((time_string[i] == '+' || time_string[i] == '-') &&
+	    (time_string[i + offset] == '"')) {
+		return true;
+	}
+	return false;
+}
+
+int get_next_time_string_digit(int *failure_cnt, char **pp, int min, int max)
+{
+	char digits[TIME_STRING_DIGIT_STRLEN + SIZE_OF_NUL];
+	int result;
+
+	memset(digits, 0, sizeof(digits));
+	memcpy(digits, *pp, TIME_STRING_DIGIT_STRLEN);
+	*pp += TIME_STRING_DIGIT_STRLEN + TIME_STRING_SEPARATOR_STRLEN;
+	result = strtol(digits, NULL, 10);
+	if (result > max) {
+		*failure_cnt += 1;
+		return max;
+	} else if (result < min) {
+		*failure_cnt += 1;
+		return min;
+	} else {
+		return result;
+	}
+}
+
+static bool convert_time_string_to_struct(struct tm *tm, int32_t *offset,
+					  char *time_string)
+{
+	int fc = 0;
+	char *ptr = time_string;
+
+	if (!valid_time_string(ptr)) {
+		LOG_INF("Invalid timestring");
+		return false;
+	}
+	ptr = &ptr[TIME_STRING_FIRST_DIGIT_INDEX];
+	tm->tm_year = TIME_STRING_TO_TM_STRUCT_YEAR_OFFSET +
+		      get_next_time_string_digit(&fc, &ptr, TM_YEAR_RANGE);
+	tm->tm_mon =
+		get_next_time_string_digit(&fc, &ptr, TM_MONTH_RANGE_PLUS_1) -
+		1;
+	tm->tm_mday = get_next_time_string_digit(&fc, &ptr, TM_DAY_RANGE);
+	tm->tm_hour = get_next_time_string_digit(&fc, &ptr, TM_HOUR_RANGE);
+	tm->tm_min = get_next_time_string_digit(&fc, &ptr, TM_MIN_RANGE);
+	tm->tm_sec = get_next_time_string_digit(&fc, &ptr, TM_SEC_RANGE);
+	tm->tm_isdst = 0;
+	*offset = (int32_t)get_next_time_string_digit(&fc, &ptr,
+						      QUARTER_HOUR_RANGE) *
+		  SECONDS_PER_QUARTER_HOUR;
+	if (time_string[TIME_STRING_PLUS_MINUS_INDEX] == '-') {
+		*offset *= -1;
+	}
+
+	return (fc == 0);
+}
+
+MODEM_CMD_DEFINE(on_cmd_rtc_query)
+{
+	size_t str_len = sizeof(TIME_STRING_FORMAT) - 1;
+	char rtc_string[sizeof(TIME_STRING_FORMAT)];
+
+	memset(rtc_string, 0, sizeof(rtc_string));
+	gsm.local_time_valid = false;
+
+	if (len != str_len) {
+		LOG_WRN("Unexpected length for RTC string %d (expected:%d)",
+			len, str_len);
+	} else {
+		net_buf_linearize(rtc_string, str_len, data->rx_buf, 0, str_len);
+		LOG_INF("RTC string: '%s'", log_strdup(rtc_string));
+		gsm.local_time_valid = convert_time_string_to_struct(
+			&gsm.local_time, &gsm.local_time_offset, rtc_string);
+	}
+
+	return true;
+}
+
+int32_t gsm_ppp_get_local_time(const struct device *dev, struct tm *tm, int32_t *offset)
+{
+	int ret;
+
+	struct modem_cmd cmd  = MODEM_CMD("+CCLK: ", on_cmd_rtc_query, 0U, "");
+	struct gsm_modem *gsm = dev->data;
+	gsm->local_time_valid = false;
+
+	ret = modem_cmd_send(&gsm->context.iface, &gsm->context.cmd_handler,
+			     &cmd, 1U, "AT+CCLK?", &gsm->sem_response,
+			     GSM_CMD_AT_TIMEOUT);
+
+	if (gsm->local_time_valid) {
+		memcpy(tm, &gsm->local_time, sizeof(struct tm));
+		memcpy(offset, &gsm->local_time_offset, sizeof(*offset));
+	} else {
+		ret = -EIO;
+	}
+	return ret;
+}
+#endif /* CONFIG_NEWLIB_LIBC */
+
+MODEM_CMD_DEFINE(on_cmd_net_reg_sts)
+{
+	enum network_state net_sts = (enum network_state)atoi(argv[1]);
+	switch(net_sts)
+	{
+		case GSM_NOT_REGISTERED:
+			LOG_INF("Network not registered.");
+			break;
+		case GSM_HOME_NETWORK:
+			LOG_INF("Network registered, home network.");
+			break;
+		case GSM_SEARCHING:
+			LOG_INF("Searching for network...");
+			break;
+		case GSM_REGISTRATION_DENIED:
+			LOG_INF("Network registration denied.");
+			break;
+		case GSM_UNKNOWN:
+			LOG_INF("Network unknown.");
+			break;
+		case GSM_ROAMING:
+			LOG_INF("Network registered, roaming.");
+			break;
+	}
+
+	gsm.net_state = net_sts;
+
+	return 0;
+}
 
 MODEM_CMD_DEFINE(on_cmd_atcmdinfo_attached)
 {
@@ -271,10 +667,13 @@ MODEM_CMD_DEFINE(on_cmd_atcmdinfo_attached)
 	}
 
 	modem_cmd_handler_set_error(data, error);
-	k_sem_give(&gsm.sem_response);
+	//k_sem_give(&gsm.sem_response);
 
 	return 0;
 }
+
+static const struct modem_cmd check_net_reg_cmd =
+	MODEM_CMD("+CREG: ", on_cmd_net_reg_sts, 2U, ",");
 
 static const struct modem_cmd check_attached_cmd =
 	MODEM_CMD("+CGATT:", on_cmd_atcmdinfo_attached, 1U, ",");
@@ -353,6 +752,11 @@ static void gsm_finalize_connection(struct gsm_modem *gsm)
 {
 	int ret;
 
+	/* If modem is searching for network, we should skip the setup step */
+	if ((gsm->net_state == GSM_SEARCHING) && gsm->register_retries) {
+		goto registering;
+	}
+
 	/* If attach check failed, we should not redo every setup step */
 	if (gsm->attach_retries) {
 		goto attaching;
@@ -393,10 +797,53 @@ static void gsm_finalize_connection(struct gsm_modem *gsm)
 						  &gsm->sem_response,
 						  GSM_CMD_SETUP_TIMEOUT);
 	if (ret < 0) {
-		LOG_DBG("modem setup returned %d, %s",
+		LOG_DBG("modem setup (setup_cmds) returned %d, %s",
 			ret, "retrying...");
 		(void)k_delayed_work_submit(&gsm->gsm_configure_work,
 					    K_SECONDS(1));
+		return;
+	}
+
+registering:
+	/* Wait for cell tower registration */
+	ret = modem_cmd_send_nolock(&gsm->context.iface,
+				    &gsm->context.cmd_handler,
+				    &check_net_reg_cmd, 1,
+				    "AT+CREG?",
+				    &gsm->sem_response,
+				    GSM_CMD_SETUP_TIMEOUT);
+	if ((ret < 0) || ((gsm->net_state != GSM_ROAMING) &&
+			 (gsm->net_state != GSM_HOME_NETWORK))) {
+		if (!gsm->register_retries) {
+			gsm->register_retries = CONFIG_MODEM_GSM_REGISTER_TIMEOUT *
+				MSEC_PER_SEC / GSM_REGISTER_DELAY_MSEC;
+		} else {
+			gsm->register_retries--;
+
+			/* Reset RF if timed out */
+			if (!gsm->register_retries) {
+				(void)modem_cmd_send_nolock(
+					&gsm->context.iface,
+					&gsm->context.cmd_handler,
+					&response_cmds[0],
+					ARRAY_SIZE(response_cmds),
+					"AT+CFUN=0", &gsm->sem_response,
+					GSM_CMD_AT_TIMEOUT);
+
+				k_sleep(K_SECONDS(1));
+
+				(void)modem_cmd_send_nolock(
+					&gsm->context.iface,
+					&gsm->context.cmd_handler,
+					&response_cmds[0],
+					ARRAY_SIZE(response_cmds),
+					"AT+CFUN=1", &gsm->sem_response,
+					GSM_CMD_AT_TIMEOUT);
+			}
+		}
+
+		(void)k_delayed_work_submit(&gsm->gsm_configure_work,
+					K_MSEC(GSM_REGISTER_DELAY_MSEC));
 		return;
 	}
 
@@ -482,41 +929,56 @@ static int mux_enable(struct gsm_modem *gsm)
 	int ret;
 
 	/* Turn on muxing */
-	if (IS_ENABLED(CONFIG_MODEM_GSM_SIMCOM)) {
-		ret = modem_cmd_send_nolock(
-			&gsm->context.iface,
-			&gsm->context.cmd_handler,
-			&response_cmds[0],
-			ARRAY_SIZE(response_cmds),
+#if CONFIG_MODEM_GSM_SIMCOM
+	ret = modem_cmd_send_nolock(
+		&gsm->context.iface,
+		&gsm->context.cmd_handler,
+		&response_cmds[0],
+		ARRAY_SIZE(response_cmds),
 #if defined(SIMCOM_LTE)
-			/* FIXME */
-			/* Some SIMCOM modems can set the channels */
-			/* Control channel always at DLCI 0 */
-			"AT+CMUXSRVPORT=0,0;"
-			/* PPP should be at DLCI 1 */
-			"+CMUXSRVPORT=" STRINGIFY(DLCI_PPP) ",1;"
-			/* AT should be at DLCI 2 */
-			"+CMUXSRVPORT=" STRINGIFY(DLCI_AT) ",1;"
+		/* FIXME */
+		/* Some SIMCOM modems can set the channels */
+		/* Control channel always at DLCI 0 */
+		"AT+CMUXSRVPORT=0,0;"
+		/* PPP should be at DLCI 1 */
+		"+CMUXSRVPORT=" STRINGIFY(DLCI_PPP) ",1;"
+		/* AT should be at DLCI 2 */
+		"+CMUXSRVPORT=" STRINGIFY(DLCI_AT) ",1;"
 #else
-			"AT"
+		"AT"
 #endif
-			"+CMUX=0,0,5,"
-			STRINGIFY(CONFIG_GSM_MUX_MRU_DEFAULT_LEN),
-			&gsm->sem_response,
-			GSM_CMD_AT_TIMEOUT);
-	} else {
-		/* Generic GSM modem */
-		ret = modem_cmd_send_nolock(&gsm->context.iface,
-				     &gsm->context.cmd_handler,
-				     &response_cmds[0],
-				     ARRAY_SIZE(response_cmds),
-				     "AT+CMUX=0", &gsm->sem_response,
-				     GSM_CMD_AT_TIMEOUT);
-	}
+		"+CMUX=0,0,5,"
+		STRINGIFY(CONFIG_GSM_MUX_MRU_DEFAULT_LEN),
+		&gsm->sem_response,
+		GSM_CMD_AT_TIMEOUT);
+#elif CONFIG_MODEM_GSM_QUECTEL
+	/* Quectel GSM modem */
+	ret = modem_cmd_send_nolock(&gsm->context.iface,
+					&gsm->context.cmd_handler,
+					&response_cmds[0],
+					ARRAY_SIZE(response_cmds),
+					"AT+CMUX=0,0,5,"
+					STRINGIFY(CONFIG_GSM_MUX_MRU_DEFAULT_LEN),
+					&gsm->sem_response,
+					GSM_CMD_AT_TIMEOUT);
+#else
+	/* Generic GSM modem */
+	ret = modem_cmd_send_nolock(&gsm->context.iface,
+				&gsm->context.cmd_handler,
+				&response_cmds[0],
+				ARRAY_SIZE(response_cmds),
+				"AT+CMUX=0", &gsm->sem_response,
+				GSM_CMD_AT_TIMEOUT);
+#endif
 
 	if (ret < 0) {
 		LOG_ERR("AT+CMUX ret:%d", ret);
 	}
+
+#if CONFIG_MODEM_GSM_QUECTEL
+		/* Quectel requires some time to initialize the CMUX */
+		k_sleep(K_SECONDS(1));
+#endif
 
 	return ret;
 }
@@ -558,7 +1020,7 @@ static void mux_setup(struct k_work *work)
 {
 	struct gsm_modem *gsm = CONTAINER_OF(work, struct gsm_modem,
 					     gsm_configure_work);
-	const struct device *uart = device_get_binding(CONFIG_MODEM_GSM_UART_NAME);
+	const struct device *uart = DEVICE_DT_GET(GSM_UART_DEV_ID);
 	int ret;
 
 	/* We need to call this to reactivate mux ISR. Note: This is only called
@@ -663,6 +1125,25 @@ static void gsm_configure(struct k_work *work)
 					     gsm_configure_work);
 	int ret = -1;
 
+#if CONFIG_MODEM_GSM_QUECTEL
+	enable_power(&gsm->context);
+	power_key_on(&gsm->context);
+
+	LOG_INF("Waiting for modem to boot up");
+
+	ret = k_sem_take(&gsm->sem_response, K_SECONDS(50));
+
+	if (ret == 0) {
+		LOG_INF("Modem RDY");
+	} else {
+		LOG_INF("Time out waiting for modem RDY");
+		(void)k_delayed_work_submit(&gsm->gsm_configure_work,
+					    K_NO_WAIT);
+
+		return;
+	}
+#endif
+
 	LOG_DBG("Starting modem %p configuration", gsm);
 
 	ret = modem_cmd_send_nolock(&gsm->context.iface,
@@ -718,7 +1199,7 @@ void gsm_ppp_start(const struct device *dev)
 
 	/* Re-init underlying UART comms */
 	int r = modem_iface_uart_init_dev(&gsm->context.iface,
-					  CONFIG_MODEM_GSM_UART_NAME);
+					  GSM_UART_DEV_NAME);
 	if (r) {
 		LOG_ERR("modem_iface_uart_init returned %d", r);
 		return;
@@ -732,6 +1213,32 @@ void gsm_ppp_stop(const struct device *dev)
 {
 	struct gsm_modem *gsm = dev->data;
 	struct net_if *iface = gsm->iface;
+	int ret;
+
+#if (CONFIG_MODEM_GSM_QUECTEL)
+
+	LOG_INF("Turning off modem...");
+
+	/* FIXME: According to EC21 DS, after sending AT+QPOWD, the modem will
+	 * 	  respond "OK" followed by "POWERED DOWN", then only we can
+	 * 	  turn off the power. However in my testing I didn't get the
+	 * 	  "POWERED DOWN".
+	 */
+	ret = modem_cmd_send_nolock(&gsm->context.iface,
+				    &gsm->context.cmd_handler,
+				    &response_cmds[0],
+				    ARRAY_SIZE(response_cmds),
+				    "AT+QPOWD=0",
+				    &gsm->sem_response,
+				    GSM_CMD_AT_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERR("Modem took too long to power down normally");
+	}
+
+	disable_power(&gsm->context);
+
+	LOG_INF("Modem powered down!");
+#endif
 
 	net_if_l2(iface)->enable(iface, false);
 
@@ -759,6 +1266,8 @@ static int gsm_init(const struct device *dev)
 
 	gsm->cmd_handler_data.cmds[CMD_RESP] = response_cmds;
 	gsm->cmd_handler_data.cmds_len[CMD_RESP] = ARRAY_SIZE(response_cmds);
+	gsm->cmd_handler_data.cmds[CMD_UNSOL] = unsol_cmds;
+	gsm->cmd_handler_data.cmds_len[CMD_UNSOL] = ARRAY_SIZE(unsol_cmds);
 	gsm->cmd_handler_data.match_buf = &gsm->cmd_match_buf[0];
 	gsm->cmd_handler_data.match_buf_len = sizeof(gsm->cmd_match_buf);
 	gsm->cmd_handler_data.buf_pool = &gsm_recv_pool;
@@ -774,7 +1283,6 @@ static int gsm_init(const struct device *dev)
 		return r;
 	}
 
-#if defined(CONFIG_MODEM_SHELL)
 	/* modem information storage */
 	gsm->context.data_manufacturer = minfo.mdm_manufacturer;
 	gsm->context.data_model = minfo.mdm_model;
@@ -784,13 +1292,15 @@ static int gsm_init(const struct device *dev)
 	gsm->context.data_imsi = minfo.mdm_imsi;
 	gsm->context.data_iccid = minfo.mdm_iccid;
 #endif	/* CONFIG_MODEM_SIM_NUMBERS */
-#endif	/* CONFIG_MODEM_SHELL */
+
+	gsm->context.pins = modem_pins;
+	gsm->context.pins_len = ARRAY_SIZE(modem_pins);
 
 	gsm->gsm_data.rx_rb_buf = &gsm->gsm_rx_rb_buf[0];
 	gsm->gsm_data.rx_rb_buf_len = sizeof(gsm->gsm_rx_rb_buf);
 
 	r = modem_iface_uart_init(&gsm->context.iface, &gsm->gsm_data,
-				  CONFIG_MODEM_GSM_UART_NAME);
+				  GSM_UART_DEV_NAME);
 	if (r < 0) {
 		LOG_DBG("iface uart error %d", r);
 		return r;
@@ -810,6 +1320,8 @@ static int gsm_init(const struct device *dev)
 			(k_thread_entry_t) gsm_rx,
 			gsm, NULL, NULL, K_PRIO_COOP(7), 0, K_NO_WAIT);
 	k_thread_name_set(&gsm_rx_thread, "gsm_rx");
+
+	gsm->net_state = GSM_NOT_REGISTERED;
 
 	gsm->iface = ppp_net_if();
 	if (!gsm->iface) {
