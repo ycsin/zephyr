@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2020 Analog Life LLC
+ * Copyright (c) 2021 G-Technologies Sdn. Bhd.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -11,6 +12,32 @@ LOG_MODULE_REGISTER(modem_quectel_bg9x, CONFIG_MODEM_LOG_LEVEL);
 
 #include "quectel-bg9x.h"
 
+#if CONFIG_MODEM_QUECTEL_BG9X_GNSS
+#include <drivers/modem/quectel-bg9x.h>
+#endif
+
+#ifdef CONFIG_NEWLIB_LIBC
+/* The ? can be a + or - */
+static const char TIME_STRING_FORMAT[] = "\"yy/MM/dd,hh:mm:ss?zz\"";
+#define TIME_STRING_DIGIT_STRLEN 2
+#define TIME_STRING_SEPARATOR_STRLEN 1
+#define TIME_STRING_PLUS_MINUS_INDEX (6 * 3)
+#define TIME_STRING_FIRST_SEPARATOR_INDEX 0
+#define TIME_STRING_FIRST_DIGIT_INDEX 1
+#define TIME_STRING_TO_TM_STRUCT_YEAR_OFFSET (2000 - 1900)
+
+/* Time structure min, max */
+#define TM_YEAR_RANGE 0, 99
+#define TM_MONTH_RANGE_PLUS_1 1, 12
+#define TM_DAY_RANGE 1, 31
+#define TM_HOUR_RANGE 0, 23
+#define TM_MIN_RANGE 0, 59
+#define TM_SEC_RANGE 0, 60 /* leap second */
+#define QUARTER_HOUR_RANGE 0, 96
+#define SECONDS_PER_QUARTER_HOUR (15 * 60)
+#define SIZE_OF_NUL 1
+#endif
+
 static struct k_thread	       modem_rx_thread;
 static struct k_work_q	       modem_workq;
 static struct modem_data       mdata;
@@ -20,6 +47,16 @@ static const struct socket_op_vtable offload_socket_fd_op_vtable;
 static K_KERNEL_STACK_DEFINE(modem_rx_stack, CONFIG_MODEM_QUECTEL_BG9X_RX_STACK_SIZE);
 static K_KERNEL_STACK_DEFINE(modem_workq_stack, CONFIG_MODEM_QUECTEL_BG9X_RX_WORKQ_STACK_SIZE);
 NET_BUF_POOL_DEFINE(mdm_recv_pool, MDM_RECV_MAX_BUF, MDM_RECV_BUF_SIZE, 0, NULL);
+
+#if CONFIG_MODEM_QUECTEL_BG9X_GNSS
+static const char mdm_quectel_bg9x_nmea_str[5][16] = {
+	"gpsnmeatype\0",
+	"glonassnmeatype\0",
+	"galileonmeatype\0",
+	"beidounmeatype\0",
+	"gsvextnmeatype\0",
+};
+#endif
 
 static inline int digits(int n)
 {
@@ -97,34 +134,6 @@ static inline int find_len(char *data)
 	return ATOI(buf, 0, "rx_buf");
 }
 
-/* Func: modem_at
- * Desc: Send "AT" command to the modem and wait for it to
- * respond. If the modem doesn't respond after some time, give
- * up and kill the driver.
- */
-static int modem_at(struct modem_context *mctx, struct modem_data *mdata)
-{
-	int counter = 0, ret = -1;
-
-	do {
-
-		/* Send "AT" command to the modem. */
-		ret = modem_cmd_send(&mctx->iface, &mctx->cmd_handler,
-				     NULL, 0, "AT", &mdata->sem_response,
-				     MDM_CMD_TIMEOUT);
-
-		/* Check the response from the Modem. */
-		if (ret < 0 && ret != -ETIMEDOUT) {
-			return ret;
-		}
-
-		counter++;
-		k_sleep(K_SECONDS(2));
-	} while (counter < MDM_MAX_AT_RETRIES && ret < 0);
-
-	return ret;
-}
-
 /* Func: on_cmd_sockread_common
  * Desc: Function to successfully read data from the modem on a given socket.
  */
@@ -153,7 +162,7 @@ static int on_cmd_sockread_common(int socket_fd,
 
 	/* No (or not enough) data available on the socket. */
 	bytes_to_skip = digits(socket_data_length) + 2 + 4;
-	if (socket_data_length <= 0) {
+	if (socket_data_length < 0) {
 		LOG_ERR("Length problem (%d).  Aborting!", socket_data_length);
 		return -EAGAIN;
 	}
@@ -402,23 +411,86 @@ MODEM_CMD_DEFINE(on_cmd_sock_readdata)
 	return on_cmd_sockread_common(mdata.sock_fd, data, len);
 }
 
-/* Handler: Data receive indication. */
-MODEM_CMD_DEFINE(on_cmd_unsol_recv)
+MODEM_CMD_DEFINE(on_cmd_recv_len_qird)
+{
+	mdata.sock_recv_len = ATOI(argv[2], 0, "recv_unread_len");
+	return 0;
+}
+
+static void modem_sock_close_work(struct k_work *work)
 {
 	struct modem_socket *sock;
-	int		     sock_fd;
 
-	sock_fd = ATOI(argv[0], 0, "sock_fd");
+	/* Checks if has valid value */
+	if (mdata.sock_close == -1) {
+		return;
+	}
+
+	sock = modem_socket_from_fd(&mdata.socket_config, mdata.sock_close);
+	if (!sock) {
+		return;
+	}
+
+	socket_close(sock);
+	LOG_INF("Socket Closed: %d", mdata.sock_close);
+
+	/* Reset mdata.sock_close */
+	mdata.sock_close = -1;
+}
+
+static void modem_qird_query_work(struct k_work *work)
+{
+	struct modem_socket *sock;
+	struct modem_cmd cmd  = MODEM_CMD("+QIRD: ", on_cmd_recv_len_qird,
+					  3U, ",");
+	char buf[sizeof("AT+QIRD=##,0")] = {0};
+	int ret;
 
 	/* Socket pointer from FD. */
-	sock = modem_socket_from_fd(&mdata.socket_config, sock_fd);
+	sock = modem_socket_from_fd(&mdata.socket_config, mdata.sock_fd);
 	if (!sock) {
-		return 0;
+		LOG_ERR("Sock %d not found", mdata.sock_fd);
+		return;
+	}
+
+	snprintk(buf, sizeof(buf), "AT+QIRD=%d,0", mdata.sock_fd);
+
+	/* query len */
+	ret = modem_cmd_send(&mctx.iface, &mctx.cmd_handler,
+			     &cmd, 1U, buf, &mdata.sem_response,
+			     MDM_CMD_TIMEOUT);
+
+	if (mdata.sock_recv_len <= 0) {
+		LOG_ERR("Input buffer length is %d", mdata.sock_recv_len);
+		return;
+	} else {
+		ret = modem_socket_packet_size_update(&mdata.socket_config,
+						      sock, mdata.sock_recv_len);
+	}
+
+	if (ret < 0) {
+		LOG_ERR("socket_id:%d left_bytes:%d err: %d", mdata.sock_fd,
+			mdata.sock_recv_len, ret);
+	}
+
+	if (mdata.sock_recv_len > 0) {
+		modem_socket_data_ready(&mdata.socket_config, sock);
 	}
 
 	/* Data ready indication. */
-	LOG_INF("Data Receive Indication for socket: %d", sock_fd);
-	modem_socket_data_ready(&mdata.socket_config, sock);
+	LOG_INF("Data Receive Indication for socket: %d length: %d", mdata.sock_fd, mdata.sock_recv_len);
+	return;
+}
+
+/* Handler: Data receive indication. */
+MODEM_CMD_DEFINE(on_cmd_unsol_recv)
+{
+	int sock_fd;
+	sock_fd = ATOI(argv[0], 0, "sock_fd");
+	mdata.sock_fd = sock_fd;
+
+	k_work_submit_to_queue(&modem_workq,
+			       &mdata.qird_query_work);
 
 	return 0;
 }
@@ -426,22 +498,282 @@ MODEM_CMD_DEFINE(on_cmd_unsol_recv)
 /* Handler: Socket Close Indication. */
 MODEM_CMD_DEFINE(on_cmd_unsol_close)
 {
-	struct modem_socket *sock;
 	int		     sock_fd;
 
 	sock_fd = ATOI(argv[0], 0, "sock_fd");
-	sock	= modem_socket_from_fd(&mdata.socket_config, sock_fd);
-	if (!sock) {
-		return 0;
-	}
 
 	LOG_INF("Socket Close Indication for socket: %d", sock_fd);
 
+	mdata.sock_close = sock_fd;
+
 	/* Tell the modem to close the socket. */
-	socket_close(sock);
-	LOG_INF("Socket Closed: %d", sock_fd);
+	k_work_submit_to_queue(&modem_workq, &mdata.sock_close_work);
+
 	return 0;
 }
+
+/* Handler: Modem ready. */
+MODEM_CMD_DEFINE(on_cmd_unsol_rdy)
+{
+	k_sem_give(&mdata.sem_response);
+	return 0;
+}
+
+#if(CONFIG_MODEM_QUECTEL_ENABLE_ECHO)
+/* Handler: AT echo cmds. */
+MODEM_CMD_DEFINE(on_cmd_unsol_echo)
+{
+	return 0;
+}
+#endif
+
+#if CONFIG_MODEM_QUECTEL_BG9X_GNSS
+int mdm_quectel_bg9x_gnss_cfg_outport(char* outport)
+{
+    int  ret;
+    char buf[sizeof("AT+QGPSCFG=\"outport\",\"#########\"")] = {0};
+
+    snprintk(buf, sizeof(buf), "AT+QGPSCFG=\"outport\",\"%s\"", outport);
+
+    ret = modem_cmd_send(&mctx.iface, &mctx.cmd_handler,
+                    NULL, 0U, buf, &mdata.sem_response,
+                    MDM_CMD_TIMEOUT);
+    if (ret < 0) {
+        LOG_ERR("%s ret:%d", log_strdup(buf), ret);
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int mdm_quectel_bg9x_gnss_cfg_nmea(mdm_quectel_bg9x_nmea_types_t gnss,
+                                   mdm_quectel_bg9x_nmea_type_t cfg)
+{
+    int  ret;
+    char buf[sizeof("AT+QGPSCFG=\"glonassnmeatype\",##")] = {0};
+    uint8_t val;
+
+    switch(gnss)
+    {
+        case MDM_QT_BG9X_NMEA_GPS:
+            val = (cfg.gps.vtg << 4 | cfg.gps.gsa << 3 | cfg.gps.gsv << 2 |
+                   cfg.gps.rmc << 1 | cfg.gps.gga);
+            break;
+        case MDM_QT_BG9X_NMEA_GLONASS:
+            val = (cfg.glonass.gns << 2 | cfg.glonass.gsa << 1 | cfg.glonass.gsv);
+            break;
+        case MDM_QT_BG9X_NMEA_GALILEO:
+            val = (cfg.galileo.gsv);
+            break;
+        case MDM_QT_BG9X_NMEA_BEIDOU:
+            val = (cfg.beidou.gsv << 1 | cfg.beidou.gsa);
+            break;
+        case MDM_QT_BG9X_NMEA_GSVEXT:
+            val = cfg.gsvext.enable;
+            break;
+        default:
+            LOG_ERR("Invalid mdm_quectel_bg9x_nmea_types_t");
+            errno = -EINVAL;
+            return -1;
+    }
+
+    snprintk(buf, sizeof(buf), "AT+QGPSCFG=\"%s\",%u",
+                                            mdm_quectel_bg9x_nmea_str[gnss],
+                                            val);
+
+    ret = modem_cmd_send(&mctx.iface, &mctx.cmd_handler,
+                    NULL, 0U, buf, &mdata.sem_response,
+                    MDM_CMD_TIMEOUT);
+    if (ret < 0) {
+        LOG_ERR("%s ret:%d", log_strdup(buf), ret);
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int mdm_quectel_bg9x_gnss_cfg_gnss(mdm_quectel_bg9x_gnss_conf_t cfg)
+{
+    int  ret;
+    char buf[sizeof("AT+QGPSCFG=\"gnssconfig\",#")] = {0};
+
+    snprintk(buf, sizeof(buf), "AT+QGPSCFG=\"gnssconfig\",%u", cfg);
+
+    ret = modem_cmd_send(&mctx.iface, &mctx.cmd_handler,
+                    NULL, 0U, buf, &mdata.sem_response,
+                    MDM_CMD_TIMEOUT);
+    if (ret < 0) {
+        LOG_ERR("%s ret:%d", log_strdup(buf), ret);
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int mdm_quectel_bg9x_gnss_enable(uint8_t fixmaxtime, uint16_t fixmaxdist,
+                                 uint16_t fixcount, uint16_t fixrate)
+{
+    int  ret;
+    char buf[sizeof("AT+QGPS=1,###,####,####,#####")] = {0};
+
+    if ((fixmaxtime == 0) ||
+        (fixmaxtime == 0) || (fixmaxtime > 1000) ||
+        (fixcount > 1000) ||
+        (fixrate == 0))
+    {
+        errno = -EINVAL;
+        return -1;
+    }
+
+    snprintk(buf, sizeof(buf), "AT+QGPS=1,%u,%u,%u,%u", fixmaxtime, fixmaxdist, fixcount, fixrate);
+
+    ret = modem_cmd_send(&mctx.iface, &mctx.cmd_handler,
+                    NULL, 0U, buf, &mdata.sem_response,
+                    MDM_CMD_TIMEOUT);
+    if (ret < 0) {
+        LOG_ERR("%s ret:%d", log_strdup(buf), ret);
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int mdm_quectel_bg9x_gnss_disable()
+{
+    int  ret;
+    ret = modem_cmd_send(&mctx.iface, &mctx.cmd_handler,
+                    NULL, 0U, "AT+QGPSEND", &mdata.sem_response,
+                    MDM_CMD_TIMEOUT);
+    if (ret < 0) {
+        LOG_ERR("AT+QGPSEND ret:%d", ret);
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+#endif /* #if CONFIG_MODEM_QUECTEL_BG9X_GNSS */
+
+#ifdef CONFIG_NEWLIB_LIBC
+static bool valid_time_string(const char *time_string)
+{
+	size_t offset, i;
+
+	/* Ensure that all the expected delimiters are present */
+	offset = TIME_STRING_DIGIT_STRLEN + TIME_STRING_SEPARATOR_STRLEN;
+	i = TIME_STRING_FIRST_SEPARATOR_INDEX;
+
+	for (; i < TIME_STRING_PLUS_MINUS_INDEX; i += offset) {
+		if (time_string[i] != TIME_STRING_FORMAT[i]) {
+			return false;
+		}
+	}
+	/* The last character is the offset from UTC and can be either
+	 * positive or negative.  The last " is also handled here.
+	 */
+	if ((time_string[i] == '+' || time_string[i] == '-') &&
+	    (time_string[i + offset] == '"')) {
+		return true;
+	}
+	return false;
+}
+
+int get_next_time_string_digit(int *failure_cnt, char **pp, int min, int max)
+{
+	char digits[TIME_STRING_DIGIT_STRLEN + SIZE_OF_NUL];
+	int result;
+
+	memset(digits, 0, sizeof(digits));
+	memcpy(digits, *pp, TIME_STRING_DIGIT_STRLEN);
+	*pp += TIME_STRING_DIGIT_STRLEN + TIME_STRING_SEPARATOR_STRLEN;
+	result = strtol(digits, NULL, 10);
+	if (result > max) {
+		*failure_cnt += 1;
+		return max;
+	} else if (result < min) {
+		*failure_cnt += 1;
+		return min;
+	} else {
+		return result;
+	}
+}
+
+static bool convert_time_string_to_struct(struct tm *tm, int32_t *offset,
+					  char *time_string)
+{
+	int fc = 0;
+	char *ptr = time_string;
+
+	if (!valid_time_string(ptr)) {
+		LOG_INF("Invalid timestring");
+		//return false;
+	}
+	ptr = &ptr[TIME_STRING_FIRST_DIGIT_INDEX];
+	tm->tm_year = TIME_STRING_TO_TM_STRUCT_YEAR_OFFSET +
+		      get_next_time_string_digit(&fc, &ptr, TM_YEAR_RANGE);
+	tm->tm_mon =
+		get_next_time_string_digit(&fc, &ptr, TM_MONTH_RANGE_PLUS_1) -
+		1;
+	tm->tm_mday = get_next_time_string_digit(&fc, &ptr, TM_DAY_RANGE);
+	tm->tm_hour = get_next_time_string_digit(&fc, &ptr, TM_HOUR_RANGE);
+	tm->tm_min = get_next_time_string_digit(&fc, &ptr, TM_MIN_RANGE);
+	tm->tm_sec = get_next_time_string_digit(&fc, &ptr, TM_SEC_RANGE);
+	tm->tm_isdst = 0;
+	*offset = (int32_t)get_next_time_string_digit(&fc, &ptr,
+						      QUARTER_HOUR_RANGE) *
+		  SECONDS_PER_QUARTER_HOUR;
+	if (time_string[TIME_STRING_PLUS_MINUS_INDEX] == '-') {
+		*offset *= -1;
+	}
+
+	return (fc == 0);
+}
+
+MODEM_CMD_DEFINE(on_cmd_rtc_query)
+{
+	size_t str_len = sizeof(TIME_STRING_FORMAT) - 1;
+	char rtc_string[sizeof(TIME_STRING_FORMAT)];
+
+	memset(rtc_string, 0, sizeof(rtc_string));
+	mdata.local_time_valid = false;
+
+	if (len != str_len) {
+		LOG_WRN("Unexpected length for RTC string %d (expected:%d)",
+			len, str_len);
+	} else {
+		net_buf_linearize(rtc_string, str_len, data->rx_buf, 0, str_len);
+		LOG_INF("RTC string: '%s'", log_strdup(rtc_string));
+		mdata.local_time_valid = convert_time_string_to_struct(
+			&mdata.local_time, &mdata.local_time_offset, rtc_string);
+	}
+
+	return true;
+}
+
+int32_t mdm_quectel_bg9x_get_local_time(struct tm *tm, int32_t *offset)
+{
+	int ret;
+
+	mdata.local_time_valid = false;
+	struct modem_cmd cmd  = MODEM_CMD("+CCLK: ", on_cmd_rtc_query, 0U, "");
+
+	ret = modem_cmd_send(&mctx.iface, &mctx.cmd_handler,
+			     &cmd, 1U, "AT+CCLK?", &mdata.sem_response,
+			     MDM_CMD_TIMEOUT);
+
+	if (mdata.local_time_valid) {
+		memcpy(tm, &mdata.local_time, sizeof(struct tm));
+		memcpy(offset, &mdata.local_time_offset, sizeof(*offset));
+	} else {
+		ret = -EIO;
+	}
+	return ret;
+}
+#endif
 
 /* Func: send_socket_data
  * Desc: This function will send "binary" data over the socket object.
@@ -454,7 +786,7 @@ static ssize_t send_socket_data(struct modem_socket *sock,
 				k_timeout_t timeout)
 {
 	int  ret;
-	char send_buf[sizeof("AT+QISEND=##,####")] = {0};
+	char send_buf[sizeof("AT+QISEND=##")] = {0};
 	char ctrlz = 0x1A;
 
 	if (buf_len > MDM_MAX_DATA_LENGTH) {
@@ -463,7 +795,7 @@ static ssize_t send_socket_data(struct modem_socket *sock,
 
 	/* Create a buffer with the correct params. */
 	mdata.sock_written = buf_len;
-	snprintk(send_buf, sizeof(send_buf), "AT+QISEND=%d,%ld", sock->sock_fd, (long) buf_len);
+	snprintk(send_buf, sizeof(send_buf), "AT+QISEND=%d", sock->sock_fd);
 
 	/* Setup the locks correctly. */
 	k_sem_take(&mdata.cmd_handler_data.sem_tx_lock, K_FOREVER);
@@ -941,11 +1273,19 @@ static const struct modem_cmd response_cmds[] = {
 static const struct modem_cmd unsol_cmds[] = {
 	MODEM_CMD("+QIURC: \"recv\",",	   on_cmd_unsol_recv,  1U, ""),
 	MODEM_CMD("+QIURC: \"closed\",",   on_cmd_unsol_close, 1U, ""),
+	MODEM_CMD("RDY", on_cmd_unsol_rdy, 0U, ""),
+#if(CONFIG_MODEM_QUECTEL_ENABLE_ECHO)
+	MODEM_CMD("AT+", on_cmd_unsol_echo, 0U, ""),
+#endif
 };
 
 /* Commands sent to the modem to set it up at boot time. */
 static const struct setup_cmd setup_cmds[] = {
+#if(CONFIG_MODEM_QUECTEL_ENABLE_ECHO)
+	SETUP_CMD_NOHANDLE("ATE1"),
+#else
 	SETUP_CMD_NOHANDLE("ATE0"),
+#endif
 	SETUP_CMD_NOHANDLE("ATH"),
 	SETUP_CMD_NOHANDLE("AT+CMEE=1"),
 
@@ -1023,9 +1363,9 @@ restart:
 
 	/* Let the modem respond. */
 	LOG_INF("Waiting for modem to respond");
-	ret = modem_at(&mctx, &mdata);
-	if (ret < 0) {
-		LOG_ERR("MODEM WAIT LOOP ERROR: %d", ret);
+	ret = k_sem_take(&mdata.sem_response, MDM_MAX_BOOT_TIME);
+    if (ret < 0) {
+		LOG_ERR("Timeout waiting for RDY");
 		goto error;
 	}
 
@@ -1211,6 +1551,12 @@ static int modem_init(const struct device *dev)
 
 	/* Init RSSI query */
 	k_delayed_work_init(&mdata.rssi_query_work, modem_rssi_query_work);
+
+	/* Init work to querry buffer length on recv */
+	k_work_init(&mdata.qird_query_work, modem_qird_query_work);
+
+	/* Init work to offload the socket close in AT cmd handler */
+	k_work_init(&mdata.sock_close_work, modem_sock_close_work);
 	return modem_setup();
 
 error:

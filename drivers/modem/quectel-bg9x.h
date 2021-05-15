@@ -24,13 +24,17 @@
 #include "modem_cmd_handler.h"
 #include "modem_iface_uart.h"
 
+#ifdef CONFIG_NEWLIB_LIBC
+#include <time.h>
+#endif
+
 #define MDM_UART_DEV_NAME		  DT_INST_BUS_LABEL(0)
 #define MDM_CMD_TIMEOUT			  K_SECONDS(10)
 #define MDM_CMD_CONN_TIMEOUT		  K_SECONDS(120)
 #define MDM_REGISTRATION_TIMEOUT	  K_SECONDS(180)
 #define MDM_SENDMSG_SLEEP		  K_MSEC(1)
 #define MDM_MAX_DATA_LENGTH		  1024
-#define MDM_RECV_MAX_BUF		  30
+#define MDM_RECV_MAX_BUF		  10
 #define MDM_RECV_BUF_SIZE		  1024
 #define MDM_MAX_SOCKETS			  5
 #define MDM_BASE_SOCKET_NUM		  0
@@ -40,7 +44,7 @@
 #define MDM_WAIT_FOR_RSSI_COUNT		  10
 #define MDM_WAIT_FOR_RSSI_DELAY		  K_SECONDS(2)
 #define BUF_ALLOC_TIMEOUT		  K_SECONDS(1)
-#define MDM_MAX_AT_RETRIES		  50
+#define MDM_MAX_BOOT_TIME         K_SECONDS(20)
 
 /* Default lengths of certain things. */
 #define MDM_MANUFACTURER_LENGTH		  10
@@ -91,6 +95,19 @@ struct modem_data {
 	/* RSSI work */
 	struct k_delayed_work rssi_query_work;
 
+	/* RECV len querry work */
+	struct k_work qird_query_work;
+
+	/* Offload socket close work */
+	struct k_work sock_close_work;
+
+
+#ifdef CONFIG_NEWLIB_LIBC
+	struct tm local_time;
+	int32_t local_time_offset;
+	bool local_time_valid;
+#endif
+
 	/* modem data */
 	char mdm_manufacturer[MDM_MANUFACTURER_LENGTH];
 	char mdm_model[MDM_MODEL_LENGTH];
@@ -103,6 +120,12 @@ struct modem_data {
 
 	/* bytes written to socket in last transaction */
 	int sock_written;
+
+	/* Received data len*/
+	int sock_recv_len;
+
+	/* Socket to be closed */
+	int sock_close;
 
 	/* Socket from which we are currently reading data. */
 	int sock_fd;
