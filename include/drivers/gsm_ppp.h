@@ -97,26 +97,70 @@ typedef union quectel_nmea_type
 struct device;
 void gsm_ppp_start(const struct device *dev);
 void gsm_ppp_stop(const struct device *dev);
+
 #ifdef CONFIG_NEWLIB_LIBC
 /**
  * @brief Get the local time from the modem's real time clock.
  *
- * @param tm time structure
- * @param offset The amount the local time is offset from GMT/UTC in seconds.
+ * @param[inout] tm time structure
+ * @param[inout] offset The amount the local time is offset from GMT/UTC in seconds.
  *
- * @param 0 if successful
+ * @retval 0 if successful
+ * @retval -EIO if RTC time invalid
  */
 int32_t gsm_ppp_get_local_time(const struct device *dev,
 			       struct tm *tm,
 			       int32_t *offset);
 #endif
+
 #ifdef CONFIG_MODEM_GSM_QUECTEL_GNSS
+/**
+ * @brief Configure the outport of the GNSS
+ *
+ * @param[in] dev Pointer to the gsm_ppp device structure
+ * @param[in] outport Outport of the NMEA sentences, can be either
+ * QUECTEL_GNSS_OP_NONE, QUECTEL_GNSS_OP_USB or QUECTEL_GNSS_OP_UART.
+ * @retval 0 on success, negative on failure.
+ */
 int quectel_gnss_cfg_outport(const struct device *dev, char* outport);
+
+/**
+ * @brief Selectively configures the NMEA sentences
+ *
+ * @param[in] dev Pointer to the gsm_ppp device structure
+ * @param[in] gnss Type of the GNSS to configure, see quectel_nmea_types_t.
+ * @param[in] cfg The configuration itself, see quectel_nmea_type_t.
+ * @retval 0 on success, negative on failure.
+ */
 int quectel_gnss_cfg_nmea(const struct device *dev,
 			  quectel_nmea_types_t gnss,
 			  quectel_nmea_type_t cfg);
+
+/**
+ * @brief Configures supported GNSS constellation
+ *
+ * @param[in] dev Pointer to the gsm_ppp device structure
+ * @param[in] cfg The configuration of the constellation, see
+ * quectel_gnss_conf_t.
+ * @retval 0 on success, negative on failure.
+ */
 int quectel_gnss_cfg_gnss(const struct device *dev,
 			  quectel_gnss_conf_t cfg);
+
+/**
+ * @brief Enables the GNSS, for more info please read the Quectel GNSS manual.
+ *
+ * @param[in] dev Pointer to the gsm_ppp device structure
+ * @param[in] fixmaxtime Maximum positioning time in second. [1 - 255 : 30]
+ * @param[in] fixmaxdist Accuracy threshold of positioning in meter.
+ * [1 - 1000 : 50]
+ * @param[in] fixcount Number of attempts for positioning. 0 for continuous,
+ * maximum 1000. [0 - 1000 : 0]
+ * @param[in] fixrate Interval time between positioning in second.
+ * [1 - 65535 : 1]
+ *
+ * @retval 0 on success, negative on failure.
+ */
 int quectel_gnss_enable(const struct device *dev, uint8_t fixmaxtime,
 			uint16_t fixmaxdist, uint16_t fixcount,
 			uint16_t fixrate);
