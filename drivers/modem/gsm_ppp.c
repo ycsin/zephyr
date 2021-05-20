@@ -462,7 +462,7 @@ int quectel_gnss_enable(const struct device *dev, uint8_t fixmaxtime,
 	struct gsm_modem *gsm = dev->data;
 
 	if ((fixmaxtime == 0) ||
-		(fixmaxtime == 0) || (fixmaxtime > 1000) ||
+		(fixmaxtime > 1000) || (fixmaxdist > 1000) ||
 		(fixcount > 1000) ||
 		(fixrate == 0))
 	{
