@@ -35,19 +35,19 @@ typedef enum quectel_nmea_types
 typedef enum quectel_gnss_conf
 {
     /* GLONASS off/BeiDou off/Galileo off */
-    GLONASS_OFF_BEIDOU_OFF_GALILEO_OFF = 0,
+    GN_OFF_BD_OFF_GL_OFF = 0,
     /* GLONASS on/BeiDou on/Galileo on */
-    GLONASS_ON_BEIDOU_ON_GALILEO_ON,
+    GN_ON_BD_ON_GL_ON,
     /* GLONASS on/BeiDou on/Galileo off */
-    GLONASS_ON_BEIDOU_ON_GALILEO_OFF,
+    GN_ON_BD_ON_GL_OFF,
     /* GLONASS on/BeiDou off/Galileo on */
-    GLONASS_ON_BEIDOU_OFF_GALILEO_ON,
+    GN_ON_BD_OFF_GL_ON,
     /* GLONASS on/BeiDou off/Galileo off */
-    GLONASS_ON_BEIDOU_OFF_GALILEO_OFF,
+    GN_ON_BD_OFF_GL_OFF,
     /* GLONASS off/BeiDou on/Galileo on */
-    GLONASS_OFF_BEIDOU_ON_GALILEO_ON,
+    GN_OFF_BD_ON_GL_ON,
     /* GLONASS off/BeiDou off/Galileo on */
-    GLONASS_OFF_BEIDOU_OFF_GALILEO_ON,
+    GN_OFF_BD_OFF_GL_ON,
 } quectel_gnss_conf_t;
 
 typedef union quectel_nmea_type
@@ -85,9 +85,12 @@ typedef union quectel_nmea_type
     } gsvext;
 } quectel_nmea_type_t;
 
+/* GNSS output disabled */
 #define QUECTEL_GNSS_OP_NONE "none"
-#define QUECTEL_GNSS_OP_USBNMEA "usbnmea"
-#define QUECTEL_GNSS_OP_UARTDEBUG "uartdebug"
+/* GNSS output to USB port */
+#define QUECTEL_GNSS_OP_USB "usbnmea"
+/* GNSS output to UART debug port */
+#define QUECTEL_GNSS_OP_UART "uartdebug"
 #endif
 
 /** @cond INTERNAL_HIDDEN */
