@@ -164,6 +164,15 @@ int quectel_gnss_cfg_gnss(const struct device *dev,
 int quectel_gnss_enable(const struct device *dev, uint8_t fixmaxtime,
 			uint16_t fixmaxdist, uint16_t fixcount,
 			uint16_t fixrate);
+
+/**
+ * @brief Disables the GNSS.
+ *
+ * @param[in] dev Pointer to the gsm_ppp device structure
+ *
+ * @retval 0 on success, negative on failure.
+ */
+int quectel_gnss_disable(const struct device *dev);
 #endif
 /** @endcond */
 
