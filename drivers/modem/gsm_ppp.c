@@ -1125,24 +1125,36 @@ static void gsm_configure(struct k_work *work)
 					     gsm_configure_work);
 	int ret = -1;
 
+	if(gsm->attach_retries) {
+		goto powered_on;
+	}
+
 #if CONFIG_MODEM_GSM_QUECTEL
 	enable_power(&gsm->context);
 	power_key_on(&gsm->context);
 
 	LOG_INF("Waiting for modem to boot up");
 
-	ret = k_sem_take(&gsm->sem_response, K_SECONDS(50));
+powered_on:
+	ret = k_sem_take(&gsm->sem_response, K_NO_WAIT);
 
 	if (ret == 0) {
 		LOG_INF("Modem RDY");
 	} else {
-		LOG_INF("Time out waiting for modem RDY");
+		if (!gsm->attach_retries) {
+			gsm->attach_retries = CONFIG_MODEM_GSM_ATTACH_TIMEOUT *
+				MSEC_PER_SEC / GSM_ATTACH_RETRY_DELAY_MSEC;
+		} else {
+			gsm->attach_retries --;
+		}
+
 		(void)k_delayed_work_submit(&gsm->gsm_configure_work,
-					    K_NO_WAIT);
+					    K_MSEC(GSM_ATTACH_RETRY_DELAY_MSEC));
 
 		return;
 	}
 #endif
+	gsm->attach_retries = 0;
 
 	LOG_DBG("Starting modem %p configuration", gsm);
 
