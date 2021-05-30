@@ -1,4 +1,5 @@
 # Copyright (c) 2020 Intel Corporation
+# Copyright (c) 2021 G-Technologies Sdn. Bhd.
 # SPDX-License-Identifier: Apache-2.0
 
 config MODEM_GSM_PPP
@@ -29,8 +30,6 @@ config MODEM_GSM_SIMCOM
 
 endchoice
 
-config MODEM_GSM_UART_NAME
-	string "UART device name the modem is connected to"
 
 config MODEM_GSM_RX_STACK_SIZE
 	int "Size of the stack allocated for receiving data from modem"
