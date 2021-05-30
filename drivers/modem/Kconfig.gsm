@@ -28,6 +28,11 @@ config MODEM_GSM_SIMCOM
 	help
 	  Use this if you have SIMCOM based modem like SIM800 etc.
 
+config MODEM_GSM_QUECTEL
+	bool "Quectel modem"
+	help
+	  Use this if you have Quectel based modem like EC21 etc.
+
 endchoice
 
 
