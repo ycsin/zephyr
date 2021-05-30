@@ -896,37 +896,37 @@ static int mux_enable(struct gsm_modem *gsm)
 	int ret;
 
 	/* Turn on muxing */
-	if (IS_ENABLED(CONFIG_MODEM_GSM_SIMCOM)) {
-		ret = modem_cmd_send_nolock(
-			&gsm->context.iface,
-			&gsm->context.cmd_handler,
-			&response_cmds[0],
-			ARRAY_SIZE(response_cmds),
+#if CONFIG_MODEM_GSM_SIMCOM
+	ret = modem_cmd_send_nolock(
+		&gsm->context.iface,
+		&gsm->context.cmd_handler,
+		&response_cmds[0],
+		ARRAY_SIZE(response_cmds),
 #if defined(SIMCOM_LTE)
-			/* FIXME */
-			/* Some SIMCOM modems can set the channels */
-			/* Control channel always at DLCI 0 */
-			"AT+CMUXSRVPORT=0,0;"
-			/* PPP should be at DLCI 1 */
-			"+CMUXSRVPORT=" STRINGIFY(DLCI_PPP) ",1;"
-			/* AT should be at DLCI 2 */
-			"+CMUXSRVPORT=" STRINGIFY(DLCI_AT) ",1;"
+		/* FIXME */
+		/* Some SIMCOM modems can set the channels */
+		/* Control channel always at DLCI 0 */
+		"AT+CMUXSRVPORT=0,0;"
+		/* PPP should be at DLCI 1 */
+		"+CMUXSRVPORT=" STRINGIFY(DLCI_PPP) ",1;"
+		/* AT should be at DLCI 2 */
+		"+CMUXSRVPORT=" STRINGIFY(DLCI_AT) ",1;"
 #else
-			"AT"
+		"AT"
 #endif
-			"+CMUX=0,0,5,"
-			STRINGIFY(CONFIG_GSM_MUX_MRU_DEFAULT_LEN),
-			&gsm->sem_response,
-			GSM_CMD_AT_TIMEOUT);
-	} else {
-		/* Generic GSM modem */
-		ret = modem_cmd_send_nolock(&gsm->context.iface,
-				     &gsm->context.cmd_handler,
-				     &response_cmds[0],
-				     ARRAY_SIZE(response_cmds),
-				     "AT+CMUX=0", &gsm->sem_response,
-				     GSM_CMD_AT_TIMEOUT);
-	}
+		"+CMUX=0,0,5,"
+		STRINGIFY(CONFIG_GSM_MUX_MRU_DEFAULT_LEN),
+		&gsm->sem_response,
+		GSM_CMD_AT_TIMEOUT);
+#else
+	/* Generic GSM modem */
+	ret = modem_cmd_send_nolock(&gsm->context.iface,
+				&gsm->context.cmd_handler,
+				&response_cmds[0],
+				ARRAY_SIZE(response_cmds),
+				"AT+CMUX=0", &gsm->sem_response,
+				GSM_CMD_AT_TIMEOUT);
+#endif
 
 	if (ret < 0) {
 		LOG_ERR("AT+CMUX ret:%d", ret);
