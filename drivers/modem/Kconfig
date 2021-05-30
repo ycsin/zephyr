@@ -120,9 +120,16 @@ endif # MODEM_CONTEXT
 config MODEM_SHELL
 	bool "Enable modem shell utilities"
 	select SHELL
+	select MODEM_INFO
 	help
 	  Activate shell module that provides modem utilities like
 	  sending a command to the modem UART.
+
+config MODEM_INFO
+	bool "Enable querying the modem info"
+	default y
+	help
+	  Query the modem for info like manufacturer, model, revision & IMEI.
 
 config MODEM_SIM_NUMBERS
 	bool "Enable querying the SIM for IMSI and ICCID"
