@@ -77,6 +77,16 @@ static const char TIME_STRING_FORMAT[] = "\"yy/MM/dd,hh:mm:ss?zz\"";
 #define SIZE_OF_NUL 1
 #endif
 
+#if CONFIG_MODEM_GSM_QUECTEL_GNSS
+static const char quectel_nmea_str[5][16] = {
+	"gpsnmeatype\0",
+	"glonassnmeatype\0",
+	"galileonmeatype\0",
+	"beidounmeatype\0",
+	"gsvextnmeatype\0",
+};
+#endif
+
 /* Modem network registration state */
 enum network_state {
 	GSM_NOT_REGISTERED = 0,
@@ -506,6 +516,170 @@ static const struct setup_cmd setup_cmds[] = {
 	/* create PDP context */
 	SETUP_CMD_NOHANDLE("AT+CGDCONT=1,\"IP\",\"" CONFIG_MODEM_GSM_APN "\""),
 };
+
+#ifdef CONFIG_MODEM_GSM_QUECTEL_GNSS
+int quectel_gnss_cfg_outport(const struct device *dev, char* outport)
+{
+	int  ret;
+	char buf[sizeof("AT+QGPSCFG=\"outport\",\"#########\"")] = {0};
+	struct gsm_modem *gsm = dev->data;
+
+	snprintk(buf, sizeof(buf), "AT+QGPSCFG=\"outport\",\"%s\"", outport);
+
+	ret = modem_cmd_send(&gsm->context.iface, &gsm->context.cmd_handler,
+			NULL, 0U, buf, &gsm->sem_response,
+			GSM_CMD_AT_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERR("%s ret:%d", log_strdup(buf), ret);
+		errno = -ret;
+		return -1;
+	}
+
+	LOG_INF("Configured GNSS outport to %s", outport);
+
+	return ret;
+}
+
+int quectel_gnss_cfg_nmea(const struct device *dev, quectel_nmea_types_t gnss,
+			  quectel_nmea_type_t cfg)
+{
+	int  ret;
+	uint8_t val;
+	char buf[sizeof("AT+QGPSCFG=\"glonassnmeatype\",##")] = {0};
+	struct gsm_modem *gsm = dev->data;
+
+	switch(gnss)
+	{
+		case QUECTEL_NMEA_GPS:
+			val = (cfg.gps.vtg << 4 | cfg.gps.gsa << 3 |
+				cfg.gps.gsv << 2 | cfg.gps.rmc << 1 |
+				cfg.gps.gga);
+
+			LOG_INF("Configuring GPS NMEA: %X", val);
+
+			break;
+		case QUECTEL_NMEA_GLONASS:
+			val = (cfg.glonass.gns << 2 | cfg.glonass.gsa << 1 |
+				cfg.glonass.gsv);
+
+			LOG_INF("Configuring GLONASS NMEA: %X", val);
+
+			break;
+		case QUECTEL_NMEA_GALILEO:
+			val = (cfg.galileo.gsv);
+
+			LOG_INF("Configuring GALILEO NMEA: %X", val);
+
+			break;
+		case QUECTEL_NMEA_BEIDOU:
+			val = (cfg.beidou.gsv << 1 | cfg.beidou.gsa);
+
+			LOG_INF("Configuring BEIDOU NMEA: %X", val);
+
+			break;
+		case QUECTEL_NMEA_GSVEXT:
+			val = cfg.gsvext.enable;
+
+			LOG_INF("Configuring GSVEXT NMEA: %X", val);
+
+			break;
+		default:
+			LOG_ERR("Invalid quectel_nmea_types_t");
+			errno = -EINVAL;
+			return -1;
+	}
+
+	snprintk(buf, sizeof(buf), "AT+QGPSCFG=\"%s\",%u",
+				quectel_nmea_str[gnss], val);
+
+	ret = modem_cmd_send(&gsm->context.iface, &gsm->context.cmd_handler,
+				NULL, 0U, buf, &gsm->sem_response,
+				GSM_CMD_AT_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERR("%s ret:%d", log_strdup(buf), ret);
+		errno = -ret;
+		return -1;
+	}
+
+	return ret;
+}
+
+int quectel_gnss_cfg_gnss(const struct device *dev, quectel_gnss_conf_t cfg)
+{
+	int  ret;
+	char buf[sizeof("AT+QGPSCFG=\"gnssconfig\",#")] = {0};
+	struct gsm_modem *gsm = dev->data;
+
+	snprintk(buf, sizeof(buf), "AT+QGPSCFG=\"gnssconfig\",%u", cfg);
+
+	ret = modem_cmd_send(&gsm->context.iface, &gsm->context.cmd_handler,
+			NULL, 0U, buf, &gsm->sem_response,
+			GSM_CMD_AT_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERR("%s ret:%d", log_strdup(buf), ret);
+		errno = -ret;
+		return -1;
+	}
+
+	LOG_INF("Configured GNSS config: %d", (int)cfg);
+
+	return ret;
+}
+
+int quectel_gnss_enable(const struct device *dev, uint8_t fixmaxtime,
+			uint16_t fixmaxdist, uint16_t fixcount,
+			uint16_t fixrate)
+{
+	int  ret;
+	char buf[sizeof("AT+QGPS=1,###,####,####,#####")] = {0};
+	struct gsm_modem *gsm = dev->data;
+
+	if ((fixmaxtime == 0) ||
+		(fixmaxtime == 0) || (fixmaxtime > 1000) ||
+		(fixcount > 1000) ||
+		(fixrate == 0))
+	{
+		errno = -EINVAL;
+		return -1;
+	}
+
+	snprintk(buf, sizeof(buf), "AT+QGPS=1,%u,%u,%u,%u", fixmaxtime,
+							    fixmaxdist,
+							    fixcount,
+							    fixrate);
+
+	ret = modem_cmd_send(&gsm->context.iface, &gsm->context.cmd_handler,
+			NULL, 0U, buf, &gsm->sem_response,
+			GSM_CMD_AT_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERR("%s ret:%d", log_strdup(buf), ret);
+		errno = -ret;
+		return -1;
+	}
+
+	LOG_INF("Enabled Quectel GNSS");
+
+	return ret;
+}
+
+int quectel_gnss_disable(const struct device *dev)
+{
+    int  ret;
+    struct gsm_modem *gsm = dev->data;
+    ret = modem_cmd_send(&gsm->context.iface, &gsm->context.cmd_handler,
+                    NULL, 0U, "AT+QGPSEND", &gsm->sem_response,
+                    GSM_CMD_AT_TIMEOUT);
+    if (ret < 0) {
+        LOG_ERR("AT+QGPSEND ret:%d", ret);
+        errno = -ret;
+        return -1;
+    }
+
+    LOG_INF("Disabled Quectel GNSS");
+
+    return ret;
+}
+#endif /* #if CONFIG_MODEM_QUECTEL_GNSS */
 
 #ifdef CONFIG_NEWLIB_LIBC
 static bool valid_time_string(const char *time_string)
