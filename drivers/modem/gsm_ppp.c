@@ -143,7 +143,7 @@ static const struct modem_cmd response_cmds[] = {
 	MODEM_CMD("CONNECT", gsm_cmd_ok, 0U, ""),
 };
 
-#if defined(CONFIG_MODEM_SHELL)
+#if defined(CONFIG_MODEM_INFO)
 #define MDM_MANUFACTURER_LENGTH  10
 #define MDM_MODEL_LENGTH         16
 #define MDM_REVISION_LENGTH      64
@@ -263,7 +263,7 @@ MODEM_CMD_DEFINE(on_cmd_atcmdinfo_iccid)
 	return 0;
 }
 #endif /* CONFIG_MODEM_SIM_NUMBERS */
-#endif /* CONFIG_MODEM_SHELL */
+#endif /* CONFIG_MODEM_INFO */
 
 static const struct setup_cmd setup_cmds[] = {
 	/* no echo */
@@ -273,7 +273,7 @@ static const struct setup_cmd setup_cmds[] = {
 	/* extender errors in numeric form */
 	SETUP_CMD_NOHANDLE("AT+CMEE=1"),
 
-#if defined(CONFIG_MODEM_SHELL)
+#if defined(CONFIG_MODEM_INFO)
 	/* query modem info */
 	SETUP_CMD("AT+CGMI", "", on_cmd_atcmdinfo_manufacturer, 0U, ""),
 	SETUP_CMD("AT+CGMM", "", on_cmd_atcmdinfo_model, 0U, ""),
@@ -922,7 +922,7 @@ static int gsm_init(const struct device *dev)
 		return r;
 	}
 
-#if defined(CONFIG_MODEM_SHELL)
+#if defined(CONFIG_MODEM_INFO)
 	/* modem information storage */
 	gsm->context.data_manufacturer = minfo.mdm_manufacturer;
 	gsm->context.data_model = minfo.mdm_model;
@@ -932,7 +932,7 @@ static int gsm_init(const struct device *dev)
 	gsm->context.data_imsi = minfo.mdm_imsi;
 	gsm->context.data_iccid = minfo.mdm_iccid;
 #endif	/* CONFIG_MODEM_SIM_NUMBERS */
-#endif	/* CONFIG_MODEM_SHELL */
+#endif	/* CONFIG_MODEM_INFO */
 
 	gsm->gsm_data.rx_rb_buf = &gsm->gsm_rx_rb_buf[0];
 	gsm->gsm_data.rx_rb_buf_len = sizeof(gsm->gsm_rx_rb_buf);
