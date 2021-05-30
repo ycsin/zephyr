@@ -35,6 +35,12 @@ config MODEM_GSM_QUECTEL
 
 endchoice
 
+config MODEM_GSM_QUECTEL_GNSS
+	bool "Enables GNSS functions for Quectel modems"
+	depends on MODEM_GSM_QUECTEL
+	default n
+	help
+	  Enables GPS functions for Quectel modems that support GNSS.
 
 config MODEM_GSM_RX_STACK_SIZE
 	int "Size of the stack allocated for receiving data from modem"
