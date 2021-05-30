@@ -849,7 +849,7 @@ MODEM_CMD_DEFINE(on_cmd_atcmdinfo_attached)
 	}
 
 	modem_cmd_handler_set_error(data, error);
-	k_sem_give(&gsm.sem_response);
+	/* Just return, sem_response will be signaled by the following OK */
 
 	return 0;
 }
