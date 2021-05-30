@@ -30,6 +30,10 @@ LOG_MODULE_REGISTER(modem_gsm, CONFIG_MODEM_LOG_LEVEL);
 #include <time.h>
 #endif
 
+#if (CONFIG_MODEM_GSM_QUECTEL)
+#include "quectel-mdm.h"
+#endif
+
 #define GSM_UART_DEV_ID                 DT_INST_BUS(0)
 #define GSM_UART_DEV_NAME               DT_INST_BUS_LABEL(0)
 #define GSM_CMD_READ_BUF                128
@@ -200,6 +204,15 @@ MODEM_CMD_DEFINE(gsm_cmd_error)
 	return 0;
 }
 
+#if CONFIG_MODEM_GSM_QUECTEL
+/* Handler: Modem ready. */
+MODEM_CMD_DEFINE(on_cmd_unsol_rdy)
+{
+	k_sem_give(&gsm.sem_response);
+	return 0;
+}
+#endif
+
 static const struct modem_cmd response_cmds[] = {
 	MODEM_CMD("OK", gsm_cmd_ok, 0U, ""),
 	MODEM_CMD("ERROR", gsm_cmd_error, 0U, ""),
@@ -235,6 +248,12 @@ MODEM_CMD_DEFINE(on_cmd_atcmdinfo_cops)
 
 	return 0;
 }
+
+#if CONFIG_MODEM_GSM_QUECTEL
+static const struct modem_cmd unsol_cmds[] = {
+	MODEM_CMD("RDY", on_cmd_unsol_rdy, 0U, ""),
+};
+#endif
 
 #if defined(CONFIG_MODEM_INFO)
 #define MDM_MANUFACTURER_LENGTH  10
@@ -1016,6 +1035,19 @@ static int mux_enable(struct gsm_modem *gsm)
 		STRINGIFY(CONFIG_GSM_MUX_MRU_DEFAULT_LEN),
 		&gsm->sem_response,
 		GSM_CMD_AT_TIMEOUT);
+#elif CONFIG_MODEM_GSM_QUECTEL
+	/* Quectel GSM modem */
+	ret = modem_cmd_send_nolock(&gsm->context.iface,
+				&gsm->context.cmd_handler,
+				&response_cmds[0],
+				ARRAY_SIZE(response_cmds),
+				"AT+CMUX=0,0,5,"
+				STRINGIFY(CONFIG_GSM_MUX_MRU_DEFAULT_LEN),
+				&gsm->sem_response,
+				GSM_CMD_AT_TIMEOUT);
+
+	/* Quectel requires some time to initialize the CMUX */
+	k_sleep(K_SECONDS(1));
 #else
 	/* Generic GSM modem */
 	ret = modem_cmd_send_nolock(&gsm->context.iface,
@@ -1175,6 +1207,24 @@ static void gsm_configure(struct k_work *work)
 					     gsm_configure_work);
 	int ret = -1;
 
+#if CONFIG_MODEM_GSM_QUECTEL
+	enable_power(&gsm->context);
+	power_key_on(&gsm->context);
+
+	LOG_INF("Waiting for modem to boot up");
+
+	ret = k_sem_take(&gsm->sem_response, K_SECONDS(50));
+
+	if (ret == 0) {
+		LOG_INF("Modem RDY");
+	} else {
+		LOG_INF("Time out waiting for modem RDY");
+		(void)k_work_reschedule(&gsm->gsm_configure_work, K_NO_WAIT);
+
+		return;
+	}
+#endif
+
 	LOG_DBG("Starting modem %p configuration", gsm);
 
 	ret = modem_cmd_send_nolock(&gsm->context.iface,
@@ -1248,6 +1298,33 @@ void gsm_ppp_stop(const struct device *dev)
 	struct gsm_modem *gsm = dev->data;
 	struct net_if *iface = gsm->iface;
 
+#if (CONFIG_MODEM_GSM_QUECTEL)
+
+	int ret;
+
+	LOG_INF("Turning off modem...");
+
+	/* FIXME: According to EC21 DS, after sending AT+QPOWD, the modem will
+	 * 	  respond "OK" followed by "POWERED DOWN", then only we can
+	 * 	  turn off the power. However in my testing I didn't get the
+	 * 	  "POWERED DOWN".
+	 */
+	ret = modem_cmd_send_nolock(&gsm->context.iface,
+				    &gsm->context.cmd_handler,
+				    &response_cmds[0],
+				    ARRAY_SIZE(response_cmds),
+				    "AT+QPOWD=0",
+				    &gsm->sem_response,
+				    GSM_CMD_AT_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERR("Modem took too long to power down normally");
+	}
+
+	disable_power(&gsm->context);
+
+	LOG_INF("Modem powered down!");
+#endif
+
 	net_if_l2(iface)->enable(iface, false);
 
 	if (IS_ENABLED(CONFIG_GSM_MUX)) {
@@ -1274,6 +1351,10 @@ static int gsm_init(const struct device *dev)
 
 	gsm->cmd_handler_data.cmds[CMD_RESP] = response_cmds;
 	gsm->cmd_handler_data.cmds_len[CMD_RESP] = ARRAY_SIZE(response_cmds);
+#if (CONFIG_MODEM_GSM_QUECTEL)
+	gsm->cmd_handler_data.cmds[CMD_UNSOL] = unsol_cmds;
+	gsm->cmd_handler_data.cmds_len[CMD_UNSOL] = ARRAY_SIZE(unsol_cmds);
+#endif
 	gsm->cmd_handler_data.match_buf = &gsm->cmd_match_buf[0];
 	gsm->cmd_handler_data.match_buf_len = sizeof(gsm->cmd_match_buf);
 	gsm->cmd_handler_data.buf_pool = &gsm_recv_pool;
@@ -1302,6 +1383,12 @@ static int gsm_init(const struct device *dev)
 #endif	/* CONFIG_MODEM_INFO */
 
 	gsm->context.is_automatic_oper = false;
+
+#if (CONFIG_MODEM_GSM_QUECTEL)
+	gsm->context.pins = modem_pins;
+	gsm->context.pins_len = ARRAY_SIZE(modem_pins);
+#endif
+
 	gsm->gsm_data.rx_rb_buf = &gsm->gsm_rx_rb_buf[0];
 	gsm->gsm_data.rx_rb_buf_len = sizeof(gsm->gsm_rx_rb_buf);
 
