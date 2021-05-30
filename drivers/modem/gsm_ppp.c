@@ -214,6 +214,14 @@ MODEM_CMD_DEFINE(gsm_cmd_error)
 	return 0;
 }
 
+MODEM_CMD_DEFINE(gsm_cmd_cme_error)
+{
+	modem_cmd_handler_set_error(data, -EINVAL);
+	LOG_DBG("cme error: %d", atoi(argv[0]));
+	k_sem_give(&gsm.sem_response);
+	return 0;
+}
+
 #if CONFIG_MODEM_GSM_QUECTEL
 /* Handler: Modem ready. */
 MODEM_CMD_DEFINE(on_cmd_unsol_rdy)
@@ -226,6 +234,7 @@ MODEM_CMD_DEFINE(on_cmd_unsol_rdy)
 static const struct modem_cmd response_cmds[] = {
 	MODEM_CMD("OK", gsm_cmd_ok, 0U, ""),
 	MODEM_CMD("ERROR", gsm_cmd_error, 0U, ""),
+	MODEM_CMD("+CME ERROR: ", gsm_cmd_cme_error, 1U, ""),
 	MODEM_CMD("CONNECT", gsm_cmd_ok, 0U, ""),
 };
 
