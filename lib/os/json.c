@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <sys/printk.h>
+#include <stdio.h>
 #include <sys/util.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -790,6 +791,57 @@ static int num_encode(const int32_t *num, json_append_bytes_t append_bytes,
 	return append_bytes(buf, (size_t)ret, data);
 }
 
+static int num64_encode(const int64_t *num, json_append_bytes_t append_bytes,
+		      void *data)
+{
+	char buf[3 * sizeof(int64_t)];
+	int ret;
+
+	ret = snprintk(buf, sizeof(buf), "%lld", *num);
+	if (ret < 0) {
+		return ret;
+	}
+	if (ret >= (int)sizeof(buf)) {
+		return -ENOMEM;
+	}
+
+	return append_bytes(buf, (size_t)ret, data);
+}
+
+static int float_encode(const float *num, const uint8_t dp, json_append_bytes_t append_bytes,
+		      void *data)
+{
+	char buf[3 * sizeof(float)];
+	int ret;
+
+	ret = sprintf(buf, "%.3f", *num);
+	if (ret < 0) {
+		return ret;
+	}
+	if (ret >= (int)sizeof(buf)) {
+		return -ENOMEM;
+	}
+
+	return append_bytes(buf, (size_t)ret, data);
+}
+
+static int double_encode(const double *num, const uint8_t dp, json_append_bytes_t append_bytes,
+		      void *data)
+{
+	char buf[3 * sizeof(double)];
+	int ret;
+
+	ret = sprintf(buf, "%.7f", *num);
+	if (ret < 0) {
+		return ret;
+	}
+	if (ret >= (int)sizeof(buf)) {
+		return -ENOMEM;
+	}
+
+	return append_bytes(buf, (size_t)ret, data);
+}
+
 static int bool_encode(const bool *value, json_append_bytes_t append_bytes,
 		       void *data)
 {
@@ -820,6 +872,12 @@ static int encode(const struct json_obj_descr *descr, const void *val,
 				       ptr, append_bytes, data);
 	case JSON_TOK_NUMBER:
 		return num_encode(ptr, append_bytes, data);
+	case JSON_TOK_NUMBER64:
+		return num64_encode(ptr, append_bytes, data);
+	case JSON_TOK_FLOAT:
+		return float_encode(ptr, 3, append_bytes, data);
+	case JSON_TOK_DOUBLE:
+		return double_encode(ptr, 7, append_bytes, data);
 	default:
 		return -EINVAL;
 	}
