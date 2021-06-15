@@ -3,6 +3,7 @@
  * Copyright (c) 2019 ST Microelectronics
  * Copyright (c) 2019 Centaur Analytics, Inc
  * Copyright (C) 2020 Framework Computer LLC <ktl@frame.work>
+ * Copyright (c) 2021 G-Technologies Sdn. Bhd.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -23,7 +24,7 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		cpu@0 {
+		cpu0: cpu@0 {
 			device_type = "cpu";
 			compatible = "arm,cortex-m0+";
 			reg = <0>;
