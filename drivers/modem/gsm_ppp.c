@@ -527,7 +527,7 @@ static const struct setup_cmd setup_cmds[] = {
 };
 
 #ifdef CONFIG_MODEM_GSM_QUECTEL_GNSS
-int quectel_gnss_cfg_outport(const struct device *dev, char* outport)
+int quectel_gnss_cfg_outport(const struct device *dev, const char* outport)
 {
 	int  ret;
 	char buf[sizeof("AT+QGPSCFG=\"outport\",\"#########\"")] = {0};
@@ -549,8 +549,9 @@ int quectel_gnss_cfg_outport(const struct device *dev, char* outport)
 	return ret;
 }
 
-int quectel_gnss_cfg_nmea(const struct device *dev, quectel_nmea_types_t gnss,
-			  quectel_nmea_type_t cfg)
+int quectel_gnss_cfg_nmea(const struct device *dev,
+			  const quectel_nmea_types_t gnss,
+			  const quectel_nmea_type_t *cfg)
 {
 	int  ret;
 	uint8_t val;
@@ -560,34 +561,34 @@ int quectel_gnss_cfg_nmea(const struct device *dev, quectel_nmea_types_t gnss,
 	switch(gnss)
 	{
 		case QUECTEL_NMEA_GPS:
-			val = (cfg.gps.vtg << 4 | cfg.gps.gsa << 3 |
-				cfg.gps.gsv << 2 | cfg.gps.rmc << 1 |
-				cfg.gps.gga);
+			val = (cfg->gps.vtg << 4 | cfg->gps.gsa << 3 |
+				cfg->gps.gsv << 2 | cfg->gps.rmc << 1 |
+				cfg->gps.gga);
 
 			LOG_INF("Configuring GPS NMEA: %X", val);
 
 			break;
 		case QUECTEL_NMEA_GLONASS:
-			val = (cfg.glonass.gns << 2 | cfg.glonass.gsa << 1 |
-				cfg.glonass.gsv);
+			val = (cfg->glonass.gns << 2 | cfg->glonass.gsa << 1 |
+				cfg->glonass.gsv);
 
 			LOG_INF("Configuring GLONASS NMEA: %X", val);
 
 			break;
 		case QUECTEL_NMEA_GALILEO:
-			val = (cfg.galileo.gsv);
+			val = (cfg->galileo.gsv);
 
 			LOG_INF("Configuring GALILEO NMEA: %X", val);
 
 			break;
 		case QUECTEL_NMEA_BEIDOU:
-			val = (cfg.beidou.gsv << 1 | cfg.beidou.gsa);
+			val = (cfg->beidou.gsv << 1 | cfg->beidou.gsa);
 
 			LOG_INF("Configuring BEIDOU NMEA: %X", val);
 
 			break;
 		case QUECTEL_NMEA_GSVEXT:
-			val = cfg.gsvext.enable;
+			val = cfg->gsvext.enable;
 
 			LOG_INF("Configuring GSVEXT NMEA: %X", val);
 
@@ -613,7 +614,7 @@ int quectel_gnss_cfg_nmea(const struct device *dev, quectel_nmea_types_t gnss,
 	return ret;
 }
 
-int quectel_gnss_cfg_gnss(const struct device *dev, quectel_gnss_conf_t cfg)
+int quectel_gnss_cfg_gnss(const struct device *dev, const quectel_gnss_conf_t cfg)
 {
 	int  ret;
 	char buf[sizeof("AT+QGPSCFG=\"gnssconfig\",#")] = {0};
@@ -635,9 +636,9 @@ int quectel_gnss_cfg_gnss(const struct device *dev, quectel_gnss_conf_t cfg)
 	return ret;
 }
 
-int quectel_gnss_enable(const struct device *dev, uint8_t fixmaxtime,
-			uint16_t fixmaxdist, uint16_t fixcount,
-			uint16_t fixrate)
+int quectel_gnss_enable(const struct device *dev, const uint8_t fixmaxtime,
+			const uint16_t fixmaxdist, const uint16_t fixcount,
+			const uint16_t fixrate)
 {
 	int  ret;
 	char buf[sizeof("AT+QGPS=1,###,####,####,#####")] = {0};
