@@ -123,7 +123,7 @@ int32_t gsm_ppp_get_local_time(const struct device *dev,
  * QUECTEL_GNSS_OP_NONE, QUECTEL_GNSS_OP_USB or QUECTEL_GNSS_OP_UART.
  * @retval 0 on success, negative on failure.
  */
-int quectel_gnss_cfg_outport(const struct device *dev, char* outport);
+int quectel_gnss_cfg_outport(const struct device *dev, const char* outport);
 
 /**
  * @brief Selectively configures the NMEA sentences
@@ -134,8 +134,8 @@ int quectel_gnss_cfg_outport(const struct device *dev, char* outport);
  * @retval 0 on success, negative on failure.
  */
 int quectel_gnss_cfg_nmea(const struct device *dev,
-			  quectel_nmea_types_t gnss,
-			  quectel_nmea_type_t cfg);
+			  const quectel_nmea_types_t gnss,
+			  const quectel_nmea_type_t *cfg);
 
 /**
  * @brief Configures supported GNSS constellation
@@ -146,7 +146,7 @@ int quectel_gnss_cfg_nmea(const struct device *dev,
  * @retval 0 on success, negative on failure.
  */
 int quectel_gnss_cfg_gnss(const struct device *dev,
-			  quectel_gnss_conf_t cfg);
+			  const quectel_gnss_conf_t cfg);
 
 /**
  * @brief Enables the GNSS, for more info please read the Quectel GNSS manual.
@@ -162,9 +162,9 @@ int quectel_gnss_cfg_gnss(const struct device *dev,
  *
  * @retval 0 on success, negative on failure.
  */
-int quectel_gnss_enable(const struct device *dev, uint8_t fixmaxtime,
-			uint16_t fixmaxdist, uint16_t fixcount,
-			uint16_t fixrate);
+int quectel_gnss_enable(const struct device *dev, const uint8_t fixmaxtime,
+			const uint16_t fixmaxdist, const uint16_t fixcount,
+			const uint16_t fixrate);
 
 /**
  * @brief Disables the GNSS.
