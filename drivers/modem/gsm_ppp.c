@@ -141,6 +141,7 @@ static struct gsm_modem {
 
 	int rssi_retries;
 	int attach_retries;
+	bool powered_on : 1;
 	bool mux_enabled : 1;
 	bool mux_setup_done : 1;
 	bool setup_done : 1;
@@ -643,6 +644,9 @@ int quectel_gnss_enable(const struct device *dev, const uint8_t fixmaxtime,
 	int  ret;
 	char buf[sizeof("AT+QGPS=1,###,####,####,#####")] = {0};
 	struct gsm_modem *gsm = dev->data;
+	if(!gsm->powered_on) {
+		return 0;
+	}
 
 	if ((fixmaxtime == 0) ||
 		(fixmaxtime == 0) || (fixmaxtime > 1000) ||
@@ -674,20 +678,24 @@ int quectel_gnss_enable(const struct device *dev, const uint8_t fixmaxtime,
 
 int quectel_gnss_disable(const struct device *dev)
 {
-    int  ret;
-    struct gsm_modem *gsm = dev->data;
-    ret = modem_cmd_send(&gsm->context.iface, &gsm->context.cmd_handler,
-                    NULL, 0U, "AT+QGPSEND", &gsm->sem_response,
-                    GSM_CMD_AT_TIMEOUT);
-    if (ret < 0) {
-        LOG_ERR("AT+QGPSEND ret:%d", ret);
-        errno = -ret;
-        return -1;
-    }
+	int  ret;
+	struct gsm_modem *gsm = dev->data;
+	if(!gsm->powered_on) {
+		return 0;
+	}
 
-    LOG_INF("Disabled Quectel GNSS");
+	ret = modem_cmd_send(&gsm->context.iface, &gsm->context.cmd_handler,
+			NULL, 0U, "AT+QGPSEND", &gsm->sem_response,
+			GSM_CMD_AT_TIMEOUT);
+	if (ret < 0) {
+	LOG_ERR("AT+QGPSEND ret:%d", ret);
+	errno = -ret;
+	return -1;
+	}
 
-    return ret;
+	LOG_INF("Disabled Quectel GNSS");
+
+	return ret;
 }
 #endif /* #if CONFIG_MODEM_QUECTEL_GNSS */
 
@@ -793,6 +801,10 @@ int32_t gsm_ppp_get_local_time(const struct device *dev, struct tm *tm, int32_t 
 
 	struct modem_cmd cmd  = MODEM_CMD("+CCLK: ", on_cmd_rtc_query, 0U, "");
 	struct gsm_modem *gsm = dev->data;
+	if (!gsm->powered_on)
+	{
+		return -EIO;
+	}
 	gsm->local_time_valid = false;
 
 	ret = modem_cmd_send(&gsm->context.iface, &gsm->context.cmd_handler,
@@ -1461,6 +1473,11 @@ void gsm_ppp_start(const struct device *dev)
 {
 	struct gsm_modem *gsm = dev->data;
 
+	if (gsm->powered_on)
+	{
+		return;
+	}
+
 	/* Re-init underlying UART comms */
 	int r = modem_iface_uart_init_dev(&gsm->context.iface,
 					  DEVICE_DT_GET(GSM_UART_DEV_ID));
@@ -1475,12 +1492,37 @@ void gsm_ppp_start(const struct device *dev)
 #if defined(CONFIG_GSM_MUX)
 	k_work_init_delayable(&rssi_work_handle, rssi_handler);
 #endif
+
+	gsm->powered_on = true;
 }
 
 void gsm_ppp_stop(const struct device *dev)
 {
 	struct gsm_modem *gsm = dev->data;
 	struct net_if *iface = gsm->iface;
+
+	if (!gsm->powered_on)
+	{
+		return;
+	}
+
+	net_if_l2(iface)->enable(iface, false);
+
+	if (IS_ENABLED(CONFIG_GSM_MUX)) {
+		/* Lower mux_enabled flag to trigger re-sending AT+CMUX etc */
+		gsm->mux_enabled = false;
+
+		if (gsm->ppp_dev) {
+			uart_mux_disable(gsm->ppp_dev);
+		}
+	}
+
+	if (modem_cmd_handler_tx_lock(&gsm->context.cmd_handler,
+				      K_SECONDS(10))) {
+		LOG_WRN("Failed locking modem cmds!");
+	}
+
+	k_work_cancel_delayable(&gsm->gsm_configure_work);
 
 #if (CONFIG_MODEM_GSM_QUECTEL)
 
@@ -1501,7 +1543,7 @@ void gsm_ppp_stop(const struct device *dev)
 				    &gsm->sem_response,
 				    GSM_CMD_AT_TIMEOUT);
 	if (ret < 0) {
-		LOG_ERR("Modem took too long to power down normally");
+		LOG_WRN("Modem took too long to power down normally");
 	}
 
 	disable_power(&gsm->context);
@@ -1509,21 +1551,7 @@ void gsm_ppp_stop(const struct device *dev)
 	LOG_INF("Modem powered down!");
 #endif
 
-	net_if_l2(iface)->enable(iface, false);
-
-	if (IS_ENABLED(CONFIG_GSM_MUX)) {
-		/* Lower mux_enabled flag to trigger re-sending AT+CMUX etc */
-		gsm->mux_enabled = false;
-
-		if (gsm->ppp_dev) {
-			uart_mux_disable(gsm->ppp_dev);
-		}
-	}
-
-	if (modem_cmd_handler_tx_lock(&gsm->context.cmd_handler,
-				      K_SECONDS(10))) {
-		LOG_WRN("Failed locking modem cmds!");
-	}
+	gsm->powered_on = false;
 }
 
 static int gsm_init(const struct device *dev)
@@ -1605,6 +1633,8 @@ static int gsm_init(const struct device *dev)
 		LOG_ERR("Couldn't find ppp net_if!");
 		return -ENODEV;
 	}
+
+	gsm->powered_on = false;
 
 	if (IS_ENABLED(CONFIG_GSM_PPP_AUTOSTART)) {
 		gsm_ppp_start(dev);
