@@ -519,8 +519,8 @@ static const struct setup_cmd setup_cmds[] = {
 	SETUP_CMD("AT+CGSN", "", on_cmd_atcmdinfo_imei, 0U, ""),
 #endif
 
-	/* enable network registration report */
-	SETUP_CMD_NOHANDLE("AT+CREG=1"),
+	/* disable unsolicited network registration codes */
+	SETUP_CMD_NOHANDLE("AT+CREG=0"),
 
 	/* create PDP context */
 	SETUP_CMD_NOHANDLE("AT+CGDCONT=1,\"IP\",\"" CONFIG_MODEM_GSM_APN "\""),
