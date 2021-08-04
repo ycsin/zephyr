@@ -117,7 +117,11 @@ int flash_stm32_wait_flash_idle(const struct device *dev)
 		return -EIO;
 	}
 #if defined(CONFIG_SOC_SERIES_STM32G0X)
+#if defined(FLASH_DBANK_SUPPORT)
+	while ((FLASH_STM32_REGS(dev)->SR & (FLASH_SR_BSY1 | FLASH_SR_BSY2))) {
+#else
 	while ((FLASH_STM32_REGS(dev)->SR & FLASH_SR_BSY1)) {
+#endif /* FLASH_DBANK_SUPPORT */
 #else
 	while ((FLASH_STM32_REGS(dev)->SR & FLASH_SR_BSY)) {
 #endif
