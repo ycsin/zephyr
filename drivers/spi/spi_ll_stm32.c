@@ -910,14 +910,13 @@ static int spi_stm32_set_power_state(const struct device *dev,
  * @return 0
  */
 static int spi_stm32_pm_control(const struct device *dev,
-					 uint32_t ctrl_command,
-					 uint32_t *state, pm_device_cb cb,
-					 void *arg)
+				uint32_t ctrl_command,
+				enum pm_device_state *state)
 {
 	struct spi_stm32_data *data = DEV_DATA(dev);
 
 	if (ctrl_command == PM_DEVICE_STATE_SET) {
-		uint32_t new_state = *state;
+		enum pm_device_state new_state = *state;
 
 		if (new_state != data->pm_state) {
 			spi_stm32_set_power_state(dev, new_state);
@@ -925,10 +924,6 @@ static int spi_stm32_pm_control(const struct device *dev,
 	} else {
 		__ASSERT_NO_MSG(ctrl_command == PM_DEVICE_STATE_GET);
 		*state = data->pm_state;
-	}
-
-	if (cb) {
-		cb(dev, 0, state, arg);
 	}
 
 	return 0;
