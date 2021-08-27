@@ -192,7 +192,7 @@ source "subsys/logging/Kconfig.template.log_config"
 endif # SHELL_BACKEND_RTT
 
 config SHELL_BACKEND_MQTT
-	bool "Enable TELNET backend."
+	bool "Enable MQTT backend."
 	depends on NET_TCP
 	depends on NET_IPV4 || NET_IPV6
 	help
