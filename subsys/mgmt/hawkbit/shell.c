@@ -57,6 +57,10 @@ static void cmd_run(const struct shell *shell, size_t argc, char **argv)
 		shell_fprintf(shell, SHELL_INFO, "Metadata Error\n");
 		break;
 
+	case HAWKBIT_PROBE_IN_PROGRESS:
+		shell_fprintf(shell, SHELL_INFO, "Hawkbit already running\n");
+		break;
+
 	default:
 		shell_fprintf(shell, SHELL_ERROR, "Invalid response\n");
 		break;
