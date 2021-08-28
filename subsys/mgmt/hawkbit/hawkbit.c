@@ -898,7 +898,7 @@ static bool send_request(enum http_method method,
 #ifdef CONFIG_HAWKBIT_DDI_GATEWAY_SECURITY
 			"Authorization: GatewayToken "CONFIG_HAWKBIT_DDI_SECURITY_TOKEN"\r\n",
 #else
-			"Authorization: TargetToken "CONFIG_HAWKBIT_DDI_TARGET_TOKEN"\r\n",
+			"Authorization: TargetToken "CONFIG_HAWKBIT_DDI_SECURITY_TOKEN"\r\n",
 #endif /* CONFIG_HAWKBIT_DDI_GATEWAY_SECURITY */
 			NULL
 		};
