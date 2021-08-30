@@ -343,7 +343,7 @@ static void broker_init(struct shell_mqtt *ctx)
 	zsock_inet_pton(AF_INET, SERVER_ADDR, &broker4->sin_addr);
 }
 
-static struct mqtt_utf8 password = { .utf8 = MQTT_PASSWORD };
+static struct mqtt_utf8 password = { .utf8 = MQTT_PASSWORD, .size = sizeof(MQTT_PASSWORD) };
 
 static struct mqtt_utf8 username = { .utf8 = MQTT_USERNAME, .size = sizeof(MQTT_USERNAME) };
 
