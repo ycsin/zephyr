@@ -20,15 +20,22 @@
 extern "C" {
 #endif
 
-#define RX_RB_SIZE 512
+#define RX_RB_SIZE CONFIG_SHELL_MQTT_RX_BUF_SIZE
+#define TX_BUF_SIZE CONFIG_SHELL_MQTT_TX_BUF_SIZE
 #define APP_MQTT_BUFFER_SIZE 64
+#define DEVICE_ID_BIN_MAX_SIZE 3
+#define DEVICE_ID_HEX_MAX_SIZE ((DEVICE_ID_BIN_MAX_SIZE * 2) + 1)
+#define MQTT_TOPIC_MAX_SIZE DEVICE_ID_HEX_MAX_SIZE + 3
 
 extern const struct shell_transport_api shell_mqtt_transport_api;
 
 /** Line buffer structure. */
 struct shell_mqtt_line_buf {
 	/** Line buffer. */
-	char buf[RX_RB_SIZE];
+	char buf[TX_BUF_SIZE];
+
+	/* Buffer offset */
+	uint16_t off;
 
 	/** Current line length. */
 	uint16_t len;
@@ -36,10 +43,18 @@ struct shell_mqtt_line_buf {
 
 /** MQTT-based shell transport. */
 struct shell_mqtt {
+	char device_id[DEVICE_ID_HEX_MAX_SIZE];
+	char sub_topic[MQTT_TOPIC_MAX_SIZE];
+	char pub_topic[MQTT_TOPIC_MAX_SIZE];
+
 	/** Handler function registered by shell. */
 	shell_transport_handler_t shell_handler;
 
 	struct shell_mqtt_line_buf line_out;
+
+	struct ring_buf rx_rb;
+	uint8_t rx_rb_buf[RX_RB_SIZE];
+	uint8_t *rx_rb_ptr;
 
 	/** Context registered by shell. */
 	void *shell_context;
@@ -62,9 +77,6 @@ struct shell_mqtt {
 	struct mqtt_publish_param pub_data;
 
 	struct net_mgmt_event_callback mgmt_cb;
-
-	struct k_sem tx_sem;
-	struct k_sem rx_sem;
 
 	/* work */
 	struct k_work_delayable mqtt_work;

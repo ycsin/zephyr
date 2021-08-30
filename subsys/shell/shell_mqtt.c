@@ -5,11 +5,6 @@
  */
 
 /* TOOD
- * - Maybe move the mqtt send part to a thread or work that consumes the ringbuffer?
- * 	Currently it seems to send to fast and caused the MQTT to be disconnected after a burst
- * - Maybe change the 512 bytes line buffer to ring buffer on data item mode?
- * - Filter those terminal colour code
- * - Filter leading '\r\n'
  * - TLS
  */
 
@@ -17,6 +12,9 @@
 #include <init.h>
 #include <logging/log.h>
 #include <random/rand32.h>
+#include <string.h>
+#include <stdio.h>
+#include <drivers/hwinfo.h>
 
 SHELL_MQTT_DEFINE(shell_transport_mqtt);
 SHELL_DEFINE(shell_mqtt, NULL, &shell_transport_mqtt,
@@ -29,9 +27,6 @@ LOG_MODULE_REGISTER(shell_mqtt, CONFIG_SHELL_MQTT_LOG_LEVEL);
 #define APP_CONNECT_TIMEOUT_MS 2000
 #define APP_SLEEP_MSECS 500
 #define MQTT_PROCESS_INTERVAL 2
-#define MQTT_CLIENTID "mqtt_shell"
-#define SUB_TOPIC "cmd_tx"
-#define PUB_TOPIC "cmd_rx"
 #define SERVER_ADDR CONFIG_SHELL_MQTT_SERVER_ADDR
 #define SERVER_PORT CONFIG_SHELL_MQTT_SERVER_PORT
 
@@ -49,19 +44,27 @@ LOG_MODULE_REGISTER(shell_mqtt, CONFIG_SHELL_MQTT_LOG_LEVEL);
 
 struct shell_mqtt *sh_mqtt;
 
-RING_BUF_DECLARE(rx_rb, RX_RB_SIZE);
-uint8_t *rx_buf_ptr;
+bool get_device_identity(char *id, int id_max_len)
+{
+	uint8_t hwinfo_id[DEVICE_ID_BIN_MAX_SIZE];
+	ssize_t length;
+
+	length = hwinfo_get_device_id(hwinfo_id, DEVICE_ID_BIN_MAX_SIZE);
+	if (length <= 0) {
+		return false;
+	}
+
+	memset(id, 0, id_max_len);
+	length = bin2hex(hwinfo_id, (size_t)length, id, id_max_len - 1);
+
+	return length > 0;
+}
 
 static void prepare_fds(struct shell_mqtt *ctx)
 {
 	if (ctx->client_ctx.transport.type == MQTT_TRANSPORT_NON_SECURE) {
 		ctx->fds[0].fd = ctx->client_ctx.transport.tcp.sock;
 	}
-#if defined(CONFIG_MQTT_LIB_TLS)
-	else if (ctx->client_ctx.transport.type == MQTT_TRANSPORT_SECURE) {
-		ctx->fds[0].fd = ctx->client_ctx.transport.tls.sock;
-	}
-#endif
 
 	ctx->fds[0].events = ZSOCK_POLLIN;
 	ctx->nfds = 1;
@@ -136,7 +139,8 @@ static void mqtt_process_work(struct k_work *work)
 static int mqtt_subscribe_config(struct mqtt_client *const client)
 {
 	/* subscribe to config information */
-	struct mqtt_topic subs_topic = { .topic = { .utf8 = SUB_TOPIC, .size = strlen(SUB_TOPIC) },
+	struct mqtt_topic subs_topic = { .topic = { .utf8 = sh_mqtt->sub_topic,
+						    .size = strlen(sh_mqtt->sub_topic) },
 					 .qos = MQTT_QOS_1_AT_LEAST_ONCE };
 	const struct mqtt_subscription_list subs_list = { .list = &subs_topic,
 							  .list_count = 1U,
@@ -234,8 +238,6 @@ static void event_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_even
 	} else if (mgmt_event == NET_EVENT_L4_DISCONNECTED) {
 		LOG_DBG("No network connection");
 		sh_mqtt->state = SHELL_MQTT_OP_WAIT_NET;
-		k_sem_reset(&sh_mqtt->tx_sem);
-		k_sem_reset(&sh_mqtt->rx_sem);
 		(void)k_work_cancel_delayable_sync(&sh_mqtt->mqtt_work, &sh_mqtt->work_sync);
 	}
 	return;
@@ -272,8 +274,6 @@ static void mqtt_evt_handler(struct mqtt_client *const client, const struct mqtt
 		LOG_DBG("MQTT client disconnected %d", evt->result);
 		clear_fds(sh_mqtt);
 		sh_mqtt->state = SHELL_MQTT_OP_CONNECTING;
-		k_sem_reset(&sh_mqtt->tx_sem);
-		k_sem_reset(&sh_mqtt->rx_sem);
 		(void)k_work_cancel_delayable_sync(&sh_mqtt->mqtt_work, &sh_mqtt->work_sync);
 		k_work_init_delayable(&sh_mqtt->mqtt_work, mqtt_connect_work);
 		(void)k_work_reschedule(&sh_mqtt->mqtt_work, K_SECONDS(MQTT_PROCESS_INTERVAL));
@@ -281,28 +281,14 @@ static void mqtt_evt_handler(struct mqtt_client *const client, const struct mqtt
 
 	case MQTT_EVT_PUBLISH: {
 		const struct mqtt_publish_param *pub = &evt->param.publish;
-		int len = pub->message.payload.len;
+		uint32_t rb_free_space = ring_buf_space_get(&sh_mqtt->rx_rb);
 		int bytes_read, ret;
 		uint32_t size;
 
-		LOG_DBG("MQTT publish received %d, %d bytes", evt->result, len);
+		LOG_DBG("MQTT publish received %d, %d bytes", evt->result,
+			pub->message.payload.len);
 		LOG_DBG("   id: %d, qos: %d", pub->message_id, pub->message.topic.qos);
 		LOG_DBG("   item: %s", log_strdup(pub->message.topic.topic.utf8));
-		/* assuming the config message is textual */
-		while (len) {
-			size = ring_buf_put_claim(&rx_rb, &rx_buf_ptr, len);
-
-			bytes_read = mqtt_read_publish_payload(client, rx_buf_ptr, size);
-			if (bytes_read < 0 && bytes_read != -EAGAIN) {
-				LOG_ERR("failure to read payload");
-				break;
-			}
-			ret = ring_buf_put_finish(&rx_rb, bytes_read);
-
-			len -= bytes_read;
-		}
-
-		ring_buf_put(&rx_rb, "\r\n", sizeof("\r\n"));
 
 		/* for MQTT_QOS_0_AT_MOST_ONCE no acknowledgment needed */
 		if (pub->message.topic.qos == MQTT_QOS_1_AT_LEAST_ONCE) {
@@ -311,9 +297,22 @@ static void mqtt_evt_handler(struct mqtt_client *const client, const struct mqtt
 			mqtt_publish_qos1_ack(client, &puback);
 		}
 
-		sh_mqtt->shell_handler(SHELL_TRANSPORT_EVT_RX_RDY, sh_mqtt->shell_context);
+		if (rb_free_space >= (pub->message.payload.len + sizeof("\r\n"))) {
+			size = ring_buf_put_claim(&sh_mqtt->rx_rb, &sh_mqtt->rx_rb_ptr, pub->message.payload.len);
 
-		k_sem_give(&sh_mqtt->rx_sem);
+			bytes_read = mqtt_read_publish_payload(client, sh_mqtt->rx_rb_ptr, size);
+			if (bytes_read < 0 && bytes_read != -EAGAIN) {
+				LOG_ERR("failure to read payload");
+				break;
+			}
+			ret = ring_buf_put_finish(&sh_mqtt->rx_rb, bytes_read);
+			ring_buf_put(&sh_mqtt->rx_rb, "\r\n", sizeof("\r\n"));
+		} else {
+			LOG_ERR("RB free space: %d bytes, incoming packet: %d bytes", rb_free_space,
+				pub->message.payload.len);
+		}
+
+		sh_mqtt->shell_handler(SHELL_TRANSPORT_EVT_RX_RDY, sh_mqtt->shell_context);
 		break;
 	}
 
@@ -322,7 +321,6 @@ static void mqtt_evt_handler(struct mqtt_client *const client, const struct mqtt
 			LOG_ERR("MQTT PUBACK error %d", evt->result);
 			break;
 		}
-		k_sem_give(&sh_mqtt->tx_sem);
 		LOG_DBG("PUBACK packet id: %u", evt->param.puback.message_id);
 		break;
 
@@ -356,8 +354,8 @@ static void client_init(struct shell_mqtt *ctx)
 	/* MQTT client configuration */
 	ctx->client_ctx.broker = &ctx->broker;
 	ctx->client_ctx.evt_cb = mqtt_evt_handler;
-	ctx->client_ctx.client_id.utf8 = (uint8_t *)MQTT_CLIENTID;
-	ctx->client_ctx.client_id.size = strlen(MQTT_CLIENTID);
+	ctx->client_ctx.client_id.utf8 = (uint8_t *)sh_mqtt->device_id;
+	ctx->client_ctx.client_id.size = strlen(sh_mqtt->device_id);
 	ctx->client_ctx.password = &password;
 	ctx->client_ctx.user_name = &username;
 	ctx->client_ctx.protocol_version = MQTT_VERSION_3_1_1;
@@ -367,22 +365,6 @@ static void client_init(struct shell_mqtt *ctx)
 	ctx->client_ctx.rx_buf_size = sizeof(ctx->buf.rx);
 	ctx->client_ctx.tx_buf = ctx->buf.tx;
 	ctx->client_ctx.tx_buf_size = sizeof(ctx->buf.tx);
-
-	/* MQTT transport configuration */
-#if defined(CONFIG_MQTT_LIB_TLS)
-	struct mqtt_sec_config *tls_config = &ctx->client_ctx.transport.tls.config;
-
-	tls_config->peer_verify = TLS_PEER_VERIFY_REQUIRED;
-	tls_config->cipher_list = NULL;
-	tls_config->sec_tag_list = m_sec_tags;
-	tls_config->sec_tag_count = ARRAY_SIZE(m_sec_tags);
-#if defined(MBEDTLS_X509_CRT_PARSE_C) || defined(CONFIG_NET_SOCKETS_OFFLOAD)
-	tls_config->hostname = TLS_SNI_HOSTNAME;
-#else
-	tls_config->hostname = NULL;
-#endif /* defined(MBEDTLS_X509_CRT_PARSE_C) || \
-		  defined(CONFIG_NET_SOCKETS_OFFLOAD) */
-#endif /* defined(CONFIG_MQTT_LIB_TLS) */
 }
 
 static int init(const struct shell_transport *transport, const void *config,
@@ -392,13 +374,27 @@ static int init(const struct shell_transport *transport, const void *config,
 
 	memset(sh_mqtt, 0, sizeof(struct shell_mqtt));
 
+	if (!get_device_identity(sh_mqtt->device_id, DEVICE_ID_HEX_MAX_SIZE)) {
+		LOG_ERR("Unable to get device identity, using dummy value");
+		snprintf(sh_mqtt->device_id, sizeof("dummy"), "dummy");
+	}
+
+	LOG_DBG("Client ID is %s", log_strdup(sh_mqtt->device_id));
+
+	snprintf(sh_mqtt->pub_topic, MQTT_TOPIC_MAX_SIZE, "%s_tx", sh_mqtt->device_id);
+	snprintf(sh_mqtt->sub_topic, MQTT_TOPIC_MAX_SIZE, "%s_rx", sh_mqtt->device_id);
+	LOG_DBG("Subscribing shell cmds from: %s", log_strdup(sh_mqtt->sub_topic));
+	LOG_DBG("Logs will be published to: %s", log_strdup(sh_mqtt->pub_topic));
+
+	ring_buf_init(&sh_mqtt->rx_rb, RX_RB_SIZE, sh_mqtt->rx_rb_buf);
+
 	LOG_DBG("Initializing shell MQTT backend");
 
 	sh_mqtt->shell_handler = evt_handler;
 	sh_mqtt->shell_context = context;
 
 	sh_mqtt->pub_data.message.topic.qos = MQTT_QOS_1_AT_LEAST_ONCE;
-	sh_mqtt->pub_data.message.topic.topic.utf8 = (uint8_t *)PUB_TOPIC;
+	sh_mqtt->pub_data.message.topic.topic.utf8 = (uint8_t *)sh_mqtt->pub_topic;
 	sh_mqtt->pub_data.message.topic.topic.size =
 		strlen(sh_mqtt->pub_data.message.topic.topic.utf8);
 	sh_mqtt->pub_data.dup_flag = 0U;
@@ -408,12 +404,9 @@ static int init(const struct shell_transport *transport, const void *config,
 	broker_init(sh_mqtt);
 	client_init(sh_mqtt);
 
-	k_sem_init(&sh_mqtt->tx_sem, 0, 1);
-	k_sem_init(&sh_mqtt->rx_sem, 0, 1);
-
 	k_work_init_delayable(&sh_mqtt->mqtt_work, mqtt_connect_work);
 
-	LOG_DBG("Initializing listening for network");
+	LOG_DBG("Initializing listener for network");
 	net_mgmt_init_event_callback(&sh_mqtt->mgmt_cb, event_handler, EVENT_MASK);
 	sh_mqtt->state = SHELL_MQTT_OP_WAIT_NET;
 
@@ -422,6 +415,7 @@ static int init(const struct shell_transport *transport, const void *config,
 
 static int uninit(const struct shell_transport *transport)
 {
+	/* Not initialized yet */
 	if (sh_mqtt == NULL) {
 		return -ENODEV;
 	}
@@ -431,11 +425,10 @@ static int uninit(const struct shell_transport *transport)
 
 static int enable(const struct shell_transport *transport, bool blocking)
 {
+	/* Not initialized yet */
 	if (sh_mqtt == NULL) {
 		return -ENODEV;
 	}
-
-	LOG_DBG("shell MQTT enable");
 
 	/* Listen for network connection status */
 	net_mgmt_add_event_callback(&sh_mqtt->mgmt_cb);
@@ -444,27 +437,57 @@ static int enable(const struct shell_transport *transport, bool blocking)
 	return 0;
 }
 
-int shell_mqtt_send(void)
+static int shell_mqtt_send(void)
 {
 	int ret = 0;
-	LOG_DBG("shell_mqtt_send");
-	sh_mqtt->pub_data.message.payload.data = &sh_mqtt->line_out.buf[0];
+	sh_mqtt->pub_data.message.payload.data = &sh_mqtt->line_out.buf[sh_mqtt->line_out.off];
 	sh_mqtt->pub_data.message.payload.len = sh_mqtt->line_out.len;
 	sh_mqtt->pub_data.message_id = sys_rand32_get();
 
 	ret = mqtt_publish(&sh_mqtt->client_ctx, &sh_mqtt->pub_data);
 	if (ret != 0) {
-		LOG_ERR("shell_mqtt_send: %d", ret);
+		LOG_ERR("MQTT publish error: %d", ret);
 	}
 
 	return ret;
 }
 
-bool is_valid_char(const uint8_t *c)
+static void filter_leading_esc_codes(struct shell_mqtt_line_buf *lb)
+{
+	for (int i = 0; i < lb->len; i++) {
+		if (strncmp(&lb->buf[lb->off], "[JJ", sizeof("[JJ") - 1) == 0) {
+			lb->off += (sizeof("[JJ") - 1);
+			lb->len -= (sizeof("[JJ") - 1);
+		} else {
+			break;
+		}
+	}
+	return;
+}
+
+static void filter_leading_bytes(struct shell_mqtt_line_buf *lb)
+{
+	lb->off = 0;
+
+	for (int i = 0; i < lb->len; i++) {
+		if (strncmp(&lb->buf[lb->off], "\r\n", sizeof("\r\n") - 1) == 0) {
+			lb->off += (sizeof("\r\n") - 1);
+			lb->len -= (sizeof("\r\n") - 1);
+		} else {
+			break;
+		}
+	}
+
+	filter_leading_esc_codes(lb);
+
+	return;
+}
+
+static bool is_valid_char(const uint8_t *c)
 {
 	if (*c >= ' ' && *c <= '~') {
 		return true;
-	} else if (*c == '\0' || *c == '\r' || *c == '\n') {
+	} else if (*c == '\r' || *c == '\n') {
 		return true;
 	} else {
 		return false;
@@ -477,22 +500,24 @@ static int write(const struct shell_transport *transport, const void *data, size
 	int ret;
 	struct shell_mqtt_line_buf *lb;
 
+	/* Not initialized yet */
 	if (sh_mqtt == NULL) {
 		*cnt = 0;
 		return -ENODEV;
 	}
 
+	/* Not connected to internet */
 	if (sh_mqtt->state < SHELL_MQTT_OP_CONNECTED) {
 		*cnt = length;
 		return 0;
 	}
 
-	if (length > RX_RB_SIZE) {
+	/* Exceeds the max buffer length */
+	if (length > TX_BUF_SIZE) {
 		*cnt = length;
+		LOG_ERR("Trying to send %d bytes, exceeded %d bytes", length, TX_BUF_SIZE);
 		return 0;
 	}
-
-	LOG_DBG("Write size: %d", length);
 
 	*cnt = 0;
 	lb = &sh_mqtt->line_out;
@@ -509,19 +534,20 @@ static int write(const struct shell_transport *transport, const void *data, size
 	 * is recognized.
 	 */
 	if ((lb->buf[lb->len - 2] == '\r' && lb->buf[lb->len - 1] == '\n') ||
-	    lb->len == RX_RB_SIZE) {
-		if (lb->len > 2) {
+	    lb->len == TX_BUF_SIZE) {
+		filter_leading_bytes(lb);
+		if (lb->len) {
+			LOG_DBG("Publishing %d bytes", lb->len);
 			ret = shell_mqtt_send();
+			memset(lb, 0, sizeof(*lb));
 			if (ret != 0) {
 				*cnt = length;
 				return ret;
 			}
 		}
-
-		sh_mqtt->line_out.len = 0;
-		sh_mqtt->shell_handler(SHELL_TRANSPORT_EVT_TX_RDY, sh_mqtt->shell_context);
 	}
 
+	/* Inform shell that it is ready for next TX */
 	sh_mqtt->shell_handler(SHELL_TRANSPORT_EVT_TX_RDY, sh_mqtt->shell_context);
 
 	return 0;
@@ -529,21 +555,21 @@ static int write(const struct shell_transport *transport, const void *data, size
 
 static int read(const struct shell_transport *transport, void *data, size_t length, size_t *cnt)
 {
+	/* Not initialized yet */
 	if (sh_mqtt == NULL) {
 		return -ENODEV;
 	}
 
+	/* Not subscribed yet */
 	if (sh_mqtt->state < SHELL_MQTT_OP_SUBSCRIBED) {
 		*cnt = 0;
 		return 0;
 	}
 
-	LOG_DBG("shell MQTT read len: %d", length);
-
-	*cnt = ring_buf_get(&rx_rb, data, length);
+	*cnt = ring_buf_get(&sh_mqtt->rx_rb, data, length);
 
 	/* Inform the shell if there are still data in the rb */
-	if (ring_buf_size_get(&rx_rb) > 0) {
+	if (ring_buf_size_get(&sh_mqtt->rx_rb) > 0) {
 		sh_mqtt->shell_handler(SHELL_TRANSPORT_EVT_RX_RDY, sh_mqtt->shell_context);
 	}
 

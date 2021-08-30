@@ -222,6 +222,18 @@ config SHELL_MQTT_SERVER_PASSWORD
 	help
 	  MQTT server password.
 
+config SHELL_MQTT_RX_BUF_SIZE
+	int "RX buffer size"
+	default 256
+	help
+	  Buffer size for the MQTT data reception.
+
+config SHELL_MQTT_TX_BUF_SIZE
+	int "TX buffer size"
+	default 256
+	help
+	  Buffer size for the MQTT data transmission.
+
 module = SHELL_BACKEND_MQTT
 default-timeout = 100
 source "subsys/shell/Kconfig.template.shell_log_queue_timeout"
