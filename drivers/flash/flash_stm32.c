@@ -77,29 +77,11 @@ static inline void _flash_stm32_sem_give(const struct device *dev)
 #if !defined(CONFIG_SOC_SERIES_STM32WBX)
 static int flash_stm32_check_status(const struct device *dev)
 {
-	uint32_t const error =
-#if defined(FLASH_FLAG_PGAERR)
-		FLASH_FLAG_PGAERR |
-#endif
-#if defined(FLASH_FLAG_RDERR)
-		FLASH_FLAG_RDERR  |
-#endif
-#if defined(FLASH_FLAG_PGPERR)
-		FLASH_FLAG_PGPERR |
-#endif
-#if defined(FLASH_FLAG_PGSERR)
-		FLASH_FLAG_PGSERR |
-#endif
-#if defined(FLASH_FLAG_OPERR)
-		FLASH_FLAG_OPERR |
-#endif
-#if defined(FLASH_FLAG_PGERR)
-		FLASH_FLAG_PGERR |
-#endif
-		FLASH_FLAG_WRPERR;
 
-	if (FLASH_STM32_REGS(dev)->SR & error) {
-		LOG_DBG("Status: 0x%08x", FLASH_STM32_REGS(dev)->SR & error);
+	if (FLASH_STM32_REGS(dev)->FLASH_STM32_SR & FLASH_STM32_SR_ERRORS) {
+		LOG_DBG("Status: 0x%08lx",
+			FLASH_STM32_REGS(dev)->FLASH_STM32_SR &
+							FLASH_STM32_SR_ERRORS);
 		return -EIO;
 	}
 
@@ -111,20 +93,21 @@ int flash_stm32_wait_flash_idle(const struct device *dev)
 {
 	int64_t timeout_time = k_uptime_get() + STM32_FLASH_TIMEOUT;
 	int rc;
+	uint32_t busy_flags;
 
 	rc = flash_stm32_check_status(dev);
 	if (rc < 0) {
 		return -EIO;
 	}
-#if defined(CONFIG_SOC_SERIES_STM32G0X)
-#if defined(FLASH_DBANK_SUPPORT)
-	while ((FLASH_STM32_REGS(dev)->SR & (FLASH_SR_BSY1 | FLASH_SR_BSY2))) {
-#else
-	while ((FLASH_STM32_REGS(dev)->SR & FLASH_SR_BSY1)) {
-#endif /* FLASH_DBANK_SUPPORT */
-#else
-	while ((FLASH_STM32_REGS(dev)->SR & FLASH_SR_BSY)) {
+
+	busy_flags = FLASH_STM32_SR_BUSY;
+
+/* Some Series can't modify FLASH_CR reg while CFGBSY is set. Wait as well */
+#if defined(FLASH_STM32_SR_CFGBSY)
+	busy_flags |= FLASH_STM32_SR_CFGBSY;
 #endif
+
+	while ((FLASH_STM32_REGS(dev)->FLASH_STM32_SR & busy_flags)) {
 		if (k_uptime_get() > timeout_time) {
 			LOG_ERR("Timeout! val: %d", STM32_FLASH_TIMEOUT);
 			return -EIO;
@@ -138,7 +121,7 @@ static void flash_stm32_flush_caches(const struct device *dev,
 				     off_t offset, size_t len)
 {
 #if defined(CONFIG_SOC_SERIES_STM32F0X) || defined(CONFIG_SOC_SERIES_STM32F3X) || \
-	defined(CONFIG_SOC_SERIES_STM32G0X)
+	defined(CONFIG_SOC_SERIES_STM32G0X) || defined(CONFIG_SOC_SERIES_STM32L5X)
 	ARG_UNUSED(dev);
 	ARG_UNUSED(offset);
 	ARG_UNUSED(len);
@@ -270,6 +253,16 @@ static int flash_stm32_write_protection(const struct device *dev, bool enable)
 		}
 	}
 
+#if defined(FLASH_SECURITY_NS)
+	if (enable) {
+		regs->NSCR |= FLASH_NSCR_NSLOCK;
+	} else {
+		if (regs->NSCR & FLASH_NSCR_NSLOCK) {
+			regs->NSKEYR = FLASH_KEY1;
+			regs->NSKEYR = FLASH_KEY2;
+		}
+	}
+#else	/* FLASH_SECURITY_SEC | FLASH_SECURITY_NA */
 #if defined(FLASH_CR_LOCK)
 	if (enable) {
 		regs->CR |= FLASH_CR_LOCK;
@@ -297,6 +290,7 @@ static int flash_stm32_write_protection(const struct device *dev, bool enable)
 		}
 	}
 #endif
+#endif /* FLASH_SECURITY_NS */
 
 	if (enable) {
 		LOG_DBG("Enable write protection");
@@ -341,7 +335,7 @@ static const struct flash_driver_api flash_stm32_api = {
 static int stm32_flash_init(const struct device *dev)
 {
 	int rc;
-	/* Below is applicable to F0, F1, F3, G0, G4, L1, L4 & WB55 series.
+	/* Below is applicable to F0, F1, F3, G0, G4, L1, L4, L5 & WB55 series.
 	 * For F2, F4, F7 & H7 series, this is not applicable.
 	 */
 #if DT_INST_NODE_HAS_PROP(0, clocks)
