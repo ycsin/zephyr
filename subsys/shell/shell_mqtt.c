@@ -591,7 +591,7 @@ static int enable_shell_mqtt(const struct device *arg)
 				       CONFIG_LOG_MAX_LEVEL :
 				       CONFIG_SHELL_MQTT_INIT_LOG_LEVEL;
 
-	return shell_init(&shell_mqtt, NULL, false, log_backend, level);
+	return shell_init(&shell_mqtt, NULL, false, false, log_backend, level);
 }
 
 SYS_INIT(enable_shell_mqtt, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);

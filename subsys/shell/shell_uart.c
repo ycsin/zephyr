@@ -308,7 +308,7 @@ static int enable_shell_uart(const struct device *arg)
 		smp_shell_init();
 	}
 
-	shell_init(&shell_uart, dev, true, log_backend, level);
+	shell_init(&shell_uart, dev, true, true, log_backend, level);
 
 	return 0;
 }
