@@ -17,12 +17,15 @@ LOG_MODULE_REGISTER(modem_gsm, CONFIG_MODEM_LOG_LEVEL);
 #include <net/ppp.h>
 #include <drivers/gsm_ppp.h>
 #include <drivers/uart.h>
-#include <drivers/console/uart_mux.h>
 
 #include "modem_context.h"
 #include "modem_iface_uart.h"
 #include "modem_cmd_handler.h"
+
+#if IS_ENABLED(CONFIG_GSM_MUX)
+#include <drivers/console/uart_mux.h>
 #include "../console/gsm_mux.h"
+#endif
 
 #include <stdio.h>
 
@@ -80,7 +83,9 @@ static struct gsm_modem {
 
 	int rssi_retries;
 	int attach_retries;
+#if IS_ENABLED(CONFIG_GSM_MUX)
 	bool mux_enabled : 1;
+#endif
 	bool attached : 1;
 } gsm;
 
@@ -741,28 +746,28 @@ attaching:
 #endif /* CONFIG_GSM_MUX */
 }
 
+#if IS_ENABLED(CONFIG_GSM_MUX)
 static int mux_enable(struct gsm_modem *gsm)
 {
-	int ret;
+	int ret = 0;
 
 	/* Turn on muxing */
-	if (IS_ENABLED(CONFIG_MODEM_GSM_SIMCOM)) {
-		ret = modem_cmd_send_nolock(
-			&gsm->context.iface,
-			&gsm->context.cmd_handler,
-			&response_cmds[0],
-			ARRAY_SIZE(response_cmds),
+#if IS_ENABLED(CONFIG_MODEM_GSM_SIMCOM)
+	ret = modem_cmd_send_nolock(&gsm->context.iface,
+				    &gsm->context.cmd_handler,
+				    &response_cmds[0],
+				    ARRAY_SIZE(response_cmds),
 #if defined(SIMCOM_LTE)
-			/* FIXME */
-			/* Some SIMCOM modems can set the channels */
-			/* Control channel always at DLCI 0 */
-			"AT+CMUXSRVPORT=0,0;"
-			/* PPP should be at DLCI 1 */
-			"+CMUXSRVPORT=" STRINGIFY(DLCI_PPP) ",1;"
-			/* AT should be at DLCI 2 */
-			"+CMUXSRVPORT=" STRINGIFY(DLCI_AT) ",1;"
+				    /* FIXME */
+				    /* Some SIMCOM modems can set the channels */
+				    /* Control channel always at DLCI 0 */
+				    "AT+CMUXSRVPORT=0,0;"
+				    /* PPP should be at DLCI 1 */
+				    "+CMUXSRVPORT=" STRINGIFY(DLCI_PPP) ",1;"
+				    /* AT should be at DLCI 2 */
+				    "+CMUXSRVPORT=" STRINGIFY(DLCI_AT) ",1;"
 #else
-			"AT"
+				    "AT"
 #endif /* SIMCOM_LTE */
 			"+CMUX=0,0,5,"
 			STRINGIFY(CONFIG_GSM_MUX_MRU_DEFAULT_LEN),
@@ -842,8 +847,7 @@ static void mux_setup(struct k_work *work)
 	/* We need to call this to reactivate mux ISR. Note: This is only called
 	 * after re-initing gsm_ppp.
 	 */
-	if (IS_ENABLED(CONFIG_GSM_MUX) &&
-	    gsm->ppp_dev && gsm->state == STATE_CONTROL_CHANNEL) {
+	if (gsm->ppp_dev && gsm->state == STATE_CONTROL_CHANNEL) {
 		uart_mux_enable(gsm->ppp_dev);
 	}
 
@@ -934,6 +938,7 @@ fail:
 	gsm->state = STATE_INIT;
 	gsm->mux_enabled = false;
 }
+#endif /* CONFIG_GSM_MUX */
 
 static void gsm_configure(struct k_work *work)
 {
@@ -1098,9 +1103,9 @@ static int gsm_init(const struct device *dev)
 		return -ENODEV;
 	}
 
-	if (IS_ENABLED(CONFIG_GSM_PPP_AUTOSTART)) {
-		gsm_ppp_start(dev);
-	}
+#if CONFIG_GSM_PPP_AUTOSTART
+	gsm_ppp_start(dev);
+#endif
 
 	return 0;
 }
