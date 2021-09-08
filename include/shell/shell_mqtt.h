@@ -27,6 +27,11 @@ extern "C" {
 #define DEVICE_ID_HEX_MAX_SIZE ((DEVICE_ID_BIN_MAX_SIZE * 2) + 1)
 #define MQTT_TOPIC_MAX_SIZE DEVICE_ID_HEX_MAX_SIZE + 3
 
+#ifdef CONFIG_MQTT_LIB_WEBSOCKET
+/* Making RX buffer large enough that the full IPv6 packet can fit into it */
+#define MQTT_LIB_WEBSOCKET_RECV_BUF_LEN 1280
+#endif
+
 extern const struct shell_transport_api shell_mqtt_transport_api;
 
 /** Line buffer structure. */
@@ -71,6 +76,13 @@ struct shell_mqtt {
 	/* MQTT Broker details. */
 	struct sockaddr_storage broker;
 
+#ifdef CONFIG_SOCKS
+	struct sockaddr socks5_proxy;
+#endif
+#ifdef CONFIG_MQTT_LIB_WEBSOCKET
+	uint8_t temp_ws_rx_buf[MQTT_LIB_WEBSOCKET_RECV_BUF_LEN];
+#endif
+
 	struct zsock_pollfd fds[1];
 	int nfds;
 
@@ -80,6 +92,7 @@ struct shell_mqtt {
 
 	/* work */
 	struct k_work_delayable mqtt_work;
+	struct k_work_delayable send_work;
 	struct k_work_sync work_sync;
 
 	enum op_state {
