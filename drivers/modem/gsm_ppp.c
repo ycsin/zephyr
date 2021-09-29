@@ -936,12 +936,13 @@ static int mux_enable(struct gsm_modem *gsm)
 #else
 				    "AT"
 #endif /* SIMCOM_LTE */
-			"+CMUX=0,0,5,"
-			STRINGIFY(CONFIG_GSM_MUX_MRU_DEFAULT_LEN),
-			&gsm->sem_response,
-			GSM_CMD_AT_TIMEOUT);
-	} else if (IS_ENABLED(CONFIG_MODEM_GSM_QUECTEL)) {
-		ret = modem_cmd_send_nolock(&gsm->context.iface,
+				    "+CMUX=0,0,5,"
+				    STRINGIFY(CONFIG_GSM_MUX_MRU_DEFAULT_LEN),
+				    &gsm->sem_response,
+				    GSM_CMD_AT_TIMEOUT);
+#elif IS_ENABLED(CONFIG_MODEM_GSM_QUECTEL)
+	/* Quectel GSM modem */
+	ret = modem_cmd_send_nolock(&gsm->context.iface,
 				    &gsm->context.cmd_handler,
 				    &response_cmds[0],
 				    ARRAY_SIZE(response_cmds),
@@ -950,19 +951,17 @@ static int mux_enable(struct gsm_modem *gsm)
 				    &gsm->sem_response,
 				    GSM_CMD_AT_TIMEOUT);
 
-		/* Arbitrary delay for Quectel modems to initialize the CMUX,
-		 * without this the AT cmd will fail.
-		 */
-		k_sleep(K_SECONDS(1));
-	} else {
-		/* Generic GSM modem */
-		ret = modem_cmd_send_nolock(&gsm->context.iface,
-				     &gsm->context.cmd_handler,
-				     &response_cmds[0],
-				     ARRAY_SIZE(response_cmds),
-				     "AT+CMUX=0", &gsm->sem_response,
-				     GSM_CMD_AT_TIMEOUT);
-	}
+	/* Quectel requires some time to initialize the CMUX */
+	k_sleep(K_SECONDS(1));
+#else /* Generic modem */
+	/* Generic GSM modem */
+	ret = modem_cmd_send_nolock(&gsm->context.iface,
+				    &gsm->context.cmd_handler,
+				    &response_cmds[0],
+				    ARRAY_SIZE(response_cmds),
+				    "AT+CMUX=0", &gsm->sem_response,
+				    GSM_CMD_AT_TIMEOUT);
+#endif
 
 	if (ret < 0) {
 		LOG_ERR("AT+CMUX ret:%d", ret);
