@@ -70,6 +70,12 @@ config GSM_PPP_AUTOSTART
 	  modem connects to network. See contents of "drivers/gsm_ppp.h"
 	  to get an idea of the API.
 
+config MODEM_GSM_INFO
+	bool "Get the info of the modem"
+	default y
+	help
+	  Get the info of the modem.
+
 config MODEM_GSM_ATTACH_TIMEOUT
 	int "Timeout for attaching to packet service"
 	default 30
