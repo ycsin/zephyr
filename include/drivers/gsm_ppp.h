@@ -15,6 +15,9 @@
 struct device;
 void gsm_ppp_start(const struct device *dev);
 void gsm_ppp_stop(const struct device *dev);
+int gsm_ppp_gnss_enable(void);
+int gsm_ppp_gnss_disable(void);
+int gsm_ppp_gnss_wait_until_ready(int s);
 /** @endcond */
 
 #ifdef CONFIG_NEWLIB_LIBC

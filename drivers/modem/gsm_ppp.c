@@ -23,6 +23,8 @@ LOG_MODULE_REGISTER(modem_gsm, CONFIG_MODEM_LOG_LEVEL);
 #include "modem_iface_uart.h"
 #include "modem_cmd_handler.h"
 
+#include "drivers/modem/quectel.h"
+
 #if IS_ENABLED(CONFIG_GSM_MUX)
 #include <drivers/console/uart_mux.h>
 #include "../console/gsm_mux.h"
@@ -130,6 +132,21 @@ K_KERNEL_STACK_DEFINE(gsm_rx_stack, GSM_RX_STACK_SIZE);
 
 struct k_thread gsm_rx_thread;
 static struct k_work_delayable rssi_work_handle;
+
+static struct k_sem gnss_ready_sem;
+static struct k_work_delayable gnss_configure_work;
+static bool gnss_enabled;
+enum ppp_gnss_state {
+	PPP_GNSS_OFF,
+	PPP_GNSS_STARTING,
+	PPP_GNSS_CFG_OUTPORT,
+	PPP_GNSS_CFG_CONSTELLATION,
+	PPP_GNSS_CFG_NMEA,
+	PPP_GNSS_CFG_TURN_ON,
+	PPP_GNSS_READY,
+};
+
+static enum ppp_gnss_state gnss_state;
 
 #if IS_ENABLED(CONFIG_MODEM_GSM_ENABLE_CESQ_RSSI)
 	/* helper macro to keep readability */
@@ -888,6 +905,12 @@ attaching:
 	modem_cmd_handler_tx_unlock(&gsm->context.cmd_handler);
 	k_work_schedule(&rssi_work_handle, K_SECONDS(CONFIG_MODEM_GSM_RSSI_POLLING_PERIOD));
 #endif /* CONFIG_GSM_MUX */
+
+#if IS_ENABLED(CONFIG_MODEM_GSM_QUECTEL_GNSS_AUTOSTART)
+	LOG_WRN("Auto starting gnss configuration");
+	gnss_state = PPP_GNSS_STARTING;
+	(void)k_work_reschedule(&gnss_configure_work, K_SECONDS(5));
+#endif
 }
 
 #if IS_ENABLED(CONFIG_GSM_MUX)
@@ -1082,6 +1105,301 @@ fail:
 }
 #endif /* CONFIG_GSM_MUX */
 
+#if IS_ENABLED(CONFIG_MODEM_GSM_QUECTEL_GNSS)
+/**
+ * @brief Configure the outport of the GNSS
+ *
+ * @param[in] outport Outport of the NMEA sentences, can be either
+ * QUECTEL_GNSS_OP_NONE, QUECTEL_GNSS_OP_USB or QUECTEL_GNSS_OP_UART.
+ * @retval 0 on success, negative on failure.
+ */
+static int quectel_gnss_cfg_outport(const char* outport)
+{
+	int  ret;
+	char buf[sizeof("AT+QGPSCFG=\"outport\",\"#########\"")] = {0};
+
+	snprintk(buf, sizeof(buf), "AT+QGPSCFG=\"outport\",\"%s\"", outport);
+
+	ret = modem_cmd_send(&gsm.context.iface, &gsm.context.cmd_handler,
+			NULL, 0U, buf, &gsm.sem_response,
+			GSM_CMD_AT_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERR("%s ret:%d", log_strdup(buf), ret);
+		return ret;
+	}
+
+	LOG_INF("Configured GNSS outport to %s", outport);
+
+	return ret;
+}
+
+/**
+ * @brief Selectively configures the NMEA sentences
+ *
+ * @param[in] gnss Type of the GNSS to configure, see quectel_nmea_types_t.
+ * @param[in] cfg The configuration itself, see quectel_nmea_type_t.
+ * @retval 0 on success, negative on failure.
+ */
+static int quectel_gnss_cfg_nmea(const quectel_nmea_types_t gnss,
+				 const char *gnss_str,
+				 const quectel_nmea_type_t *cfg)
+{
+	int  ret;
+	uint8_t val;
+	char buf[sizeof("AT+QGPSCFG=\"glonassnmeatype\",##")] = {0};
+
+	switch(gnss)
+	{
+		case QUECTEL_NMEA_GPS:
+			val = (cfg->gps.vtg << 4 | cfg->gps.gsa << 3 |
+				cfg->gps.gsv << 2 | cfg->gps.rmc << 1 |
+				cfg->gps.gga);
+
+			LOG_INF("Configuring GPS NMEA: %X", val);
+
+			break;
+		case QUECTEL_NMEA_GLONASS:
+			val = (cfg->glonass.gns << 2 | cfg->glonass.gsa << 1 |
+				cfg->glonass.gsv);
+
+			LOG_INF("Configuring GLONASS NMEA: %X", val);
+
+			break;
+		case QUECTEL_NMEA_GALILEO:
+			val = (cfg->galileo.gsv);
+
+			LOG_INF("Configuring GALILEO NMEA: %X", val);
+
+			break;
+		case QUECTEL_NMEA_BEIDOU:
+			val = (cfg->beidou.gsv << 1 | cfg->beidou.gsa);
+
+			LOG_INF("Configuring BEIDOU NMEA: %X", val);
+
+			break;
+		case QUECTEL_NMEA_GSVEXT:
+			val = cfg->gsvext.enable;
+
+			LOG_INF("Configuring GSVEXT NMEA: %X", val);
+
+			break;
+		default:
+			LOG_ERR("Invalid quectel_nmea_types_t");
+			return -EINVAL;
+	}
+
+	snprintk(buf, sizeof(buf), "AT+QGPSCFG=\"%s\",%u",
+				gnss_str, val);
+
+	ret = modem_cmd_send(&gsm.context.iface, &gsm.context.cmd_handler,
+				NULL, 0U, buf, &gsm.sem_response,
+				GSM_CMD_AT_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERR("%s ret:%d", log_strdup(buf), ret);
+		return ret;
+	}
+
+	return ret;
+}
+
+/**
+ * @brief Configures supported GNSS constellation
+ *
+ * @param[in] cfg The configuration of the constellation, see
+ * quectel_gnss_conf_t.
+ * @retval 0 on success, negative on failure.
+ */
+static int quectel_gnss_cfg_constellation(const int cfg)
+{
+	int  ret;
+	char buf[sizeof("AT+QGPSCFG=\"gnssconfig\",#")] = {0};
+
+	snprintk(buf, sizeof(buf), "AT+QGPSCFG=\"gnssconfig\",%d", cfg);
+
+	ret = modem_cmd_send(&gsm.context.iface, &gsm.context.cmd_handler,
+			NULL, 0U, buf, &gsm.sem_response,
+			GSM_CMD_AT_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERR("%s ret:%d", log_strdup(buf), ret);
+		return ret;
+	}
+
+	LOG_INF("Configured GNSS config: %d", cfg);
+
+	return ret;
+}
+
+/**
+ * @brief Enables the GNSS, for more info please read the Quectel GNSS manual.
+ *
+ * @param[in] fixmaxtime Maximum positioning time in second. [1 - 255 : 30]
+ * @param[in] fixmaxdist Accuracy threshold of positioning in meter.
+ * [1 - 1000 : 50]
+ * @param[in] fixcount Number of attempts for positioning. 0 for continuous,
+ * maximum 1000. [0 - 1000 : 0]
+ * @param[in] fixrate Interval time between positioning in second.
+ * [1 - 65535 : 1]
+ *
+ * @retval 0 on success, negative on failure.
+ */
+static int quectel_gnss_enable(const uint8_t fixmaxtime,
+			const uint16_t fixmaxdist, const uint16_t fixcount, const uint16_t fixrate)
+{
+	int  ret;
+	char buf[sizeof("AT+QGPS=1,###,####,####,#####")] = {0};
+
+	if ((fixmaxtime == 0) ||
+		(fixmaxtime == 0) || (fixmaxtime > 1000) ||
+		(fixcount > 1000) ||
+		(fixrate == 0))
+	{
+		return -EINVAL;
+	}
+
+	snprintk(buf, sizeof(buf), "AT+QGPS=1,%u,%u,%u,%u", fixmaxtime,
+							    fixmaxdist,
+							    fixcount,
+							    fixrate);
+
+	ret = modem_cmd_send(&gsm.context.iface, &gsm.context.cmd_handler,
+			NULL, 0U, buf, &gsm.sem_response,
+			GSM_CMD_AT_TIMEOUT);
+	if (ret < 0) {
+		LOG_ERR("%s ret:%d", log_strdup(buf), ret);
+		return ret;
+	}
+
+	LOG_INF("Enabled Quectel GNSS");
+
+	return ret;
+}
+
+/**
+ * @brief Disables the GNSS.
+ *
+ * @retval 0 on success, negative on failure.
+ */
+static int quectel_gnss_disable(void)
+{
+    int  ret;
+
+    ret = modem_cmd_send(&gsm.context.iface, &gsm.context.cmd_handler,
+                    NULL, 0U, "AT+QGPSEND", &gsm.sem_response,
+                    GSM_CMD_AT_TIMEOUT);
+    if (ret < 0) {
+        LOG_ERR("AT+QGPSEND ret:%d", ret);
+        return ret;
+    }
+
+    LOG_INF("Disabled Quectel GNSS");
+
+    return ret;
+}
+#endif /* #if CONFIG_MODEM_QUECTEL_GNSS */
+
+static void gnss_configure(struct k_work *work)
+{
+	int ret;
+	const quectel_nmea_type_t cfg = {
+		.gps.rmc = 1,
+		.gps.gga = 1,
+		.gps.gsa = 0,
+		.gps.gsv = 0,
+		.gps.vtg = 0,
+	};
+
+	switch (gnss_state) {
+		case PPP_GNSS_OFF:
+			LOG_WRN("GNSS is off");
+			break;
+		case PPP_GNSS_STARTING:
+			gnss_state = PPP_GNSS_CFG_OUTPORT;
+			__fallthrough;
+		case PPP_GNSS_CFG_OUTPORT:
+			ret =  quectel_gnss_cfg_outport(CONFIG_MODEM_GSM_QUECTEL_GNSS_OP);
+			if (ret < 0) {
+				LOG_ERR("quectel_gnss_cfg_outport failed: %d", ret);
+				k_work_reschedule(&gnss_configure_work, K_SECONDS(2));
+				return;
+			}
+
+			gnss_state = PPP_GNSS_CFG_CONSTELLATION;
+			k_work_reschedule(&gnss_configure_work, K_NO_WAIT);
+			break;
+		case PPP_GNSS_CFG_CONSTELLATION:
+			ret =  quectel_gnss_cfg_constellation(GNSS_CONSTELLATION_CFG);
+			if (ret < 0) {
+				LOG_ERR("quectel_gnss_cfg_constellation: %d failed: %d",
+					GNSS_CONSTELLATION_CFG, ret);
+				k_work_reschedule(&gnss_configure_work, K_SECONDS(2));
+				return;
+			}
+
+			gnss_state = PPP_GNSS_CFG_NMEA;
+			k_work_reschedule(&gnss_configure_work, K_NO_WAIT);
+			break;
+		case PPP_GNSS_CFG_NMEA:
+			ret =  quectel_gnss_cfg_nmea(QUECTEL_NMEA_GPS, QUECTEL_NMEA_GPS_STR, &cfg);
+			if (ret < 0) {
+				LOG_ERR("quectel_gnss_cfg_nmea failed: %d", ret);
+				k_work_reschedule(&gnss_configure_work, K_SECONDS(2));
+				return;
+			}
+
+			gnss_state = PPP_GNSS_CFG_TURN_ON;
+			k_work_reschedule(&gnss_configure_work, K_NO_WAIT);
+			break;
+		case PPP_GNSS_CFG_TURN_ON:
+			ret =  quectel_gnss_enable(FIX_MAX_TIME, FIX_MAX_DIST,
+							FIX_COUNT, FIX_INTERVAL);
+			if (ret < 0) {
+				LOG_ERR("quectel_gnss_enable failed: %d", ret);
+				k_work_reschedule(&gnss_configure_work, K_SECONDS(2));
+				return;
+			}
+
+			gnss_state = PPP_GNSS_READY;
+			__fallthrough;
+		case PPP_GNSS_READY:
+			k_sem_give(&gnss_ready_sem);
+			LOG_WRN("GNSS is ready");
+			break;
+	}
+}
+
+int gsm_ppp_gnss_enable(void) {
+	gnss_enabled = true;
+
+	return 0;
+}
+
+int gsm_ppp_gnss_disable(void) {
+	struct k_work_sync work_sync;
+
+	gnss_enabled = false;
+	(void)k_work_cancel_delayable_sync(&gnss_configure_work, &work_sync);
+
+	if (gnss_state == PPP_GNSS_READY) {
+		quectel_gnss_disable();
+	}
+
+	k_sem_reset(&gnss_ready_sem);
+
+	return 0;
+}
+
+int gsm_ppp_gnss_wait_until_ready(int s) {
+	k_sem_reset(&gnss_ready_sem);
+	if (gnss_state == PPP_GNSS_READY) {
+		return 0;
+	} else {
+		if (k_sem_take(&gnss_ready_sem, K_SECONDS(s))) {
+			return -ENODEV;
+		}
+		return 0;
+	}
+}
+
 static void gsm_configure(struct k_work *work)
 {
 	struct gsm_modem *gsm = CONTAINER_OF(work, struct gsm_modem,
@@ -1207,7 +1525,9 @@ void gsm_ppp_stop(const struct device *dev)
 
 	k_work_cancel_delayable_sync(&gsm->gsm_configure_work, &work_sync);
 	k_work_cancel_delayable_sync(&rssi_work_handle, &work_sync);
+	(void)k_work_cancel_delayable_sync(&gnss_configure_work, &work_sync);
 
+	gnss_state = PPP_GNSS_OFF;
 	gsm->state = GSM_PPP_STOP;
 	power_off_ops(&gsm->context);
 	disable_power_source(&gsm->context);
@@ -1273,6 +1593,11 @@ static int gsm_init(const struct device *dev)
 
 	/* Initialize to stop state so that it can be started later */
 	gsm->state = GSM_PPP_STOP;
+
+	k_sem_init(&gnss_ready_sem, 0, 1);
+	k_work_init_delayable(&gnss_configure_work, gnss_configure);
+	gnss_enabled = IS_ENABLED(CONFIG_MODEM_GSM_QUECTEL_GNSS_AUTOSTART);
+	gnss_state = PPP_GNSS_OFF;
 
 	LOG_DBG("iface->read %p iface->write %p",
 		gsm->context.iface.read, gsm->context.iface.write);

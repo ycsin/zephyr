@@ -1,0 +1,131 @@
+# Copyright (c) 2021 G-Technologies Sdn. Bhd.
+# SPDX-License-Identifier: Apache-2.0
+
+config MODEM_GSM_QUECTEL_GNSS
+	bool "Enables GNSS functions for Quectel modems"
+	depends on MODEM_GSM_QUECTEL
+	default y
+	help
+	  Enables GPS functions for Quectel modems that support GNSS.
+
+if MODEM_GSM_QUECTEL_GNSS
+
+config MODEM_GSM_QUECTEL_GNSS_AUTOSTART
+	bool "Autostart GNSS engine"
+	depends on MODEM_GSM_QUECTEL
+	default y
+	help
+	  Autostart GNSS engine.
+
+config MODEM_GSM_QUECTEL_GNSS_FIX_MAX_TIME_S
+	int "Maximum GNSS positioning time in seconds"
+	depends on MODEM_GSM_QUECTEL_GNSS
+	default 30
+	help
+	  Defines the maximum GNSS positioning time in seconds. Minimum 1s,
+	  maximum 255s. Quectel default: 30s.
+
+config MODEM_GSM_QUECTEL_GNSS_FIX_MAX_DIST_M
+	int "Accuracy threshold of positioning in meter"
+	depends on MODEM_GSM_QUECTEL_GNSS
+	default 50
+	help
+	  Defines the accuracy threshold of positioning in meter. Minimum 1 meter,
+	  maximum 1000 meter. Quectel default: 50 meter.
+
+config MODEM_GSM_QUECTEL_GNSS_FIX_COUNT
+	int "Number of attempts for positioning"
+	depends on MODEM_GSM_QUECTEL_GNSS
+	default 0
+	help
+	  Defines the number of attempts for positioning. 0 indicates continuous
+	  positioning. Non-zero values indicate the actual number of attempts for
+	  positioning. Quectel default: 0 (continous).
+
+config MODEM_GSM_QUECTEL_GNSS_FIX_INTERVAL_S
+	int "Interval between each GNSS fix in seconds"
+	depends on MODEM_GSM_QUECTEL_GNSS
+	default 3
+	help
+	  Defines the interval between each GNSS fix in seconds. Minimum 1s, maximum
+	  65535s. Quectel default: 1s.
+
+choice "MODEM_GSM_QUECTEL_GNSS_OP_CHOICE"
+	prompt "Quectel GNSS output port"
+	default MODEM_GSM_QUECTEL_GNSS_OP_UART
+
+config MODEM_GSM_QUECTEL_GNSS_OP_NONE
+	bool "GNSS output to none"
+	help
+	  GNSS no NMEA output.
+
+config MODEM_GSM_QUECTEL_GNSS_OP_USB
+	bool "GNSS output to USB"
+	help
+	  Route GNSS's NMEA output to USB.
+
+config MODEM_GSM_QUECTEL_GNSS_OP_UART
+	bool "GNSS output to UART"
+	help
+	  Route GNSS's NMEA output to UART.
+
+endchoice
+
+config MODEM_GSM_QUECTEL_GNSS_OP
+	string
+	default "none" if MODEM_GSM_QUECTEL_GNSS_OP_NONE
+	default "usbnmea" if MODEM_GSM_QUECTEL_GNSS_OP_USB
+	default "uartdebug" if MODEM_GSM_QUECTEL_GNSS_OP_UART
+
+choice "MODEM_GSM_QUECTEL_GNSS_CONSTELLATION_CHOICE"
+	prompt "Quectel GNSS constellation configurations"
+	default MODEM_GSM_QUECTEL_GNSS_GN_OFF_BD_OFF_GL_OFF
+
+config MODEM_GSM_QUECTEL_GNSS_GN_OFF_BD_OFF_GL_OFF
+	bool "GPS on, GLONASS off, BeiDou off, Galileo off"
+	help
+	  GPS on, GLONASS off, BeiDou off, Galileo off.
+
+config MODEM_GSM_QUECTEL_GNSS_GN_ON_BD_ON_GL_ON
+	bool "GPS on, GLONASS on, BeiDou on, Galileo on"
+	help
+	  GPS on, GLONASS on, BeiDou on, Galileo on.
+
+config MODEM_GSM_QUECTEL_GNSS_GN_ON_BD_ON_GL_OFF
+	bool "GPS on, GLONASS on, BeiDou on, Galileo off"
+	help
+	  GPS on, GLONASS on, BeiDou on, Galileo off.
+
+config MODEM_GSM_QUECTEL_GNSS_GN_ON_BD_OFF_GL_ON
+	bool "GPS on, GLONASS on, BeiDou off, Galileo on"
+	help
+	  GPS on, GLONASS on, BeiDou off, Galileo on.
+
+config MODEM_GSM_QUECTEL_GNSS_GN_ON_BD_OFF_GL_OFF
+	bool "GPS on, GLONASS on, BeiDou off, Galileo off"
+	help
+	  GPS on, GLONASS on, BeiDou off, Galileo off.
+
+config MODEM_GSM_QUECTEL_GNSS_GN_OFF_BD_ON_GL_ON
+	bool "GPS on, GLONASS off, BeiDou on, Galileo on"
+	help
+	  GPS on, GLONASS off, BeiDou on, Galileo on.
+
+config MODEM_GSM_QUECTEL_GNSS_GN_OFF_BD_OFF_GL_ON
+	bool "GPS on, GLONASS off, BeiDou off, Galileo on"
+	help
+	  GPS on, GLONASS off, BeiDou off, Galileo on.
+
+endchoice
+
+config MODEM_GSM_QUECTEL_GNSS_CONSTELLATION
+	int
+	default 0 if MODEM_GSM_QUECTEL_GNSS_GN_OFF_BD_OFF_GL_OFF
+	default 1 if MODEM_GSM_QUECTEL_GNSS_GN_ON_BD_ON_GL_ON
+	default 2 if MODEM_GSM_QUECTEL_GNSS_GN_ON_BD_ON_GL_OFF
+	default 3 if MODEM_GSM_QUECTEL_GNSS_GN_ON_BD_OFF_GL_ON
+	default 4 if MODEM_GSM_QUECTEL_GNSS_GN_ON_BD_OFF_GL_OFF
+	default 5 if MODEM_GSM_QUECTEL_GNSS_GN_OFF_BD_ON_GL_ON
+	default 6 if MODEM_GSM_QUECTEL_GNSS_GN_OFF_BD_OFF_GL_ON
+
+endif
