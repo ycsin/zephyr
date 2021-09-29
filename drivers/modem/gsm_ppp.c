@@ -244,7 +244,7 @@ MODEM_CMD_DEFINE(on_cmd_atcmdinfo_cops)
 	return 0;
 }
 
-#if IS_ENABLED(CONFIG_MODEM_SHELL)
+#if IS_ENABLED(CONFIG_MODEM_GSM_INFO)
 #define MDM_MANUFACTURER_LENGTH  10
 #define MDM_MODEL_LENGTH         16
 #define MDM_REVISION_LENGTH      64
@@ -406,7 +406,7 @@ static int gsm_query_cellinfo(struct gsm_modem *gsm)
 	return ret;
 }
 #endif /* CONFIG_MODEM_CELL_INFO */
-#endif /* CONFIG_MODEM_SHELL */
+#endif /* CONFIG_MODEM_GSM_INFO */
 
 #if IS_ENABLED(CONFIG_MODEM_GSM_ENABLE_CESQ_RSSI)
 /*
@@ -476,7 +476,7 @@ static const struct setup_cmd setup_cmds[] = {
 	/* extender errors in numeric form */
 	SETUP_CMD_NOHANDLE("AT+CMEE=1"),
 
-#if IS_ENABLED(CONFIG_MODEM_SHELL)
+#if IS_ENABLED(CONFIG_MODEM_GSM_INFO)
 	/* query modem info */
 	SETUP_CMD("AT+CGMI", "", on_cmd_atcmdinfo_manufacturer, 0U, ""),
 	SETUP_CMD("AT+CGMM", "", on_cmd_atcmdinfo_model, 0U, ""),
@@ -486,7 +486,7 @@ static const struct setup_cmd setup_cmds[] = {
 	SETUP_CMD("AT+CCID", "", on_cmd_atcmdinfo_iccid, 0U, ""),
 # endif
 	SETUP_CMD("AT+CGSN", "", on_cmd_atcmdinfo_imei, 0U, ""),
-#endif /* CONFIG_MODEM_SHELL */
+#endif /* CONFIG_MODEM_GSM_INFO */
 
 	/* disable unsolicited network registration codes */
 	SETUP_CMD_NOHANDLE("AT+CREG=0"),
@@ -1557,7 +1557,7 @@ static int gsm_init(const struct device *dev)
 		return r;
 	}
 
-#if IS_ENABLED(CONFIG_MODEM_SHELL)
+#if IS_ENABLED(CONFIG_MODEM_GSM_INFO)
 	/* modem information storage */
 	gsm->context.data_manufacturer = minfo.mdm_manufacturer;
 	gsm->context.data_model = minfo.mdm_model;
@@ -1567,7 +1567,7 @@ static int gsm_init(const struct device *dev)
 	gsm->context.data_imsi = minfo.mdm_imsi;
 	gsm->context.data_iccid = minfo.mdm_iccid;
 #endif	/* CONFIG_MODEM_SIM_NUMBERS */
-#endif	/* CONFIG_MODEM_SHELL */
+#endif	/* CONFIG_MODEM_GSM_INFO */
 
 	gsm->context.is_automatic_oper = false;
 	gsm->gsm_data.rx_rb_buf = &gsm->gsm_rx_rb_buf[0];
