@@ -763,7 +763,7 @@ static void gsm_finalize_connection(struct gsm_modem *gsm)
 				    "AT", &gsm->sem_response,
 				    GSM_CMD_AT_TIMEOUT);
 	if (ret < 0) {
-		LOG_ERR("modem setup returned %d, %s",
+		LOG_ERR("AT returned %d, %s",
 			ret, "retrying...");
 		(void)k_work_reschedule(&gsm->gsm_configure_work,
 					K_SECONDS(1));
@@ -784,7 +784,7 @@ static void gsm_finalize_connection(struct gsm_modem *gsm)
 	ret = gsm_setup_mccmno(gsm);
 
 	if (ret < 0) {
-		LOG_ERR("modem setup returned %d, %s",
+		LOG_ERR("gsm_setup_mccmno returned %d, %s",
 				ret, "retrying...");
 
 		(void)k_work_reschedule(&gsm->gsm_configure_work,
@@ -799,7 +799,7 @@ static void gsm_finalize_connection(struct gsm_modem *gsm)
 						  &gsm->sem_response,
 						  GSM_CMD_SETUP_TIMEOUT);
 	if (ret < 0) {
-		LOG_DBG("modem setup returned %d, %s",
+		LOG_DBG("setup_cmds returned %d, %s",
 			ret, "retrying...");
 		(void)k_work_reschedule(&gsm->gsm_configure_work, K_SECONDS(1));
 		return;
