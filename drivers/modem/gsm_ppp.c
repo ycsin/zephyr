@@ -86,6 +86,7 @@ static struct gsm_modem {
 
 	struct modem_iface_uart_data gsm_data;
 	struct k_work_delayable gsm_configure_work;
+	struct k_work_delayable gsm_reset_work;
 	char gsm_rx_rb_buf[PPP_MRU * 3];
 
 	uint8_t *ppp_recv_buf;
@@ -108,6 +109,7 @@ static struct gsm_modem {
 		GSM_PPP_ATTACHED,
 		GSM_PPP_SETUP_DONE,
 		GSM_PPP_STOP,
+		GSM_PPP_STATE_ERROR,
 	} state;
 
 	const struct device *ppp_dev;
@@ -618,7 +620,7 @@ MODEM_CMD_DEFINE(on_cmd_atcmdinfo_attached)
 	}
 
 	modem_cmd_handler_set_error(data, error);
-	k_sem_give(&gsm.sem_response);
+	// k_sem_give(&gsm.sem_response);
 
 	return 0;
 }
@@ -717,6 +719,26 @@ static void set_ppp_carrier_on(struct gsm_modem *gsm)
 	}
 }
 
+static void gsm_reset(struct k_work *work)
+{
+	const struct device *dev;
+	struct gsm_modem *gsm = CONTAINER_OF(work, struct gsm_modem,
+					     gsm_reset_work);
+
+	dev = DEVICE_DT_GET(DT_INST(0, zephyr_gsm_ppp));
+
+	if (gsm->state == GSM_PPP_STATE_ERROR) {
+		LOG_WRN("Resetting GSM");
+		gsm_ppp_stop(dev);
+		(void)k_work_reschedule(&gsm->gsm_reset_work, K_SECONDS(2));
+		return;
+	}
+
+	if (gsm->state == GSM_PPP_STOP) {
+		gsm_ppp_start(dev);
+	}
+}
+
 static void rssi_handler(struct k_work *work)
 {
 	int ret;
@@ -754,6 +776,8 @@ static void gsm_finalize_connection(struct gsm_modem *gsm)
 	if (gsm->state == GSM_PPP_ATTACHING) {
 		goto attaching;
 	}
+
+	gsm->state = GSM_PPP_SETUP;
 
 #if IS_ENABLED(CONFIG_GSM_MUX)
 	ret = modem_cmd_send_nolock(&gsm->context.iface,
@@ -1077,6 +1101,8 @@ static void mux_setup(struct k_work *work)
 		break;
 
 	case GSM_PPP_STATE_DONE:
+	case GSM_PPP_ATTACHING:
+	case GSM_PPP_ATTACHED:
 		/* At least the SIMCOM modem expects that the Internet
 		 * connection is created in PPP channel. We will need
 		 * to attach the AT channel to context iface after the
@@ -1095,12 +1121,16 @@ static void mux_setup(struct k_work *work)
 
 		gsm_finalize_connection(gsm);
 		break;
+	default:
+		LOG_ERR("mux_setup while in state: %d", gsm->state);
+		goto fail;
 	}
 
 	return;
 
 fail:
-	gsm->state = GSM_PPP_STATE_INIT;
+	gsm->state = GSM_PPP_STATE_ERROR;
+	(void)k_work_reschedule(&gsm->gsm_reset_work, K_NO_WAIT);
 }
 #endif /* CONFIG_GSM_MUX */
 
@@ -1424,6 +1454,8 @@ static void gsm_configure(struct k_work *work)
 	if (gsm->state == GSM_PPP_PWR_SRC_ON) {
 		power_on_ops(&gsm->context);
 		gsm->state = GSM_PPP_WAIT_AT;
+		(void)k_work_reschedule(&gsm->gsm_configure_work, K_SECONDS(15));
+		return;
 	}
 
 	ret = modem_cmd_send_nolock(&gsm->context.iface,
@@ -1522,9 +1554,9 @@ void gsm_ppp_stop(const struct device *dev)
 		LOG_WRN("Failed locking modem cmds!");
 	}
 
-	k_work_cancel_delayable_sync(&gsm->gsm_configure_work, &work_sync);
-	k_work_cancel_delayable_sync(&rssi_work_handle, &work_sync);
+	(void)k_work_cancel_delayable_sync(&gsm->gsm_configure_work, &work_sync);
 	(void)k_work_cancel_delayable_sync(&gnss_configure_work, &work_sync);
+	(void)k_work_cancel_delayable_sync(&rssi_work_handle, &work_sync);
 
 	gnss_state = PPP_GNSS_OFF;
 	gsm->state = GSM_PPP_STOP;
@@ -1597,6 +1629,8 @@ static int gsm_init(const struct device *dev)
 	k_work_init_delayable(&gnss_configure_work, gnss_configure);
 	gnss_enabled = IS_ENABLED(CONFIG_MODEM_GSM_QUECTEL_GNSS_AUTOSTART);
 	gnss_state = PPP_GNSS_OFF;
+
+	k_work_init_delayable(&gsm->gsm_reset_work, gsm_reset);
 
 	LOG_DBG("iface->read %p iface->write %p",
 		gsm->context.iface.read, gsm->context.iface.write);
