@@ -34,6 +34,12 @@ config MODEM_GSM_QUECTEL
 
 endchoice
 
+if MODEM_GSM_QUECTEL
+
+source "drivers/modem/Kconfig.quectel"
+
+endif
+
 config MODEM_GSM_RX_STACK_SIZE
 	int "Size of the stack allocated for receiving data from modem"
 	default 512
@@ -70,6 +76,14 @@ config MODEM_GSM_ATTACH_TIMEOUT
 	help
 	  Before activating PPP, attachment to packet service is checked
 	  using AT+CGATT. This setting dictates how much time in seconds
+	  we give the modem before giving up.
+
+config MODEM_GSM_REGISTER_TIMEOUT
+	int "Timeout for registering to cell tower"
+	default 60
+	help
+	  Before attaching to packet service, the cell tower registration is
+	  checked using AT+CREG. This setting dictates how much time in seconds
 	  we give the modem before giving up.
 
 config MODEM_GSM_MANUAL_MCCMNO
