@@ -72,7 +72,7 @@ struct hawkbit_download {
 	size_t downloaded_size;
 	size_t http_content_size;
 	mbedtls_md_context_t hash_ctx;
-	uint8_t file_hash[SHA256_HASH_SIZE];
+	uint8_t *file_hash;
 };
 
 static struct hawkbit_context {
@@ -85,9 +85,9 @@ static struct hawkbit_context {
 	struct hawkbit_download dl;
 	struct http_request http_req;
 	struct flash_img_context flash_ctx;
-	uint8_t url_buffer[URL_BUFFER_SIZE];
-	uint8_t status_buffer[STATUS_BUFFER_SIZE];
-	uint8_t recv_buf_tcp[RECV_BUFFER_SIZE];
+	uint8_t *url_buffer;
+	uint8_t *status_buffer;
+	uint8_t *recv_buf_tcp;
 	enum hawkbit_response code_status;
 	bool final_data_received;
 } hb_context;
@@ -1079,13 +1079,13 @@ enum hawkbit_response hawkbit_probe(void)
 	int ret;
 	int32_t action_id;
 	int32_t file_size = 0;
-	uint8_t response_hash[SHA256_HASH_SIZE] = { 0 };
 	const mbedtls_md_info_t *hash_info;
-	char device_id[DEVICE_ID_HEX_MAX_SIZE] = { 0 },
-	     cancel_base[CANCEL_BASE_SIZE] = { 0 },
-	     download_http[DOWNLOAD_HTTP_SIZE] = { 0 },
-	     deployment_base[DEPLOYMENT_BASE_SIZE] = { 0 },
-	     firmware_version[BOOT_IMG_VER_STRLEN_MAX] = { 0 };
+	uint8_t *response_hash;
+	char *device_id;
+	char *cancel_base;
+	char *download_http;
+	char *deployment_base;
+	char *firmware_version;
 
 	if (k_sem_take(&probe_sem, K_NO_WAIT) != 0) {
 		return HAWKBIT_PROBE_IN_PROGRESS;
@@ -1094,8 +1094,23 @@ enum hawkbit_response hawkbit_probe(void)
 	memset(&hb_context, 0, sizeof(hb_context));
 	hb_context.response_data = malloc(RESPONSE_BUFFER_SIZE);
 
-	if(hb_context.response_data == NULL) {
-		hb_context.code_status = HAWKBIT_METADATA_ERROR;
+	response_hash = k_malloc(SHA256_HASH_SIZE);
+	device_id = k_malloc(DEVICE_ID_HEX_MAX_SIZE);
+	cancel_base = k_malloc(CANCEL_BASE_SIZE);
+	download_http = k_malloc(DOWNLOAD_HTTP_SIZE);
+	deployment_base = k_malloc(DEPLOYMENT_BASE_SIZE);
+	firmware_version = k_malloc(BOOT_IMG_VER_STRLEN_MAX);
+	hb_context.dl.file_hash = k_malloc(SHA256_HASH_SIZE);
+	hb_context.url_buffer = k_malloc(URL_BUFFER_SIZE);
+	hb_context.status_buffer = k_malloc(STATUS_BUFFER_SIZE);
+	hb_context.recv_buf_tcp = k_malloc(RECV_BUFFER_SIZE);
+
+	if (response_hash == NULL || device_id == NULL || cancel_base == NULL ||
+	    download_http == NULL || deployment_base == NULL || firmware_version == NULL ||
+	    hb_context.dl.file_hash == NULL || hb_context.url_buffer == NULL ||
+	    hb_context.status_buffer == NULL || hb_context.recv_buf_tcp == NULL ||
+	    hb_context.response_data == NULL) {
+		hb_context.code_status = HAWKBIT_NO_MEMORY;
 		goto error;
 	}
 
@@ -1122,7 +1137,9 @@ enum hawkbit_response hawkbit_probe(void)
 	}
 
 	/*
-	 * Query the hawkbit base polling resource.
+	 * Query the hawkbit base polling resource. This retrieve actions that need to be executed.
+	 * See: https://www.eclipse.org/hawkbit/rest-api/rootcontroller-api-guide/
+	 *      #_get_tenant_controller_v1_controllerid
 	 */
 	LOG_INF("Polling target data from Hawkbit");
 
@@ -1150,8 +1167,16 @@ enum hawkbit_response hawkbit_probe(void)
 		hawkbit_update_sleep(&hawkbit_results.base);
 	}
 
+	/*
+	 * Print the the base resource.
+	 */
 	hawkbit_dump_base(&hawkbit_results.base);
 
+	/*
+	 * If server requests to cancel update, just report successful.
+	 * See: https://www.eclipse.org/hawkbit/rest-api/rootcontroller-api-guide/
+	 *      #_post_tenant_controller_v1_controllerid_cancelaction_actionid_feedback
+	 */
 	if (hawkbit_results.base._links.cancelAction.href) {
 		ret = hawkbit_find_cancelAction_base(&hawkbit_results.base,
 						     cancel_base);
@@ -1176,6 +1201,11 @@ enum hawkbit_response hawkbit_probe(void)
 		goto cleanup;
 	}
 
+	/*
+	 * If server requests for device data.
+	 * See: https://www.eclipse.org/hawkbit/rest-api/rootcontroller-api-guide/
+	 *      #_put_tenant_controller_v1_controllerid_configdata
+	 */
 	if (hawkbit_results.base._links.configData.href) {
 		memset(hb_context.url_buffer, 0, sizeof(hb_context.url_buffer));
 		hb_context.dl.http_content_size = 0;
@@ -1193,6 +1223,9 @@ enum hawkbit_response hawkbit_probe(void)
 		}
 	}
 
+	/*
+	 * Check if there's a deploymentBase (update).
+	 */
 	ret = hawkbit_find_deployment_base(&hawkbit_results.base,
 					   deployment_base);
 	if (ret < 0) {
@@ -1201,11 +1234,19 @@ enum hawkbit_response hawkbit_probe(void)
 		goto cleanup;
 	}
 
+	/*
+	 * If there's no update.
+	 */
 	if (strlen(deployment_base) == 0) {
 		hb_context.code_status = HAWKBIT_NO_UPDATE;
 		goto cleanup;
 	}
 
+	/*
+	 * Get information necessary in order to execute the operation.
+	 * Read: https://www.eclipse.org/hawkbit/rest-api/rootcontroller-api-guide/
+	 *       #_get_tenant_controller_v1_controllerid_deploymentbase_actionid
+	 */
 	memset(hb_context.url_buffer, 0, sizeof(hb_context.url_buffer));
 	hb_context.dl.http_content_size = 0;
 	hb_context.dl.downloaded_size = 0;
@@ -1228,6 +1269,9 @@ enum hawkbit_response hawkbit_probe(void)
 		goto cleanup;
 	}
 
+	/*
+	 * Print deployment data
+	 */
 	hawkbit_dump_deployment(&hawkbit_results.dep);
 
 	hb_context.dl.http_content_size = 0;
@@ -1241,6 +1285,9 @@ enum hawkbit_response hawkbit_probe(void)
 
 	nvs_read(&fs, ADDRESS_ID, &action_id, sizeof(action_id));
 
+	/*
+	 * Check if the stored action_id matches the one given by the server
+	 */
 	if (action_id == hb_context.json_action_id) {
 		LOG_INF("Preventing repeated attempt to install %d",
 			hb_context.json_action_id);
@@ -1266,13 +1313,6 @@ enum hawkbit_response hawkbit_probe(void)
 
 	LOG_INF("Ready to install update");
 
-	hb_context.dl.http_content_size = 0;
-	memset(hb_context.url_buffer, 0, sizeof(hb_context.url_buffer));
-	hb_context.url_buffer_size = URL_BUFFER_SIZE;
-
-	snprintk(hb_context.url_buffer, hb_context.url_buffer_size, "%s",
-		 download_http);
-
 	flash_img_init(&hb_context.flash_ctx);
 
 	hash_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
@@ -1291,6 +1331,13 @@ enum hawkbit_response hawkbit_probe(void)
 	}
 
 	mbedtls_md_starts(&hb_context.dl.hash_ctx);
+
+	hb_context.dl.http_content_size = 0;
+	memset(hb_context.url_buffer, 0, sizeof(hb_context.url_buffer));
+	hb_context.url_buffer_size = URL_BUFFER_SIZE;
+
+	snprintk(hb_context.url_buffer, hb_context.url_buffer_size, "%s",
+		 download_http);
 
 	ret = (int)send_request(HTTP_GET, HAWKBIT_DOWNLOAD,
 			  HAWKBIT_STATUS_FINISHED_NONE,
@@ -1335,6 +1382,17 @@ cleanup:
 	cleanup_connection();
 
 error:
+	k_free(response_hash);
+	k_free(device_id);
+	k_free(cancel_base);
+	k_free(download_http);
+	k_free(deployment_base);
+	k_free(firmware_version);
+	k_free(hb_context.dl.file_hash);
+	k_free(hb_context.dl.url_buffer);
+	k_free(hb_context.dl.status_buffer);
+	k_free(hb_context.dl.recv_buf_tcp);
+
 	free(hb_context.response_data);
 	k_sem_give(&probe_sem);
 	return hb_context.code_status;
@@ -1378,6 +1436,10 @@ static void autohandler(struct k_work *work)
 
 	case HAWKBIT_METADATA_ERROR:
 		LOG_INF("Metadata error");
+		break;
+
+	case HAWKBIT_NO_MEMORY:
+		LOG_INF("Can't allocate memory");
 		break;
 
 	case HAWKBIT_PROBE_IN_PROGRESS:
