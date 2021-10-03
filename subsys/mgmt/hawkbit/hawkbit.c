@@ -1094,6 +1094,11 @@ enum hawkbit_response hawkbit_probe(void)
 	memset(&hb_context, 0, sizeof(hb_context));
 	hb_context.response_data = malloc(RESPONSE_BUFFER_SIZE);
 
+	if(hb_context.response_data == NULL) {
+		hb_context.code_status = HAWKBIT_METADATA_ERROR;
+		goto error;
+	}
+
 	if (!boot_is_img_confirmed()) {
 		LOG_ERR("The current image is not confirmed");
 		hb_context.code_status = HAWKBIT_UNCONFIRMED_IMAGE;
