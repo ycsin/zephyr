@@ -1241,7 +1241,7 @@ enum hawkbit_response hawkbit_probe(void)
 
 	nvs_read(&fs, ADDRESS_ID, &action_id, sizeof(action_id));
 
-	if (action_id == (int32_t)hb_context.json_action_id) {
+	if (action_id == hb_context.json_action_id) {
 		LOG_INF("Preventing repeated attempt to install %d",
 			hb_context.json_action_id);
 		hb_context.dl.http_content_size = 0;
