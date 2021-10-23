@@ -1,0 +1,19 @@
+# Copyright (c) 2021 G-Technologies Sdn. Bhd.
+# SPDX-License-Identifier: Apache-2.0
+
+config MHZ19B
+	bool "Winsen CO2 sensor"
+	depends on UART_INTERRUPT_DRIVEN
+	help
+	  Enable driver for the MHZ19B CO2 Sensor.
+
+if MHZ19B
+
+config MHZ19B_KEEP_MCU_AWAKE
+	bool "Keep MCU awake while polling"
+	depends on PM
+	help
+	  Keep MCU awake while polling for data. This is required for uart driver
+	  that doesn't support wake up from stop mode.
+
+endif # MHZ19B
