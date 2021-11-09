@@ -176,7 +176,10 @@ enum sensor_channel {
 	SENSOR_CHAN_GAUGE_DESIRED_VOLTAGE,
 	/** Desired charging current in mA */
 	SENSOR_CHAN_GAUGE_DESIRED_CHARGING_CURRENT,
-
+	/** Accelerometer Free Fall Motion Detection. */
+	SENSOR_CHAN_FREE_FALL,
+	/*Accelerometer Slope/ Tilt Position Detection */
+	SENSOR_CHAN_NEAR_FAR,
 	/** All channels. */
 	SENSOR_CHAN_ALL,
 
@@ -233,8 +236,17 @@ enum sensor_trigger_type {
 	/** Trigger fires when a double tap is detected. */
 	SENSOR_TRIG_DOUBLE_TAP,
 
-	/** Trigger fires when a free fall is detected. */
+	/**
+	 * Trigger fires when a free fall is detected.
+	 * The freefall treshlod is configured
+	 * via the @ref SENSOR_ATTR_WUFF_TH and @ref SENSOR_ATTR_WUFF_DUR
+	 * attribute
+	 */
 	SENSOR_TRIG_FREEFALL,
+	/**
+	* Trigger fire all sensor trigger
+	*/
+	SENSOR_TRIG_ALL,
 
 	/**
 	 * Number of all common sensor triggers.
@@ -276,6 +288,13 @@ enum sensor_attribute {
 	SENSOR_ATTR_LOWER_THRESH,
 	/** Upper threshold for trigger. */
 	SENSOR_ATTR_UPPER_THRESH,
+	/** Threshold for freefall or wake-up trigger */
+	SENSOR_ATTR_WUFF_TH,
+	/**
+	* Duration for which the freefall value need to be
+	* outside the threshold for trigger to fire
+	*/
+	SENSOR_ATTR_WUFF_DUR,
 	/** Threshold for any-motion (slope) trigger. */
 	SENSOR_ATTR_SLOPE_TH,
 	/**
@@ -308,6 +327,14 @@ enum sensor_attribute {
 	/** Alert threshold or alert enable/disable */
 	SENSOR_ATTR_ALERT,
 
+	/* khshi dignostic mode */
+	/** Configure the resolution of a sensor. */
+	SENSOR_ATTR_RESOLUTION,
+
+	/** Configure the odr of a sensor. */
+	SENSOR_ATTR_ODR,
+	/* khshi dignostic mode */
+
 	/**
 	 * Number of all common sensor attributes.
 	 */
@@ -333,7 +360,7 @@ enum sensor_attribute {
  * @param trigger The trigger
  */
 typedef void (*sensor_trigger_handler_t)(const struct device *dev,
-					 const struct sensor_trigger *trigger);
+					 struct sensor_trigger *trigger);
 
 /**
  * @typedef sensor_attr_set_t
@@ -474,7 +501,7 @@ static inline int z_impl_sensor_attr_get(const struct device *dev,
  * @return 0 if successful, negative errno code if failure.
  */
 static inline int sensor_trigger_set(const struct device *dev,
-				     const struct sensor_trigger *trig,
+				     struct sensor_trigger *trig,
 				     sensor_trigger_handler_t handler)
 {
 	const struct sensor_driver_api *api =
