@@ -722,7 +722,8 @@ static void set_ppp_carrier_on(struct gsm_modem *gsm)
 static void gsm_reset(struct k_work *work)
 {
 	const struct device *dev;
-	struct gsm_modem *gsm = CONTAINER_OF(work, struct gsm_modem,
+	struct k_work_delayable *dwork = k_work_delayable_from_work(work);
+	struct gsm_modem *gsm = CONTAINER_OF(dwork, struct gsm_modem,
 					     gsm_reset_work);
 
 	dev = DEVICE_DT_GET(DT_INST(0, zephyr_gsm_ppp));
@@ -1029,7 +1030,8 @@ static int mux_attach(const struct device *mux, const struct device *uart,
 
 static void mux_setup(struct k_work *work)
 {
-	struct gsm_modem *gsm = CONTAINER_OF(work, struct gsm_modem,
+	struct k_work_delayable *dwork = k_work_delayable_from_work(work);
+	struct gsm_modem *gsm = CONTAINER_OF(dwork, struct gsm_modem,
 					     gsm_configure_work);
 	const struct device *uart = DEVICE_DT_GET(GSM_UART_NODE);
 	int ret;
@@ -1431,7 +1433,8 @@ int gsm_ppp_gnss_wait_until_ready(int s) {
 
 static void gsm_configure(struct k_work *work)
 {
-	struct gsm_modem *gsm = CONTAINER_OF(work, struct gsm_modem,
+	struct k_work_delayable *dwork = k_work_delayable_from_work(work);
+	struct gsm_modem *gsm = CONTAINER_OF(dwork, struct gsm_modem,
 					     gsm_configure_work);
 	int ret = -1;
 
