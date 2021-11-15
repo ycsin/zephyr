@@ -18,6 +18,7 @@
 #include "modem_context.h"
 #include "modem_cmd_handler.h"
 #include "modem_iface_uart.h"
+#include <time.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,6 +30,7 @@ extern "C" {
 #define _CWSAP  "CWSAP_CUR"
 #define _CWJAP  "CWJAP_CUR"
 #define _CIPSTA "CIPSTA_CUR"
+#define _CIPSNTPTIME "CIPSNTPTIME"
 #define _CIPSTAMAC "CIPSTAMAC_CUR"
 #define _CIPRECVDATA "+CIPRECVDATA,"
 #define _CIPRECVDATA_END ':'
@@ -37,6 +39,7 @@ extern "C" {
 #define _CWSAP  "CWSAP"
 #define _CWJAP  "CWJAP"
 #define _CIPSTA "CIPSTA"
+#define _CIPSNTPTIME "CIPSNTPTIME"
 #define _CIPSTAMAC "CIPSTAMAC"
 #define _CIPRECVDATA "+CIPRECVDATA:"
 #define _CIPRECVDATA_END ','
@@ -196,6 +199,8 @@ struct esp_data {
 	uint8_t mode;
 
 	char conn_cmd[CONN_CMD_MAX_LEN];
+
+	struct tm ntp_time;
 
 	/* addresses  */
 	struct in_addr ip;
