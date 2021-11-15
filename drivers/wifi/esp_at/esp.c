@@ -252,6 +252,57 @@ MODEM_CMD_DEFINE(on_cmd_cipstamac)
 	return 0;
 }
 
+/* +CIPSNTPTIME:Wed Oct 27 16:25:33 2021 */
+MODEM_CMD_DEFINE(on_cmd_cipsntptime)
+{
+	char digits[2] = {0};
+	struct esp_data *dev = CONTAINER_OF(data, struct esp_data,
+					    cmd_handler_data);
+
+	dev->ntp_time.tm_year = atoi(argv[4]) - 1900;
+
+	if (strncmp(argv[1], "Jan", 3) == 0) {
+		dev->ntp_time.tm_mon = 0;
+	} else if (strncmp(argv[1], "Feb", 3) == 0) {
+		dev->ntp_time.tm_mon = 1;
+	} else if (strncmp(argv[1], "Mar", 3) == 0) {
+		dev->ntp_time.tm_mon = 2;
+	} else if (strncmp(argv[1], "Apr", 3) == 0) {
+		dev->ntp_time.tm_mon = 3;
+	} else if (strncmp(argv[1], "May", 3) == 0) {
+		dev->ntp_time.tm_mon = 4;
+	} else if (strncmp(argv[1], "Jun", 3) == 0) {
+		dev->ntp_time.tm_mon = 5;
+	} else if (strncmp(argv[1], "Jul", 3) == 0) {
+		dev->ntp_time.tm_mon = 6;
+	} else if (strncmp(argv[1], "Aug", 3) == 0) {
+		dev->ntp_time.tm_mon = 7;
+	} else if (strncmp(argv[1], "Sep", 3) == 0) {
+		dev->ntp_time.tm_mon = 8;
+	} else if (strncmp(argv[1], "Oct", 3) == 0) {
+		dev->ntp_time.tm_mon = 9;
+	} else if (strncmp(argv[1], "Nov", 3) == 0) {
+		dev->ntp_time.tm_mon = 10;
+	} else if (strncmp(argv[1], "Dec", 3) == 0) {
+		dev->ntp_time.tm_mon = 11;
+	}
+
+	dev->ntp_time.tm_mday = atoi(argv[2]);
+
+	memcpy(&digits[0], &argv[3][0], 2);
+	dev->ntp_time.tm_hour = atoi(&digits[0]);
+
+	memcpy(&digits[0], &argv[3][3], 2);
+	dev->ntp_time.tm_min = atoi(&digits[0]);
+
+	memcpy(&digits[0], &argv[3][6], 2);
+	dev->ntp_time.tm_sec = atoi(&digits[0]);
+
+	dev->ntp_time.tm_isdst = 0;
+
+	return 0;
+}
+
 /* +CWLAP:(sec,ssid,rssi,channel) */
 MODEM_CMD_DEFINE(on_cmd_cwlap)
 {
@@ -454,6 +505,35 @@ static void esp_ip_addr_work(struct k_work *work)
 			LOG_WRN("DNS fetch failed: %d", ret);
 		}
 	}
+}
+
+int esp_get_local_time(const struct device *dev, struct tm *tm, int32_t *offset)
+{
+	int ret;
+	struct esp_data *data = dev->data;
+	static const struct modem_cmd cmds[] = {
+		MODEM_CMD("+"_CIPSNTPTIME":", on_cmd_cipsntptime, 5U, " "),
+	};
+
+	ret = esp_cmd_send(data, cmds, ARRAY_SIZE(cmds), "AT+"_CIPSNTPTIME"?",
+			   ESP_CMD_TIMEOUT);
+	if (ret < 0) {
+		LOG_WRN("Failed to query NTP time: ret %d", ret);
+		return ret;
+	}
+
+	if (data->ntp_time.tm_year + 1900 == 1970)
+	{
+		return -ETIME;
+	}
+
+	memcpy(tm, &data->ntp_time, sizeof(struct tm));
+	*offset = 0;
+
+	LOG_WRN("%d-%d-%d, %d:%d:%d", tm->tm_year, tm->tm_mon, tm->tm_mday, tm->tm_hour,
+		tm->tm_min, tm->tm_sec);
+
+	return 0;
 }
 
 MODEM_CMD_DEFINE(on_cmd_got_ip)
@@ -925,6 +1005,8 @@ static void esp_init_work(struct k_work *work)
 #endif
 		/* enable multiple socket support */
 		SETUP_CMD_NOHANDLE("AT+CIPMUX=1"),
+		/* Enable NTP server */
+		SETUP_CMD_NOHANDLE("AT+CIPSNTPCFG=1,0"),
 		/* only need ecn,ssid,rssi,channel */
 		SETUP_CMD_NOHANDLE("AT+CWLAPOPT=0,23"),
 #if defined(CONFIG_WIFI_ESP_AT_VERSION_2_0)
