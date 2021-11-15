@@ -103,6 +103,10 @@ static void uart_stm32_pm_constraint_release(const struct device *dev)
 }
 #endif /* CONFIG_PM */
 
+#define LPUARTDIV_CALC(__PERIPHCLK__, __PRESCALER__, __BAUDRATE__) (uint32_t)\
+  (((((uint64_t)(__PERIPHCLK__)/(uint64_t)(LPUART_PRESCALER_TAB[(uint16_t)(__PRESCALER__)]))\
+      * LPUART_LPUARTDIV_FREQ_MUL) + (uint32_t)((__BAUDRATE__)/2U))/(__BAUDRATE__))
+
 static inline void uart_stm32_set_baudrate(const struct device *dev,
 					   uint32_t baud_rate)
 {
