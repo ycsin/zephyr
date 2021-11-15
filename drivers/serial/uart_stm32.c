@@ -75,6 +75,10 @@ static void uart_stm32_pm_constraint_release(const struct device *dev)
 }
 #endif /* CONFIG_PM */
 
+#define LPUARTDIV_CALC(__PERIPHCLK__, __PRESCALER__, __BAUDRATE__) (uint32_t)\
+  (((((uint64_t)(__PERIPHCLK__)/(uint64_t)(LPUART_PRESCALER_TAB[(uint16_t)(__PRESCALER__)]))\
+      * LPUART_LPUARTDIV_FREQ_MUL) + (uint32_t)((__BAUDRATE__)/2U))/(__BAUDRATE__))
+
 static inline void uart_stm32_set_baudrate(const struct device *dev,
 					   uint32_t baud_rate)
 {
@@ -95,10 +99,28 @@ static inline void uart_stm32_set_baudrate(const struct device *dev,
 
 #if HAS_LPUART_1
 	if (IS_LPUART_INSTANCE(UartInstance)) {
+#ifdef USART_PRESC_PRESCALER
+		uint32_t LPUARTDIV;
+		uint8_t i;
+
+		for (i = 0; i < ARRAY_SIZE(USART_PRESCALER_TAB); i++) {
+			LPUARTDIV = LPUARTDIV_CALC(clock_rate, i, baud_rate);
+			if (LPUARTDIV > LPUART_BRR_MIN_VALUE && LPUARTDIV < LPUART_BRR_MASK) {
+				break;
+			}
+		}
+
+		if (i == ARRAY_SIZE(USART_PRESCALER_TAB)) {
+			LOG_ERR("Failed get a suitable PRESCALER value");
+			return;
+		}
+
+		LL_LPUART_SetPrescaler(UartInstance, i);
+#endif
 		LL_LPUART_SetBaudRate(UartInstance,
 				      clock_rate,
 #ifdef USART_PRESC_PRESCALER
-				      LL_USART_PRESCALER_DIV1,
+				      i,
 #endif
 				      baud_rate);
 	} else {
