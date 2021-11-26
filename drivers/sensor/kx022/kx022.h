@@ -9,8 +9,11 @@
 #define ZEPHYR_DRIVERS_SENSOR_KX022_KX022_H_
 
 #include <zephyr/types.h>
-#include <drivers/sensor.h>
 #include <drivers/gpio.h>
+#include <drivers/i2c.h>
+#include <drivers/sensor/kx022.h>
+
+#define KX022_RESET_DELAY 2000
 
 #define KX022_REG_XHP_L 0x0
 #define KX022_REG_XHP_H 0x1
@@ -306,6 +309,16 @@
 #define KX022_TILT_ANGLE_LL_RANGE_MAX 0xFF
 #define KX022_TILT_TIMER_RANGE_MAX 0xFF
 #define KX022_MOTION_THS_RANGE_MAX 0xFF
+#define KX022_ATH_RANGE_MIN 0
+#define KX022_TILT_ANGLE_LL_MIN 0
+
+#define BITWISE_SHIFT_7 7
+#define BITWISE_SHIFT_6 6
+#define BITWISE_SHIFT_5 5
+#define BITWISE_SHIFT_4 4
+#define BITWISE_SHIFT_3 3
+#define BITWISE_SHIFT_2 2
+#define BITWISE_SHIFT_1 1
 
 /* acceleration range */
 #if CONFIG_KX022_FS == 0
@@ -323,8 +336,7 @@
 
 /* interrupt */
 #define KX022_INT1 1
-#define KX022_INT2 2
-#define KX022_DEFAULT_INT_PIN CONFIG_KX022_INT_PIN
+#define KX022_DEFAULT_INT_PIN KX022_INT1
 
 #if (CONFIG_KX022_INT_PIN_1_POLARITY >= 0 && CONFIG_KX022_INT_PIN_1_POLARITY <= 1)
 #define KX022_DEFAULT_INT_PIN_1_POLARITY CONFIG_KX022_INT_PIN_1_POLARITY
@@ -337,18 +349,6 @@
 #else
 #error "KX022 : Bad KX022 interrupt pin 1 response (should be between 0 to 1)"
 #endif /* (CONFIG_KX022_INT_PIN_1_RESPONSE == 0) */
-
-#if (CONFIG_KX022_INT_PIN_2_POLARITY >= 0 && CONFIG_KX022_INT_PIN_2_POLARITY <= 1)
-#define KX022_DEFAULT_INT_PIN_2_POLARITY CONFIG_KX022_INT_PIN_2_POLARITY
-#else
-#error "KX022 : Bad KX022 interrupt pin 2 polarity (should be between 0 to 1)"
-#endif /* (CONFIG_KX022_INT_PIN_2_POLARITY == 0) */
-
-#if (CONFIG_KX022_INT_PIN_2_RESPONSE >= 0 && CONFIG_KX022_INT_PIN_2_RESPONSE <= 1)
-#define KX022_DEFAULT_INT_PIN_2_RESPONSE CONFIG_KX022_INT_PIN_2_RESPONSE
-#else
-#error "KX022 : Bad KX022 interrupt pin 2 response (should be between 0 to 1)"
-#endif /* (CONFIG_KX022_INT_PIN_2_RESPONSE == 0) */
 
 /* accelometer odr */
 #if  (CONFIG_KX022_ODR >= 0 && CONFIG_KX022_ODR <= 7)
@@ -373,7 +373,7 @@
 
 /* KX022 MOTION THS AND DURATION*/
 #define KX022_DEFAULT_ATH_THS CONFIG_KX022_MOTION_THS
-#define KX022_DEFAULT_WUFC_DUR CONFIG_KX022_MOTION_DURATION
+#define KX022_DEFAULT_WUFC_DUR CONFIG_KX022_MOTION_DETECTION_TIMER
 
 /* tilt odr */
 #if  (CONFIG_KX022_TILT_ODR >= 0 && CONFIG_KX022_TILT_ODR <= 3)
@@ -394,8 +394,9 @@
 #define GAIN_XL (6103515625LL / 1000000000000.0)
 
 struct kx022_config {
-	char *comm_master_dev_name;
+	//char *comm_master_dev_name;
 	int (*bus_init)(const struct device *dev);
+	struct i2c_dt_spec bus_cfg;
 #ifdef CONFIG_KX022_TRIGGER
 	const char *irq_port;
 	gpio_pin_t irq_pin;
@@ -406,21 +407,60 @@ struct kx022_config {
 struct kx022_data;
 
 struct kx022_transfer_function {
-	int (*read_data)(struct kx022_data *data, uint8_t reg_addr, uint8_t *value, uint8_t len);
-	int (*write_data)(struct kx022_data *data, uint8_t reg_addr, uint8_t *value, uint8_t len);
-	int (*read_reg)(struct kx022_data *data, uint8_t reg_addr, uint8_t *value);
-	int (*write_reg)(struct kx022_data *data, uint8_t reg_addr, uint8_t value);
-	int (*update_reg)(struct kx022_data *data, uint8_t reg_addr, uint8_t mask, uint8_t value);
+	int (*read_data)(const struct device *dev, uint8_t reg_addr, uint8_t *value, uint8_t len);
+	int (*write_data)(const struct device *dev, uint8_t reg_addr, uint8_t *value, uint8_t len);
+	int (*read_reg)(const struct device *dev, uint8_t reg_addr, uint8_t *value);
+	int (*write_reg)(const struct device *dev, uint8_t reg_addr, uint8_t value);
+	int (*update_reg)(const struct device *dev, uint8_t reg_addr, uint8_t mask, uint8_t value);
 };
+
+#ifdef CONFIG_KX022_DIAGNOSTIC_MODE
+struct accelometer_detect{
+	int xn_direction;
+	int xp_direction;
+	int yn_direction;
+	int yp_direction;
+	int zn_direction;
+	int zp_direction;
+	int odr;
+	int delay;
+	int gravity;
+	int angle_ll;
+	int angle_hl;
+};
+
+struct interrupt_pin_status{
+	int enable;
+	int polarity;
+	int tap;
+	int motion_detect;
+	int tilt;
+};
+
+struct kx022_attr {
+	int operating_mode;
+	int resolution;
+	int acceleration_range;
+	int odr;
+	int tap_enable;
+	int motion_detect_enable;
+	int tilt_enable;
+	int sampling_rate;
+	struct accelometer_detect motion_detect;
+	struct accelometer_detect tilt;
+	struct interrupt_pin_status pin_1;
+	struct interrupt_pin_status pin_2;
+};
+#endif /*CONFIG_KX022_DIAGNOSTIC_MODE*/
 
 struct kx022_data {
 	const struct device *comm_master;
 	int sample_x;
 	int sample_y;
 	int sample_z;
-	int sample_tspp;
-	int sample_tscp;
-	int sample_motion_dir;
+	uint8_t sample_tspp;
+	uint8_t sample_tscp;
+	uint8_t sample_motion_dir;
 	float gain;
 	const struct kx022_transfer_function *hw_tf;
 
@@ -448,47 +488,6 @@ struct kx022_data {
 
 #endif /* CONFIG_KX022_TRIGGER */
 };
-
-/* khshi dignostic mode */
-#ifdef CONFIG_KX022_DIAGNOSTIC_MODE
-struct accelometer_detect{
-	int xn_direction;
-	int xp_direction;
-	int yn_direction;
-	int yp_direction;
-	int zn_direction;
-	int zp_direction;
-	int ODR;
-	int delay;
-	int gravity;
-	int angle_ll;
-	int angle_hl;
-};
-
-struct interrupt_pin_status{
-	int enable;
-	int polarity;
-	int tap;
-	int motion_detect;
-	int tilt;
-};
-
-struct kx022_configuration {
-	int operating_mode;
-	int resolution;
-	int acceleration_range;
-	int ODR;
-	int tap_enable;
-	int motion_detect_enable;
-	int tilt_enable;
-	int sampling_rate;
-	struct accelometer_detect motion_detect;
-	struct accelometer_detect tilt;
-	struct interrupt_pin_status pin_1;
-	struct interrupt_pin_status pin_2;
-};
-#endif /*CONFIG_KX022_DIAGNOSTIC_MODE*/
-/* khshi dignostic mode */
 
 int kx022_i2c_init(const struct device *dev);
 

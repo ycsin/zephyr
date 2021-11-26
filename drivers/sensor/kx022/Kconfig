@@ -68,26 +68,27 @@ config KX022_RES_RUNTIME
 	help
 	  Set resolution in runtime
 
-config KX022_WUFC_RUNTIME
+config KX022_MOTION_DETECTION_TIMER_RUNTIME
 	bool "Set wake up delay time in runtime"
 	help
 	  Set wake up delay time in runtime
+
+config KX022_MOTION_DETECT_THRESHOLD_RUNTIME
+	bool "Set motion detect threshold in runtime"
+	help
+	  Set motion detect threshold in runtime
 
 config KX022_TILT_TIMER_RUNTIME
 	bool "Set tilt timer in runtime"
 	help
 	  Set tilt timer in runtime
 
-menu "Attributes"
-config KX022_INT_PIN
-	int "Physical interrupt pin either pin 1 or pin 2"
-	range 1 2
-	default 1
+config KX022_TILT_ANGLE_LL_RUNTIME
+	bool "Set tilt angle ll in runtime"
 	help
-	  Physical Interrupt Pin
-	  1: Int1 (Interrupt Pin 1)
-	  2: Int2 (Interrupt Pin 2)
+	  Set tilt angle ll in runtime
 
+menu "Attributes"
 config KX022_INT_PIN_1_POLARITY
 	int "Polarity of physical interrupt pin 1"
 	range 0 1
@@ -103,24 +104,6 @@ config KX022_INT_PIN_1_RESPONSE
 	default 0
 	help
 	  Response of Physical Interrupt Pin 1
-	  0: Cleared by reading INT_REL
-	  1: One pulse with a period of 50 us
-
-config KX022_INT_PIN_2_POLARITY
-	int "Polarity of physical interrupt pin 2"
-	range 0 1
-	default 1
-	help
-	  Polarity of Physical Interrupt Pin 2
-	  0: active low
-	  1: Active high
-
-config KX022_INT_PIN_2_RESPONSE
-	int "Response of physical interrupt pin 2"
-	range 0 1
-	default 0
-	help
-	  Response of Physical Interrupt Pin 2
 	  0: Cleared by reading INT_REL
 	  1: One pulse with a period of 50 us
 
@@ -191,8 +174,8 @@ config KX022_MOTION_THS
 	  3: 0.1875g
 	  ++
 
-config KX022_MOTION_DURATION
-	int "Wake Up Motion duration"
+config KX022_MOTION_DETECTION_TIMER
+	int "motion detection timer"
 	range 1 255
 	default 6
 	help

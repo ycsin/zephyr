@@ -7,17 +7,11 @@ compatible: "kionix,kx022"
 
 include: i2c-device.yaml
 properties:
-    #  int1-gpios:
-    #    type: phandle-array
-    #    required: false
-    #    description: |
-    #      The INT1 signal.
-
     int-gpios:
       type: phandle-array
       required: false
       description: |
-        The INT2 signal.
+        The INT1 signal.
 
     # pwr-gpios:
     #   type: phandle-array
