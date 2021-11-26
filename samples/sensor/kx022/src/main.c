@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <zephyr.h>
 #include <device.h>
-#include <drivers/sensor/kx022.h>
+#include <drivers/sensor.h>
 
 #define MAX_TEST_TIME 1500
 #define SLEEPTIME 300
@@ -23,120 +23,8 @@
 #define KX022_YNWU 0x08
 #define KX022_XPWU 0x010
 #define KX022_XNWU 0x20
-#define KX022_MASK_CNTL1_PC1 BIT(7)
-#define KX022_MASK_CNTL1_RES BIT(6)
-#define KX022_MASK_CNTL1_GSEL (BIT(4) | BIT(3))
-#define KX022_MASK_CNTL1_TDTE BIT(2)
-#define KX022_MASK_CNTL1_WUFE BIT(1)
-#define KX022_MASK_CNTL1_TPE BIT(0)
-#define KX022_MASK_ODCNTL_OSA (BIT(3) | BIT(2) | BIT(1) | BIT(0))
-#define KX022_MASK_INC5_IEN2 BIT(5)
-#define KX022_MASK_INC5_IEA2 BIT(4)
-#define KX022_MASK_INC4_TDTI1 BIT(2)
-#define KX022_MASK_INC4_WUFI1 BIT(1)
-#define KX022_MASK_INC4_TPI1 BIT(0)
-#define KX022_MASK_INC2_XNWUE BIT(5)
-#define KX022_MASK_INC2_XPWUE BIT(4)
-#define KX022_MASK_INC2_YNWUE BIT(3)
-#define KX022_MASK_INC2_YPWUE BIT(2)
-#define KX022_MASK_INC2_ZNWUE BIT(1)
-#define KX022_MASK_INC2_ZPWUE BIT(0)
-#define KX022_MASK_CNTL3_OWUF (BIT(2) | BIT(1) | BIT(0))
-#define KX022_MASK_CNTL2_LEM BIT(5)
-#define KX022_MASK_CNTL2_RIM BIT(4)
-#define KX022_MASK_CNTL2_DOM BIT(3)
-#define KX022_MASK_CNTL2_UPM BIT(2)
-#define KX022_MASK_CNTL2_FDM BIT(1)
-#define KX022_MASK_CNTL2_FUM BIT(0)
-#define KX022_MASK_CNTL3_OTP (BIT(7) | BIT(6))
-#define BITWISE_SHIFT_7 7
-#define BITWISE_SHIFT_6 6
-#define BITWISE_SHIFT_5 5
-#define BITWISE_SHIFT_4 4
-#define BITWISE_SHIFT_3 3
-#define BITWISE_SHIFT_2 2
-#define BITWISE_SHIFT_1 1
-
 static uint8_t slope_test_done = 0;
 static uint8_t motion_test_done = 0;
-
-
-#ifdef CONFIG_KX022_DIAGNOSTIC_MODE
-static void accel_cfg(const struct device *dev)
-{
-	int rc;
-	uint8_t tmp;
-
-	rc = kx022_read_register_value(dev, KX022_CNTL1, &tmp);
-	printf("Operating mode %ld\n", (tmp & KX022_MASK_CNTL1_PC1) >> BITWISE_SHIFT_7);
-	printf("Resolution %ld\n", (tmp & KX022_MASK_CNTL1_RES) >> BITWISE_SHIFT_6);
-	printf("Acceleration range mode %ld\n", (tmp & KX022_MASK_CNTL1_GSEL) >> BITWISE_SHIFT_3);
-	printf("Tap state %ld\n", (tmp & KX022_MASK_CNTL1_TDTE) >> BITWISE_SHIFT_2);
-	printf("Motion detect state %ld\n", (tmp & KX022_MASK_CNTL1_WUFE) >> BITWISE_SHIFT_1);
-	printf("Tilt state %ld\n", (tmp & KX022_MASK_CNTL1_TPE));
-
-	rc = kx022_read_register_value(dev, KX022_ODCNTL, &tmp);
-	printf("Accelerometer odr %ld\n", (tmp & KX022_MASK_ODCNTL_OSA));
-
-	rc = kx022_read_register_value(dev, KX022_INC1, &tmp);
-	printf("Pin 1 interrupt state %ld\n", (tmp & KX022_MASK_INC5_IEN2) >> BITWISE_SHIFT_5);
-	printf("Pin 1 polarity %ld\n", (tmp & KX022_MASK_INC5_IEA2) >> BITWISE_SHIFT_4);
-
-	rc = kx022_read_register_value(dev, KX022_INC4, &tmp);
-	printf("Pin 1 tap report state %ld\n", (tmp & KX022_MASK_INC4_TDTI1) >> BITWISE_SHIFT_2); 
-	printf("Pin 1 motion report state %ld\n", (tmp & KX022_MASK_INC4_WUFI1) >> BITWISE_SHIFT_1); 
-	printf("Pin 1 tilt report state %ld\n", (tmp & KX022_MASK_INC4_TPI1)); 
-}
-
-static void accel_motion_cfg(const struct device *dev)
-{
-	int rc;
-	uint8_t tmp;
-
-	rc = kx022_read_register_value(dev, KX022_INC2, &tmp);
-	printf("Motion detect xn direction %ld\n", (tmp & KX022_MASK_INC2_XNWUE) >> BITWISE_SHIFT_5);
-	printf("Motion detect xp direction %ld\n", (tmp & KX022_MASK_INC2_XPWUE) >> BITWISE_SHIFT_4);
-	printf("Motion detect yn direction %ld\n", (tmp & KX022_MASK_INC2_YNWUE) >> BITWISE_SHIFT_3);
-	printf("Motion detect yp direction %ld\n", (tmp & KX022_MASK_INC2_YPWUE) >> BITWISE_SHIFT_2);
-	printf("Motion detect zn direction %ld\n", (tmp & KX022_MASK_INC2_ZNWUE) >> BITWISE_SHIFT_1);
-	printf("Motion detect zp direction %ld\n", (tmp & KX022_MASK_INC2_ZPWUE));
-
-	rc = kx022_read_register_value(dev, KX022_CNTL3, &tmp);
-	printf("Motion detect odr %ld\n", (tmp & KX022_MASK_CNTL3_OWUF));
-
-	rc = kx022_read_register_value(dev, KX022_WUFC, &tmp);
-	printf("Motion detection timer %d\n", tmp);
-
-	rc = kx022_read_register_value(dev, KX022_ATH, &tmp);
-	printf("Motion detect wake up threshold %d\n", tmp);
-}
-
-static void accel_tilt_cfg(const struct device *dev)
-{
-	int rc;
-	uint8_t tmp;
-
-	rc = kx022_read_register_value(dev, KX022_CNTL2, &tmp);
-	printf("Tilt xn direction %ld\n", (tmp & KX022_MASK_CNTL2_LEM) >> BITWISE_SHIFT_5);
-	printf("Tilt xp direction %ld\n", (tmp & KX022_MASK_CNTL2_RIM) >> BITWISE_SHIFT_4);
-	printf("Tilt yn direction %ld\n", (tmp & KX022_MASK_CNTL2_DOM) >> BITWISE_SHIFT_3);
-	printf("Tilt yp direction %ld\n", (tmp & KX022_MASK_CNTL2_UPM) >> BITWISE_SHIFT_2);
-	printf("Tilt zn direction %ld\n", (tmp & KX022_MASK_CNTL2_FDM) >> BITWISE_SHIFT_1);
-	printf("Tilt zp direction %ld\n", (tmp & KX022_MASK_CNTL2_FUM));
-
-	rc = kx022_read_register_value(dev, KX022_CNTL3, &tmp);
-	printf("Tilt odr %ld\n", (tmp & KX022_MASK_CNTL3_OTP) >> BITWISE_SHIFT_6);
-
-	rc = kx022_read_register_value(dev, KX022_TILT_TIMER, &tmp);
-	printf("Tilt timer %d\n", tmp);
-
-	rc = kx022_read_register_value(dev, KX022_TILT_ANGLE_LL, &tmp);
-	printf("Tilt angle ll %d\n", tmp);
-
-	rc = kx022_read_register_value(dev, KX022_TILT_ANGLE_HL, &tmp);
-	printf("Tilt angle hl %d\n", tmp);	
-}
-#endif  /*CONFIG_KX022_DIAGNOSTIC_MODE*/
 
 static void tilt_position(struct sensor_value *value)
 {
@@ -183,13 +71,12 @@ static void motion_direction(struct sensor_value *value)
 		printf("Not support for multiple axis\r\n");
 	}
 }
-
 static void fetch_and_display(const struct device *sensor)
 {
 	static unsigned int count;
 	struct sensor_value accel[3];
 	const char *overrun = "";
-	int rc = sensor_sample_fetch_chan(sensor,SENSOR_CHAN_ACCEL_XYZ);
+	int rc = sensor_sample_fetch(sensor);
 
 	++count;
 	if (rc == -EBADMSG) {
@@ -211,12 +98,11 @@ static void fetch_and_display(const struct device *sensor)
 		       sensor_value_to_double(&accel[2]));
 	}
 }
-
 static void motion_display(const struct device *sensor)
 {
 	struct sensor_value rd_data[1];
 	const char *overrun = "";
-	int rc = sensor_sample_fetch_chan(sensor, SENSOR_CHAN_KX022_MOTION);
+	int rc = sensor_sample_fetch(sensor);
 
 	if (rc == -EBADMSG) {
 		/* Sample overrun.  Ignore in polled mode. */
@@ -226,7 +112,7 @@ static void motion_display(const struct device *sensor)
 		rc = 0;
 	}
 	if (rc == 0) {
-		rc = sensor_channel_get(sensor, SENSOR_CHAN_KX022_MOTION, rd_data);
+		rc = sensor_channel_get(sensor, SENSOR_CHAN_FREE_FALL, rd_data);
 	}
 	if (rc < 0) {
 		printf("ERROR: Update failed: %d\n", rc);
@@ -235,12 +121,11 @@ static void motion_display(const struct device *sensor)
 		motion_direction(&rd_data[0]);
 	}
 }
-
 static void tilt_position_display(const struct device *sensor)
 {
 	struct sensor_value rd_data[2];
 	const char *overrun = "";
-	int rc = sensor_sample_fetch_chan(sensor,SENSOR_CHAN_KX022_TILT);
+	int rc = sensor_sample_fetch(sensor);
 
 	if (rc == -EBADMSG) {
 		/* Sample overrun.  Ignore in polled mode. */
@@ -250,7 +135,7 @@ static void tilt_position_display(const struct device *sensor)
 		rc = 0;
 	}
 	if (rc == 0) {
-		rc = sensor_channel_get(sensor, SENSOR_CHAN_KX022_TILT, rd_data);
+		rc = sensor_channel_get(sensor, SENSOR_CHAN_NEAR_FAR, rd_data);
 	}
 	if (rc < 0) {
 		printf("ERROR: Update failed: %d\n", rc);
@@ -263,7 +148,7 @@ static void tilt_position_display(const struct device *sensor)
 }
 
 #ifdef CONFIG_KX022_TRIGGER
-static void motion_handler(const struct device *dev, const struct sensor_trigger *trig)
+static void motion_handler(const struct device *dev, struct sensor_trigger *trig)
 {
 	static unsigned int motion_cnt;
 
@@ -274,7 +159,7 @@ static void motion_handler(const struct device *dev, const struct sensor_trigger
 		motion_cnt = 0;
 	}
 }
-static void slope_handler(const struct device *dev, const struct sensor_trigger *trig)
+static void slope_handler(const struct device *dev, struct sensor_trigger *trig)
 {
 	static unsigned int slope_cont ;
 
@@ -304,32 +189,24 @@ static void test_polling_mode(const struct device *dev)
 
 static void test_trigger_mode(const struct device *dev)
 {
-	//struct sensor_value val;
+#if 0
+	struct sensor_value accel[9];
+#endif
+	struct sensor_value val;
 	struct sensor_trigger trig;
 	uint8_t rc;
 
-	trig.type = SENSOR_TRIG_KX022_MOTION;
-
-	rc = sensor_trigger_set(dev, &trig, motion_handler);
-	printf("\n");
-	printf("\t\tAccelerometer: Motion  trigger test Start\r\n");
-
-	while (motion_test_done == 0) {
-		k_sleep(K_MSEC(200));
-	}
-	motion_test_done = 0;
-	printf("\n");
-	printf("\t\tAccelerometer: Motion trigger test finished\r\n");
-
-	rc = kx022_restore_default_trigger_setup(dev, &trig);
-
-	k_sleep(K_MSEC(500));
-
-	trig.type = SENSOR_TRIG_KX022_TILT;
+	trig.type = SENSOR_TRIG_NEAR_FAR;
+	trig.chan = SENSOR_CHAN_ALL;
 
 	rc = sensor_trigger_set(dev, &trig, slope_handler);
 	printf("\n");
 	printf("\t\tAccelerometer: Tilt Position trigger test Start\r\n");
+
+#if 0
+	rc = sensor_attr_get(dev, SENSOR_ATTR_CONFIGURATION, DEVICE_HANDLE_NULL, accel);
+	rc = sensor_attr_get(dev, SENSOR_CHAN_NEAR_FAR, DEVICE_HANDLE_NULL, accel);
+#endif
 
 	while (slope_test_done == 0) {
 		k_sleep(K_MSEC(200));
@@ -338,73 +215,93 @@ static void test_trigger_mode(const struct device *dev)
 	printf("\n");
 	printf("\t\tAccelerometer: Tilt Position trigger test finished\r\n");
 
-	rc = kx022_restore_default_trigger_setup(dev, &trig);
-}
-
-static void test_runtime_cfg(const struct device *dev)
-{	
-	//int rc;
-	//struct sensor_value val;
-
-#if CONFIG_KX022_FS_RUNTIME
-	val.val1 = 1;
-	rc = sensor_attr_set(dev, SENSOR_CHAN_KX022_CFG, SENSOR_ATTR_FULL_SCALE, &val);
-#endif
-
-#if CONFIG_KX022_ODR_RUNTIME
-	val.val1 = 3;
-	rc = sensor_attr_set(dev, SENSOR_CHAN_KX022_CFG, SENSOR_ATTR_KX022_ODR, &val);
-#endif
-
-#if CONFIG_KX022_RES_RUNTIME
+	// stop trigger tilt interrupt but tilt function also working
+	// tilt function working mean that KX022_REG_INS2 have new tilt data
+	// disable the tilt function reference kx022.c reference KX022_accel_angle_set function line 311
 	val.val1 = 0;
-	rc = sensor_attr_set(dev, SENSOR_CHAN_KX022_CFG, SENSOR_ATTR_KX022_RESOLUTION, &val);
+	rc = sensor_attr_set(dev, SENSOR_CHAN_NEAR_FAR, SENSOR_ATTR_SLOPE_TH, &val);
+
+	trig.type = SENSOR_TRIG_FREEFALL;
+	trig.chan = SENSOR_CHAN_ALL;
+
+	rc = sensor_trigger_set(dev, &trig, motion_handler);
+	printf("\n");
+	printf("\t\tAccelerometer: Motion  trigger test Start\r\n");
+
+#if 0
+	rc = sensor_attr_get(dev, SENSOR_ATTR_CONFIGURATION, DEVICE_HANDLE_NULL, accel);
+	rc = sensor_attr_get(dev, SENSOR_CHAN_FREE_FALL, DEVICE_HANDLE_NULL, accel);
 #endif
 
-#if CONFIG_KX022_MOTION_DETECTION_TIMER_RUNTIME
-	val.val1 = 4;
-	rc = sensor_attr_set(dev, SENSOR_CHAN_KX022_CFG, SENSOR_ATTR_KX022_MOTION_DETECTION_TIMER, &val);
-#endif
+	while (motion_test_done == 0) {
+		k_sleep(K_MSEC(200));
+	}
+	motion_test_done = 0;
+	printf("\n");
+	printf("\t\tAccelerometer: Motion trigger test finished\r\n");
 
-#if CONFIG_KX022_MOTION_DETECT_THRESHOLD_RUNTIME
-	val.val1 = 4;
-	rc = sensor_attr_set(dev, SENSOR_CHAN_KX022_CFG, SENSOR_ATTR_KX022_TILT_TIMER, &val);
-#endif
+	// stop trigger motion detect interrupt but motion detect function also working
+	// tilt function working mean KX022_REG_INS2 have new motion data
+	// disable the motion detect function reference kx022.c reference KX022_accel_angle_set function line 246
+	val.val1 = 0;
+	rc = sensor_attr_set(dev, SENSOR_CHAN_FREE_FALL, SENSOR_ATTR_WUFF_TH, &val);
 
-#if CONFIG_KX022_TILT_TIMER_RUNTIME
-	val.val1 = 8;
-	rc = sensor_attr_set(dev, SENSOR_CHAN_KX022_CFG, SENSOR_ATTR_KX022_MOTION_DETECT_THRESHOLD, &val);
-#endif
-
-#if CONFIG_KX022_TILT_ANGLE_LL_RUNTIME
-	val.val1 = 16;
-	rc = sensor_attr_set(dev, SENSOR_CHAN_KX022_CFG, SENSOR_ATTR_KX022_TILT_ANGLE_LL, &val);
-#endif
+	k_sleep(K_MSEC(500));
 }
 
 void main(void)
 {
-	const struct device *sensor = DEVICE_DT_GET_ANY(kionix_kx022);
+#if 0
+	uint8_t rc;
+	struct sensor_value accel[9];
+	struct sensor_value val;
+#endif	
+	const struct device *sensor = device_get_binding(DT_LABEL(DT_INST(0, kionix_kx022)));
 
-	if (!device_is_ready(sensor)) {
-		printf("Device %s is not ready\n", sensor->name);
+	if (sensor == NULL) {
+		printf("Could not get %s device\n", DT_LABEL(DT_INST(0, kionix_kx022)));
 		return;
 	}
 
-#ifdef CONFIG_KX022_DIAGNOSTIC_MODE
-	accel_cfg(sensor);
-	accel_motion_cfg(sensor);
-	accel_tilt_cfg(sensor);
-#endif  /*CONFIG_KX022_DIAGNOSTIC_MODE*/
+#if 0
+	/* khshi test */
+	rc = sensor_attr_get(sensor, SENSOR_ATTR_CONFIGURATION, DEVICE_HANDLE_NULL, accel);
+	rc = sensor_attr_get(sensor, SENSOR_CHAN_NEAR_FAR, DEVICE_HANDLE_NULL, accel);
+	rc = sensor_attr_get(sensor, SENSOR_CHAN_FREE_FALL, DEVICE_HANDLE_NULL, accel);
 
-	test_runtime_cfg(sensor);
-	
-#ifdef CONFIG_KX022_DIAGNOSTIC_MODE
-	printf("\nAfter cfg\n");
-	accel_cfg(sensor);
-	accel_motion_cfg(sensor);
-	accel_tilt_cfg(sensor);
-#endif  /*CONFIG_KX022_DIAGNOSTIC_MODE*/
+	// set accelometer range
+	val.val1 = 1;
+	rc = sensor_attr_set(sensor, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_FULL_SCALE, &val);
+
+	// set accelometer odr
+	val.val1 = 3;
+	rc = sensor_attr_set(sensor, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_ODR, &val);
+
+	// set accelometer resolution
+	val.val1 = 0;
+	rc = sensor_attr_set(sensor, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_RESOLUTION, &val);
+
+	// set accelometer motion detect delay
+	val.val1 = 4;
+	rc = sensor_attr_set(sensor, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_WUFF_DUR, &val);
+
+	// set accelometer tilt timer
+	val.val1 = 4;
+	rc = sensor_attr_set(sensor, SENSOR_CHAN_ACCEL_XYZ, SENSOR_ATTR_SLOPE_DUR, &val);
+
+	// set accelometer wake up motion threshold
+	val.val1 = 8;
+	rc = sensor_attr_set(sensor, SENSOR_CHAN_FREE_FALL, SENSOR_ATTR_WUFF_TH, &val);
+
+	// set accelometer tilt angle th 
+	val.val1 = 16;
+	rc = sensor_attr_set(sensor, SENSOR_CHAN_NEAR_FAR, SENSOR_ATTR_SLOPE_TH, &val);
+
+	rc = sensor_attr_get(sensor, SENSOR_ATTR_CONFIGURATION, DEVICE_HANDLE_NULL, accel);
+	rc = sensor_attr_get(sensor, SENSOR_CHAN_NEAR_FAR, DEVICE_HANDLE_NULL, accel);
+	rc = sensor_attr_get(sensor, SENSOR_CHAN_FREE_FALL, DEVICE_HANDLE_NULL, accel);
+	/* khshi test */
+#endif
 
 	while (true) {
 		test_polling_mode(sensor);

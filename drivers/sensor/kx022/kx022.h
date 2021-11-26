@@ -388,13 +388,11 @@
 /* tilt angle */
 #define KX022_DEFAULT_TILT_ANGLE_LL CONFIG_KX022_TILT_ANGLE_LL_SET
 #define KX022_DEFAULT_TILT_ANGLE_HL CONFIG_KX022_TILT_ANGLE_HL_SET
-/*Screen Rotation -+15 deg */
-//#define KX022_DEF_HYST_SET 0x14
+
 /* Accel sensor sensitivity unit is 0.061 mg/LSB */
 #define GAIN_XL (6103515625LL / 1000000000000.0)
 
 struct kx022_config {
-	//char *comm_master_dev_name;
 	int (*bus_init)(const struct device *dev);
 	struct i2c_dt_spec bus_cfg;
 #ifdef CONFIG_KX022_TRIGGER
@@ -414,47 +412,7 @@ struct kx022_transfer_function {
 	int (*update_reg)(const struct device *dev, uint8_t reg_addr, uint8_t mask, uint8_t value);
 };
 
-#ifdef CONFIG_KX022_DIAGNOSTIC_MODE
-struct accelometer_detect{
-	int xn_direction;
-	int xp_direction;
-	int yn_direction;
-	int yp_direction;
-	int zn_direction;
-	int zp_direction;
-	int odr;
-	int delay;
-	int gravity;
-	int angle_ll;
-	int angle_hl;
-};
-
-struct interrupt_pin_status{
-	int enable;
-	int polarity;
-	int tap;
-	int motion_detect;
-	int tilt;
-};
-
-struct kx022_attr {
-	int operating_mode;
-	int resolution;
-	int acceleration_range;
-	int odr;
-	int tap_enable;
-	int motion_detect_enable;
-	int tilt_enable;
-	int sampling_rate;
-	struct accelometer_detect motion_detect;
-	struct accelometer_detect tilt;
-	struct interrupt_pin_status pin_1;
-	struct interrupt_pin_status pin_2;
-};
-#endif /*CONFIG_KX022_DIAGNOSTIC_MODE*/
-
 struct kx022_data {
-	const struct device *comm_master;
 	int sample_x;
 	int sample_y;
 	int sample_z;
@@ -468,14 +426,11 @@ struct kx022_data {
 	const struct device *gpio;
 	struct gpio_callback gpio_cb;
 
-	struct sensor_trigger drdy_trigger;
-	sensor_trigger_handler_t drdy_handler;
-
 	struct sensor_trigger motion_trigger;
 	sensor_trigger_handler_t motion_handler;
 
-	struct sensor_trigger slope_trigger;
-	sensor_trigger_handler_t slope_handler;
+	struct sensor_trigger tilt_trigger;
+	sensor_trigger_handler_t tilt_handler;
 	const struct device *dev;
 
 #if defined(CONFIG_KX022_TRIGGER_OWN_THREAD)

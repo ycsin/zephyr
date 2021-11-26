@@ -40,8 +40,8 @@ static void kx022_handle_tilt_int(const struct device *dev)
 {
 	struct kx022_data *data = dev->data;
 
-	if (data->slope_handler != NULL) {
-		data->slope_handler(dev, &data->slope_trigger);
+	if (data->tilt_handler != NULL) {
+		data->tilt_handler(dev, &data->tilt_trigger);
 	}
 }
 
@@ -201,7 +201,7 @@ int kx022_tilt_setup(const struct device *dev, sensor_trigger_handler_t handler)
 {
 	struct kx022_data *data = dev->data;
 
-	data->slope_handler = handler;
+	data->tilt_handler = handler;
 
 	if (kx022_mode(dev, KX022_STANDY_MODE) < 0) {
 		return -EIO;

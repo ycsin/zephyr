@@ -21,7 +21,6 @@
 LOG_MODULE_REGISTER(KX022, CONFIG_SENSOR_LOG_LEVEL);
 static struct kx022_data dev_data;
 static const struct kx022_config dev_config = {
-	//.comm_master_dev_name = DT_INST_BUS_LABEL(0),
 #if DT_ANY_INST_ON_BUS_STATUS_OKAY(spi)
 #error "KX022 : KX022 SPI NOT IMPLEMENTED"
 #elif DT_ANY_INST_ON_BUS_STATUS_OKAY(i2c)
