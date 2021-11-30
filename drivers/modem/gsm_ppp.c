@@ -31,10 +31,7 @@ LOG_MODULE_REGISTER(modem_gsm, CONFIG_MODEM_LOG_LEVEL);
 #endif
 
 #include <stdio.h>
-
-#ifdef CONFIG_NEWLIB_LIBC
 #include <time.h>
-#endif
 
 #define GSM_UART_NODE                   DT_INST_BUS(0)
 #define GSM_CMD_READ_BUF                128
@@ -55,7 +52,6 @@ LOG_MODULE_REGISTER(modem_gsm, CONFIG_MODEM_LOG_LEVEL);
 	#define GSM_RSSI_MAXVAL         -51
 #endif
 
-#ifdef CONFIG_NEWLIB_LIBC
 /* The ? can be a + or - */
 static const char TIME_STRING_FORMAT[] = "\"yy/MM/dd,hh:mm:ss?zz\"";
 #define TIME_STRING_DIGIT_STRLEN 2
@@ -75,7 +71,6 @@ static const char TIME_STRING_FORMAT[] = "\"yy/MM/dd,hh:mm:ss?zz\"";
 #define QUARTER_HOUR_RANGE 0, 96
 #define SECONDS_PER_QUARTER_HOUR (15 * 60)
 #define SIZE_OF_NUL 1
-#endif
 
 static struct gsm_modem {
 	struct modem_context context;
@@ -116,11 +111,9 @@ static struct gsm_modem {
 	const struct device *at_dev;
 	const struct device *control_dev;
 
-#ifdef CONFIG_NEWLIB_LIBC
 	bool local_time_valid : 1;
 	int32_t local_time_offset;
 	struct tm local_time;
-#endif
 
 	struct net_if *iface;
 
@@ -497,7 +490,6 @@ static const struct setup_cmd setup_cmds[] = {
 	SETUP_CMD_NOHANDLE("AT+CGDCONT=1,\"IP\",\"" CONFIG_MODEM_GSM_APN "\""),
 };
 
-#ifdef CONFIG_NEWLIB_LIBC
 static bool valid_time_string(const char *time_string)
 {
 	size_t offset, i;
@@ -607,7 +599,6 @@ int32_t gsm_ppp_get_local_time(const struct device *dev, struct tm *tm, int32_t 
 	}
 	return ret;
 }
-#endif /* CONFIG_NEWLIB_LIBC */
 
 MODEM_CMD_DEFINE(on_cmd_atcmdinfo_attached)
 {
