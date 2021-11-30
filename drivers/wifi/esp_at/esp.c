@@ -367,8 +367,8 @@ MODEM_CMD_DEFINE(on_cmd_cipdns)
 	struct esp_data *dev = CONTAINER_OF(data, struct esp_data,
 					    cmd_handler_data);
 	struct sockaddr_in *addrs = dev->dns_addresses;
-	char **servers = (char **)argv + 1;
-	size_t num_servers = argc - 1;
+	char **servers = (char **)argv;
+	size_t num_servers = argc;
 	size_t valid_servers = 0;
 	size_t i;
 	int err;
@@ -477,7 +477,7 @@ static void esp_ip_addr_work(struct k_work *work)
 		MODEM_CMD("+"_CIPSTA":", on_cmd_cipsta, 2U, ":"),
 	};
 	static const struct modem_cmd dns_cmds[] = {
-		MODEM_CMD_ARGS_MAX("+CIPDNS:", on_cmd_cipdns, 1U, 3U, ","),
+		MODEM_CMD_ARGS_MAX("+CIPDNS_CUR:", on_cmd_cipdns, 1U, 3U, ","),
 	};
 
 	ret = esp_cmd_send(dev, cmds, ARRAY_SIZE(cmds), "AT+"_CIPSTA"?",
@@ -500,7 +500,7 @@ static void esp_ip_addr_work(struct k_work *work)
 
 	if (IS_ENABLED(CONFIG_WIFI_ESP_AT_DNS_USE)) {
 		ret = esp_cmd_send(dev, dns_cmds, ARRAY_SIZE(dns_cmds),
-				   "AT+CIPDNS?", ESP_CMD_TIMEOUT);
+				   "AT+CIPDNS_CUR?", ESP_CMD_TIMEOUT);
 		if (ret) {
 			LOG_WRN("DNS fetch failed: %d", ret);
 		}
