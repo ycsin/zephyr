@@ -203,10 +203,28 @@ MODEM_CMD_DEFINE(gsm_cmd_error)
 	return 0;
 }
 
+/* Handler: Modem initialization ready. */
+MODEM_CMD_DEFINE(on_cmd_unsol_rdy)
+{
+	if (gsm.state > GSM_PPP_AT_RDY) {
+		LOG_ERR("Modem %s", "reset unexpectedly");
+		gsm.state = GSM_PPP_STATE_ERROR;
+		(void)k_work_reschedule(&gsm.gsm_reset_work, K_NO_WAIT);
+	}
+
+	LOG_WRN("Modem %s", "AT RDY");
+
+	return 0;
+}
+
 static const struct modem_cmd response_cmds[] = {
 	MODEM_CMD("OK", gsm_cmd_ok, 0U, ""),
 	MODEM_CMD("ERROR", gsm_cmd_error, 0U, ""),
 	MODEM_CMD("CONNECT", gsm_cmd_ok, 0U, ""),
+};
+
+static const struct modem_cmd unsol_cmds[] = {
+	MODEM_CMD("RDY", on_cmd_unsol_rdy, 0U, ""),
 };
 
 static int unquoted_atoi(const char *s, int base)
@@ -728,7 +746,10 @@ static void gsm_reset(struct k_work *work)
 
 	if (gsm->state == GSM_PPP_STOP) {
 		gsm_ppp_start(dev);
+		return;
 	}
+
+	LOG_ERR("Unable to reset in state %d", gsm->state);
 }
 
 static void rssi_handler(struct k_work *work)
@@ -1567,6 +1588,8 @@ static int gsm_init(const struct device *dev)
 
 	gsm->cmd_handler_data.cmds[CMD_RESP] = response_cmds;
 	gsm->cmd_handler_data.cmds_len[CMD_RESP] = ARRAY_SIZE(response_cmds);
+	gsm->cmd_handler_data.cmds[CMD_UNSOL] = unsol_cmds;
+	gsm->cmd_handler_data.cmds_len[CMD_UNSOL] = ARRAY_SIZE(unsol_cmds);
 	gsm->cmd_handler_data.match_buf = &gsm->cmd_match_buf[0];
 	gsm->cmd_handler_data.match_buf_len = sizeof(gsm->cmd_match_buf);
 	gsm->cmd_handler_data.buf_pool = &gsm_recv_pool;
