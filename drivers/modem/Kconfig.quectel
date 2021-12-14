@@ -79,7 +79,7 @@ config MODEM_GSM_QUECTEL_GNSS_OP
 
 choice "MODEM_GSM_QUECTEL_GNSS_CONSTELLATION_CHOICE"
 	prompt "Quectel GNSS constellation configurations"
-	default MODEM_GSM_QUECTEL_GNSS_GN_OFF_BD_OFF_GL_OFF
+	default MODEM_GSM_QUECTEL_GNSS_GN_ON_BD_OFF_GL_OFF
 
 config MODEM_GSM_QUECTEL_GNSS_GN_OFF_BD_OFF_GL_OFF
 	bool "GPS on, GLONASS off, BeiDou off, Galileo off"
