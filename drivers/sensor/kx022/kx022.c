@@ -19,24 +19,6 @@
 #include "kx022.h"
 
 LOG_MODULE_REGISTER(KX022, CONFIG_SENSOR_LOG_LEVEL);
-static struct kx022_data dev_data;
-static const struct kx022_config dev_config = {
-#if DT_ANY_INST_ON_BUS_STATUS_OKAY(spi)
-#error "KX022 : KX022 SPI NOT IMPLEMENTED"
-#elif DT_ANY_INST_ON_BUS_STATUS_OKAY(i2c)
-	.bus_init = kx022_i2c_init,
-	.bus_cfg = I2C_DT_SPEC_INST_GET(0),
-#else
-#error "KX022 : BUS MACRO NOT DEFINED IN DTS"
-#endif
-
-#ifdef CONFIG_KX022_TRIGGER
-	.irq_port = DT_INST_GPIO_LABEL(0, int_gpios),
-	.irq_pin = DT_INST_GPIO_PIN(0, int_gpios),
-	.irq_flags = DT_INST_GPIO_FLAGS(0, int_gpios),
-#endif
-
-};
 
 /************************************************************
  * info: kx022_mode use to set pc1 in standby or operating mode
@@ -510,12 +492,12 @@ static const struct sensor_driver_api kx022_api_funcs = {
 
 static int kx022_init(const struct device *dev)
 {
-	const struct kx022_config *const config = dev->config;
+	const struct kx022_config *const cfg = dev->config;
 	struct kx022_data *data = dev->data;
 	uint8_t chip_id;
 	uint8_t val;
 
-	if (config->bus_init(dev) < 0) {
+	if (cfg->bus_init(dev) < 0) {
 		return -EINVAL;
 	}
 
@@ -553,7 +535,7 @@ static int kx022_init(const struct device *dev)
 	LOG_DBG("Chip id 0x%x", chip_id);
 
 	/* Make sure the KX022 is stopped before we configure */
-	val = (KX022_DEFAULT_RES << KX022_CNTL1_RES_SHIFT) | (KX022_DEFAULT_FS << KX022_CNTL1_GSEL_SHIFT);
+	val = (cfg->resolution << KX022_CNTL1_RES_SHIFT) | (cfg->full_scale << KX022_CNTL1_GSEL_SHIFT);
 	if (data->hw_tf->write_reg(dev, KX022_REG_CNTL1, 
 						val) < 0) {
 		LOG_DBG("Failed CNTL1");
@@ -562,7 +544,7 @@ static int kx022_init(const struct device *dev)
 
 	/* Set KX022 default odr */
 	if (data->hw_tf->update_reg(dev, KX022_REG_ODCNTL, KX022_MASK_ODCNTL_OSA,
-				    	KX022_DEFAULT_ODR) < 0) {
+				    	cfg->odr) < 0) {
 		LOG_DBG("Failed setting odr");
 		return -EIO;
 	}
@@ -577,10 +559,59 @@ static int kx022_init(const struct device *dev)
 	/* Set Kx022 to Operating Mode */
 	kx022_mode(dev, KX022_OPERATING_MODE);
 
-	data->gain = KX022_DEFAULT_GAIN;
+	if(cfg->full_scale == KX022_FS_2G) {
+		data->gain = GAIN_XL;
+	} else if(cfg->full_scale == KX022_FS_4G) {
+		data->gain = 2 * GAIN_XL;
+	} else if(cfg->full_scale == KX022_FS_8G) {
+		data->gain = 4 * GAIN_XL;
+	}
+
+	/* After setting, need some delay, otherwise first polling data is wrong */
+	k_msleep(100);
 
 	return 0;
 }
 
-DEVICE_DT_INST_DEFINE(0, kx022_init, NULL, &dev_data, &dev_config, POST_KERNEL,
-		      CONFIG_SENSOR_INIT_PRIORITY, &kx022_api_funcs);
+#if DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT) == 0
+#warning "LIS2DW12 driver enabled without any devices"
+#endif
+
+#ifdef CONFIG_KX022_TRIGGER												
+	#define KX022_CFG_IRQ(inst) 										\
+		.irq_port = DT_INST_GPIO_LABEL(inst, int_gpios),				\
+		.irq_pin = DT_INST_GPIO_PIN(inst, int_gpios),					\
+		.irq_flags = DT_INST_GPIO_FLAGS(inst, int_gpios),
+#else
+	#define KX022_CFG_IRQ(inst)
+#endif /* CONFIG_KX022_TRIGGER */																
+
+#define KX022_INIT(inst)												\
+																		\
+	static struct kx022_data dev_data_##inst;							\
+																		\
+	static const struct kx022_config dev_config_##inst = {				\
+		.bus_init = kx022_i2c_init,										\
+		.bus_cfg = I2C_DT_SPEC_INST_GET(inst),							\
+		.int_pin_1_polarity = DT_INST_PROP(inst, int_pin_1_polarity),   \
+		.int_pin_1_response = DT_INST_PROP(inst, int_pin_1_response),	\
+		.full_scale = DT_INST_PROP(inst, full_scale),					\
+		.odr = DT_INST_PROP(inst, odr),									\
+		.resolution = DT_INST_PROP(inst, resolution),					\
+		.motion_odr = DT_INST_PROP(inst, motion_odr),					\
+		.motion_threshold = DT_INST_PROP(inst, motion_threshold),		\
+		.motion_detection_timer = DT_INST_PROP(inst, motion_detection_timer),	\
+		.tilt_odr = DT_INST_PROP(inst, tilt_odr),						\
+		.tilt_timer = DT_INST_PROP(inst, tilt_timer),					\
+		.tilt_angle_ll = DT_INST_PROP(inst, tilt_angle_ll),				\
+		.tilt_angle_hl = DT_INST_PROP(inst, tilt_angle_hl),				\
+		COND_CODE_1(DT_INST_NODE_HAS_PROP(inst, int_gpios),				\
+		(KX022_CFG_IRQ(inst)), ())										\
+	};																	\
+																		\
+	DEVICE_DT_INST_DEFINE(inst, kx022_init, NULL, &dev_data_##inst, 	\
+				&dev_config_##inst, POST_KERNEL,						\
+				CONFIG_SENSOR_INIT_PRIORITY, &kx022_api_funcs);		
+
+DT_INST_FOREACH_STATUS_OKAY(KX022_INIT)
+

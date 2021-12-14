@@ -11,6 +11,8 @@ kx022 sensor
 
 Requirements
 ************
+This sample uses the KX022 sensor controlled using the I2C interface.
+It has been tested on both gtsb_ivm21 board.
 
 References
 **********
@@ -18,6 +20,14 @@ References
 
 Building and Running
 ********************
+To build the application a board with i2c interface has to be chosen.
+Here gtsb_ivm21 board is used.
+
+.. zephyr-app-commands::
+   :zephyr-app: samples/sensor/kx022
+   :board: gtsb_ivm21
+   :goals: build
+   :compact:
 
 Sample Output
 =============
@@ -30,6 +40,25 @@ Sample Output
 #72 @ 282084 ms: x -0.053989 , y 0.026994 , z 0.973841
 #73 @ 282389 ms: x -0.053869 , y 0.025917 , z 0.973661
 
+                Accelerometer: Motion  trigger test Start
+===================MOTION DETECTED===============
+#81 @ 303721 ms: x -0.055665 , y 0.025977 , z 0.974559
+Motion Direction :      Z-
+===================MOTION DETECTED===============
+#82 @ 307367 ms: x -0.055186 , y 0.028431 , z 0.978450
+Motion Direction :      Z+
+===================MOTION DETECTED===============
+#83 @ 307945 ms: x -0.055006 , y 0.027593 , z 0.975278
+Motion Direction :      Z+
+===================MOTION DETECTED===============
+#84 @ 308463 ms: x -0.056203 , y 0.027234 , z 0.982640
+Motion Direction :      Z-
+===================MOTION DETECTED===============
+#85 @ 310417 ms: x -0.056144 , y 0.027054 , z 0.978210
+Motion Direction :      Z+
+
+                Accelerometer: Motion trigger test finished
+                
             Accelerometer: Tilt Position trigger test Start
 ===================MOTION DETECTED===============
 #74 @ 283314 ms: x -0.054468 , y 0.027593 , z 0.974499
@@ -61,21 +90,3 @@ Current Position :       Tilt Position: Face-Up(Z+)
 
                 Accelerometer: Tilt Position trigger test finished
 
-                Accelerometer: Motion  trigger test Start
-===================MOTION DETECTED===============
-#81 @ 303721 ms: x -0.055665 , y 0.025977 , z 0.974559
-Motion Direction :      Z-
-===================MOTION DETECTED===============
-#82 @ 307367 ms: x -0.055186 , y 0.028431 , z 0.978450
-Motion Direction :      Z+
-===================MOTION DETECTED===============
-#83 @ 307945 ms: x -0.055006 , y 0.027593 , z 0.975278
-Motion Direction :      Z+
-===================MOTION DETECTED===============
-#84 @ 308463 ms: x -0.056203 , y 0.027234 , z 0.982640
-Motion Direction :      Z-
-===================MOTION DETECTED===============
-#85 @ 310417 ms: x -0.056144 , y 0.027054 , z 0.978210
-Motion Direction :      Z+
-
-                Accelerometer: Motion trigger test finished

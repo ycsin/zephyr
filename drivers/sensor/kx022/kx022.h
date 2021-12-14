@@ -301,6 +301,8 @@
 #define KX022_STNDBY_MODE_MOTION 0x42
 
 #define KX022_FS_2G 0x0
+#define KX022_FS_4G 0x1
+#define KX022_FS_8G 0x2
 #define KX022_ODR_RANGE_MAX 0x07
 #define KX022_FS_RANGE_MAX 0x03
 #define KX022_RES_RANGE_MAX 0x01
@@ -320,81 +322,24 @@
 #define BITWISE_SHIFT_2 2
 #define BITWISE_SHIFT_1 1
 
-/* acceleration range */
-#if CONFIG_KX022_FS == 0
-#define KX022_DEFAULT_FS 0x0
-#define KX022_DEFAULT_GAIN GAIN_XL
-#elif CONFIG_KX022_FS == 1
-#define KX022_DEFAULT_FS 0x1
-#define KX022_DEFAULT_GAIN (2.0 * GAIN_XL)
-#elif CONFIG_KX022_FS == 2
-#define KX022_DEFAULT_FS 0x2
-#define KX022_DEFAULT_GAIN (4.0 * GAIN_XL)
-#else
-#error "KX022 : Bad KX022 FS value (should be 0 to 2)"
-#endif /* CONFIG_KX022_FS == 0 */
-
-/* interrupt */
-#define KX022_INT1 1
-#define KX022_DEFAULT_INT_PIN KX022_INT1
-
-#if (CONFIG_KX022_INT_PIN_1_POLARITY >= 0 && CONFIG_KX022_INT_PIN_1_POLARITY <= 1)
-#define KX022_DEFAULT_INT_PIN_1_POLARITY CONFIG_KX022_INT_PIN_1_POLARITY
-#else
-#error "KX022 : Bad KX022 interrupt pin 1 polarity (should be between 0 to 1)"
-#endif /* (CONFIG_KX022_INT_PIN_1_POLARITY == 0) */
-
-#if (CONFIG_KX022_INT_PIN_1_RESPONSE >= 0 && CONFIG_KX022_INT_PIN_1_RESPONSE <= 1)
-#define KX022_DEFAULT_INT_PIN_1_RESPONSE CONFIG_KX022_INT_PIN_1_RESPONSE
-#else
-#error "KX022 : Bad KX022 interrupt pin 1 response (should be between 0 to 1)"
-#endif /* (CONFIG_KX022_INT_PIN_1_RESPONSE == 0) */
-
-/* accelometer odr */
-#if  (CONFIG_KX022_ODR >= 0 && CONFIG_KX022_ODR <= 7)
-#define KX022_DEFAULT_ODR CONFIG_KX022_ODR
-#else
-#error "KX022 : Bad KX022 ODR value (should be between 0 to 7)"
-#endif /* (CONFIG_KX022_ODR == 0) */
-
-/* accelometer resolution */
-#if (CONFIG_KX022_RES >= 0 && CONFIG_KX022_RES <= 1)
-#define KX022_DEFAULT_RES CONFIG_KX022_RES
-#else
-#error "KX022 : Bad KX022 ODR value (should be between 0 to 1)"
-#endif /* (CONFIG_KX022_RES == 0) */
-
-/* accelomter motion detect odr */
-#if  (CONFIG_KX022_MOTION_ODR >= 0 && CONFIG_KX022_MOTION_ODR <= 7)
-#define KX022_DEFAULT_MOTION_ODR CONFIG_KX022_MOTION_ODR
-#else
-#error "KX022 : Bad KX022 ODR value (should be between 0 to 7)"
-#endif /* (CONFIG_KX022_MOTION_DETECT_ODR == 0) */
-
-/* KX022 MOTION THS AND DURATION*/
-#define KX022_DEFAULT_ATH_THS CONFIG_KX022_MOTION_THS
-#define KX022_DEFAULT_WUFC_DUR CONFIG_KX022_MOTION_DETECTION_TIMER
-
-/* tilt odr */
-#if  (CONFIG_KX022_TILT_ODR >= 0 && CONFIG_KX022_TILT_ODR <= 3)
-#define KX022_DEFAULT_TILT_ODR CONFIG_KX022_TILT_ODR
-#else
-#error "KX022 : Bad KX022 ODR value (should be between 0 to 3)"
-#endif /* (CONFIG_KX022_TILT_ODR == 0) */
-
-/* tilt timer */
-#define KX022_DEFAULT_TILT_DUR CONFIG_KX022_TILT_DURATION
-
-/* tilt angle */
-#define KX022_DEFAULT_TILT_ANGLE_LL CONFIG_KX022_TILT_ANGLE_LL_SET
-#define KX022_DEFAULT_TILT_ANGLE_HL CONFIG_KX022_TILT_ANGLE_HL_SET
-
 /* Accel sensor sensitivity unit is 0.061 mg/LSB */
 #define GAIN_XL (6103515625LL / 1000000000000.0)
 
 struct kx022_config {
 	int (*bus_init)(const struct device *dev);
 	struct i2c_dt_spec bus_cfg;
+    uint8_t int_pin_1_polarity;
+    uint8_t int_pin_1_response;
+    uint8_t full_scale;
+    uint8_t odr;
+	uint8_t resolution;
+    uint8_t motion_odr;    
+    uint8_t motion_threshold;
+    uint8_t motion_detection_timer;
+    uint8_t tilt_odr;
+    uint8_t tilt_timer;
+    uint8_t tilt_angle_ll;
+    uint8_t tilt_angle_hl;
 #ifdef CONFIG_KX022_TRIGGER
 	const char *irq_port;
 	gpio_pin_t irq_pin;

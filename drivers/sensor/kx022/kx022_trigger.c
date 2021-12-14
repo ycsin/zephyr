@@ -118,8 +118,8 @@ int kx022_trigger_init(const struct device *dev)
 
 	/* Enable kx022 physical int 1 */
 	val = KX022_MASK_INC1_IEN1;
-	val |= (KX022_DEFAULT_INT_PIN_1_POLARITY << KX022_INC1_IEA1_SHIFT);
-	val |= (KX022_DEFAULT_INT_PIN_1_RESPONSE << KX022_INC1_IEL1_SHIFT);
+	val |= (cfg->int_pin_1_polarity << KX022_INC1_IEA1_SHIFT);
+	val |= (cfg->int_pin_1_response << KX022_INC1_IEL1_SHIFT);
 	if (data->hw_tf->write_reg(dev, KX022_REG_INC1, 
 						val) < 0) {
 		LOG_ERR("Failed set physical int 1");
@@ -148,6 +148,7 @@ int kx022_trigger_init(const struct device *dev)
 int kx022_motion_setup(const struct device *dev, sensor_trigger_handler_t handler)
 {
 	struct kx022_data *data = dev->data;
+	const struct kx022_config *cfg = dev->config;
 
 	data->motion_handler = handler;
 
@@ -163,7 +164,7 @@ int kx022_motion_setup(const struct device *dev, sensor_trigger_handler_t handle
 	}
 
 	if (data->hw_tf->update_reg(dev, KX022_REG_CNTL3, KX022_MASK_CNTL3_OWUF, 
-						KX022_DEFAULT_MOTION_ODR) < 0) {
+						cfg->motion_odr) < 0) {
 		LOG_ERR("Failed set motion odr");
 		return -EIO;
 	}
@@ -175,13 +176,13 @@ int kx022_motion_setup(const struct device *dev, sensor_trigger_handler_t handle
 	}
 
 	if (data->hw_tf->write_reg(dev, KX022_REG_WUFC, 
-						KX022_DEFAULT_WUFC_DUR) < 0) {
+						cfg->motion_detection_timer) < 0) {
 		LOG_ERR("Failed set motion delay");
 		return -EIO;
 	}
 
 	if (data->hw_tf->write_reg(dev, KX022_REG_ATH, 
-						KX022_DEFAULT_ATH_THS) < 0) {
+						cfg->motion_threshold) < 0) {
 		LOG_ERR("Failed set motion ath");
 		return -EIO;
 	}
@@ -200,6 +201,7 @@ int kx022_motion_setup(const struct device *dev, sensor_trigger_handler_t handle
 int kx022_tilt_setup(const struct device *dev, sensor_trigger_handler_t handler)
 {
 	struct kx022_data *data = dev->data;
+	const struct kx022_config *cfg = dev->config;
 
 	data->tilt_handler = handler;
 
@@ -220,25 +222,25 @@ int kx022_tilt_setup(const struct device *dev, sensor_trigger_handler_t handler)
 	}
 
 	if (data->hw_tf->update_reg(dev, KX022_REG_CNTL3, KX022_MASK_CNTL3_OTP,
-						(KX022_DEFAULT_TILT_ODR << KX022_CNTL3_OTP_SHIFT)) < 0) {
+						(cfg->tilt_odr << KX022_CNTL3_OTP_SHIFT)) < 0) {
 		LOG_ERR("Failed set tilt odr");
 		return -EIO;
 	}
 
 	if (data->hw_tf->write_reg(dev, KX022_REG_TILT_TIMER, 
-						KX022_DEFAULT_TILT_DUR) < 0) {
+						cfg->tilt_timer) < 0) {
 		LOG_ERR("Failed set tilt timer");
 		return -EIO;
 	}
 
 	if (data->hw_tf->write_reg(dev, KX022_REG_TILT_ANGLE_LL, 
-						KX022_DEFAULT_TILT_ANGLE_LL) < 0) {
+						cfg->tilt_angle_ll) < 0) {
 		LOG_ERR("Failed set tilt angle ll");
 		return -EIO;
 	}
 
 	if (data->hw_tf->write_reg(dev, KX022_REG_TILT_ANGLE_HL, 
-						KX022_DEFAULT_TILT_ANGLE_HL) < 0) {
+						cfg->tilt_angle_hl) < 0) {
 		LOG_ERR("Failed set tilt angle hl");
 		return -EIO;
 	}

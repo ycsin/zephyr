@@ -305,7 +305,6 @@ static void test_polling_mode(const struct device *dev)
 
 static void test_trigger_mode(const struct device *dev)
 {
-	//struct sensor_value val;
 	struct sensor_trigger trig;
 	uint8_t rc;
 
@@ -346,7 +345,6 @@ static void test_runtime_cfg(const struct device *dev)
 {	
 	//int rc;
 	//struct sensor_value val;
-
 #if CONFIG_KX022_FS_RUNTIME
 	val.val1 = 1;
 	rc = sensor_attr_set(dev, SENSOR_CHAN_KX022_CFG, SENSOR_ATTR_FULL_SCALE, &val);
@@ -363,17 +361,17 @@ static void test_runtime_cfg(const struct device *dev)
 #endif
 
 #if CONFIG_KX022_MOTION_DETECTION_TIMER_RUNTIME
-	val.val1 = 4;
+	val.val1 = 2;
 	rc = sensor_attr_set(dev, SENSOR_CHAN_KX022_CFG, SENSOR_ATTR_KX022_MOTION_DETECTION_TIMER, &val);
+#endif
+
+#if CONFIG_KX022_TILT_TIMER_RUNTIME
+	val.val1 = 3;
+	rc = sensor_attr_set(dev, SENSOR_CHAN_KX022_CFG, SENSOR_ATTR_KX022_TILT_TIMER, &val);
 #endif
 
 #if CONFIG_KX022_MOTION_DETECT_THRESHOLD_RUNTIME
 	val.val1 = 4;
-	rc = sensor_attr_set(dev, SENSOR_CHAN_KX022_CFG, SENSOR_ATTR_KX022_TILT_TIMER, &val);
-#endif
-
-#if CONFIG_KX022_TILT_TIMER_RUNTIME
-	val.val1 = 8;
 	rc = sensor_attr_set(dev, SENSOR_CHAN_KX022_CFG, SENSOR_ATTR_KX022_MOTION_DETECT_THRESHOLD, &val);
 #endif
 
@@ -385,11 +383,18 @@ static void test_runtime_cfg(const struct device *dev)
 
 void main(void)
 {
-	const struct device *sensor = DEVICE_DT_GET_ANY(kionix_kx022);
+	const struct device *sensor = device_get_binding(DT_LABEL(DT_NODELABEL(kx022_device_1)));
+	const struct device *sensor2 = device_get_binding(DT_LABEL(DT_NODELABEL(kx022_device_2)));
 
 	if (!device_is_ready(sensor)) {
+		printf("Device kx022 device 1 is not ready\n");
 		sys_reboot(SYS_REBOOT_COLD);
-		printf("Device %s is not ready\n", sensor->name);
+		return;
+	}
+
+	if (!device_is_ready(sensor2)) {
+		printf("Device kx022 device 2 is not ready\n");
+		sys_reboot(SYS_REBOOT_COLD);
 		return;
 	}
 
@@ -409,10 +414,15 @@ void main(void)
 #endif  /*CONFIG_KX022_DIAGNOSTIC_MODE*/
 
 	while (true) {
-		/* After setting, need some delay, otherwise first polling data is wrong */
-		k_msleep(50);
 		test_polling_mode(sensor);
-		k_msleep(50);
+#ifdef CONFIG_KX022_TRIGGER
 		test_trigger_mode(sensor);
+#endif
+
+		test_polling_mode(sensor2);
+#ifdef CONFIG_KX022_TRIGGER
+		test_trigger_mode(sensor2);
+#endif
+
 	}
 }
