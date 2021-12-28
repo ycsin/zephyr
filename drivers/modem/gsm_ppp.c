@@ -942,12 +942,6 @@ attaching:
 	modem_cmd_handler_tx_unlock(&gsm->context.cmd_handler);
 	k_work_schedule(&rssi_work_handle, K_SECONDS(CONFIG_MODEM_GSM_RSSI_POLLING_PERIOD));
 #endif /* CONFIG_GSM_MUX */
-
-#if IS_ENABLED(CONFIG_MODEM_GSM_QUECTEL_GNSS_AUTOSTART)
-	LOG_WRN("Auto starting gnss configuration");
-	gnss_state = PPP_GNSS_STARTING;
-	(void)k_work_reschedule(&gnss_configure_work, K_SECONDS(5));
-#endif
 }
 
 #if IS_ENABLED(CONFIG_GSM_MUX)
@@ -1432,15 +1426,21 @@ int gsm_ppp_gnss_disable(void) {
 }
 
 int gsm_ppp_gnss_wait_until_ready(int s) {
+	int ret;
+
 	k_sem_reset(&gnss_ready_sem);
+
 	if (gnss_state == PPP_GNSS_READY) {
 		return 0;
-	} else {
-		if (k_sem_take(&gnss_ready_sem, K_SECONDS(s))) {
-			return -ENODEV;
-		}
-		return 0;
 	}
+
+	ret = k_sem_take(&gnss_ready_sem, K_SECONDS(s));
+	if (ret)
+	{
+		LOG_WRN("%s error: %d", "k_sem_take", ret);
+	}
+
+	return ret;
 }
 
 static void gsm_configure(struct k_work *work)
@@ -1488,6 +1488,12 @@ static void gsm_configure(struct k_work *work)
 	}
 
 	gsm->state = GSM_PPP_AT_RDY;
+
+#if IS_ENABLED(CONFIG_MODEM_GSM_QUECTEL_GNSS_AUTOSTART)
+	LOG_WRN("Auto starting gnss configuration in %d seconds", 20);
+	gnss_state = PPP_GNSS_STARTING;
+	(void)gsm_work_reschedule(&gnss_configure_work, K_SECONDS(20));
+#endif
 
 #if IS_ENABLED(CONFIG_GSM_MUX)
 	if (mux_enable(gsm) == 0) {
@@ -1597,6 +1603,7 @@ static int gsm_init(const struct device *dev)
 	gsm->cmd_handler_data.eol = "\r";
 
 	k_sem_init(&gsm->sem_response, 0, 1);
+	k_sem_init(&gnss_ready_sem, 0, 1);
 
 	r = modem_cmd_handler_init(&gsm->context.cmd_handler,
 				   &gsm->cmd_handler_data);
@@ -1642,7 +1649,6 @@ static int gsm_init(const struct device *dev)
 	/* Initialize to stop state so that it can be started later */
 	gsm->state = GSM_PPP_STOP;
 
-	k_sem_init(&gnss_ready_sem, 0, 1);
 	k_work_init_delayable(&gnss_configure_work, gnss_configure);
 	gnss_enabled = IS_ENABLED(CONFIG_MODEM_GSM_QUECTEL_GNSS_AUTOSTART);
 	gnss_state = PPP_GNSS_OFF;
