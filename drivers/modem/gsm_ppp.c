@@ -38,6 +38,7 @@ LOG_MODULE_REGISTER(modem_gsm, CONFIG_MODEM_LOG_LEVEL);
 #define GSM_CMD_AT_TIMEOUT              K_SECONDS(2)
 #define GSM_CMD_SETUP_TIMEOUT           K_SECONDS(6)
 #define GSM_RX_STACK_SIZE               CONFIG_MODEM_GSM_RX_STACK_SIZE
+#define GSM_WORKQ_STACK_SIZE            768
 #define GSM_RECV_MAX_BUF                30
 #define GSM_RECV_BUF_SIZE               128
 #define GSM_ATTACH_RETRY_DELAY_MSEC     1000
@@ -124,8 +125,10 @@ static struct gsm_modem {
 NET_BUF_POOL_DEFINE(gsm_recv_pool, GSM_RECV_MAX_BUF, GSM_RECV_BUF_SIZE,
 		    0, NULL);
 K_KERNEL_STACK_DEFINE(gsm_rx_stack, GSM_RX_STACK_SIZE);
+K_THREAD_STACK_DEFINE(gsm_workq_stack, GSM_WORKQ_STACK_SIZE);
 
 struct k_thread gsm_rx_thread;
+static struct k_work_q gsm_workq;
 static struct k_work_delayable rssi_work_handle;
 
 static struct k_sem gnss_ready_sem;
@@ -142,6 +145,11 @@ enum ppp_gnss_state {
 };
 
 static enum ppp_gnss_state gnss_state;
+
+static int gsm_work_reschedule(struct k_work_delayable *dwork, k_timeout_t delay)
+{
+	return k_work_reschedule_for_queue(&gsm_workq, dwork, delay);
+}
 
 #if IS_ENABLED(CONFIG_MODEM_GSM_ENABLE_CESQ_RSSI)
 	/* helper macro to keep readability */
@@ -209,7 +217,7 @@ MODEM_CMD_DEFINE(on_cmd_unsol_rdy)
 	if (gsm.state > GSM_PPP_AT_RDY) {
 		LOG_ERR("Modem %s", "reset unexpectedly");
 		gsm.state = GSM_PPP_STATE_ERROR;
-		(void)k_work_reschedule(&gsm.gsm_reset_work, K_NO_WAIT);
+		(void)gsm_work_reschedule(&gsm.gsm_reset_work, K_NO_WAIT);
 	}
 
 	LOG_WRN("Modem %s", "AT RDY");
@@ -740,7 +748,7 @@ static void gsm_reset(struct k_work *work)
 	if (gsm->state == GSM_PPP_STATE_ERROR) {
 		LOG_WRN("Resetting GSM");
 		gsm_ppp_stop(dev);
-		(void)k_work_reschedule(&gsm->gsm_reset_work, K_SECONDS(2));
+		(void)gsm_work_reschedule(&gsm->gsm_reset_work, K_SECONDS(2));
 		return;
 	}
 
@@ -771,7 +779,7 @@ static void rssi_handler(struct k_work *work)
 #if IS_ENABLED(CONFIG_MODEM_CELL_INFO)
 	(void) gsm_query_cellinfo(&gsm);
 #endif
-	k_work_reschedule(&rssi_work_handle, K_SECONDS(CONFIG_MODEM_GSM_RSSI_POLLING_PERIOD));
+	gsm_work_reschedule(&rssi_work_handle, K_SECONDS(CONFIG_MODEM_GSM_RSSI_POLLING_PERIOD));
 #endif /* CONFIG_GSM_MUX */
 
 }
@@ -802,7 +810,7 @@ static void gsm_finalize_connection(struct gsm_modem *gsm)
 	if (ret < 0) {
 		LOG_ERR("AT returned %d, %s",
 			ret, "retrying...");
-		(void)k_work_reschedule(&gsm->gsm_configure_work,
+		(void)gsm_work_reschedule(&gsm->gsm_configure_work,
 					K_SECONDS(1));
 		return;
 	}
@@ -824,7 +832,7 @@ static void gsm_finalize_connection(struct gsm_modem *gsm)
 		LOG_ERR("gsm_setup_mccmno returned %d, %s",
 				ret, "retrying...");
 
-		(void)k_work_reschedule(&gsm->gsm_configure_work,
+		(void)gsm_work_reschedule(&gsm->gsm_configure_work,
 							K_SECONDS(1));
 		return;
 	}
@@ -838,7 +846,7 @@ static void gsm_finalize_connection(struct gsm_modem *gsm)
 	if (ret < 0) {
 		LOG_DBG("setup_cmds returned %d, %s",
 			ret, "retrying...");
-		(void)k_work_reschedule(&gsm->gsm_configure_work, K_SECONDS(1));
+		(void)gsm_work_reschedule(&gsm->gsm_configure_work, K_SECONDS(1));
 		return;
 	}
 
@@ -866,7 +874,7 @@ attaching:
 
 		LOG_DBG("Not attached, %s", "retrying...");
 
-		(void)k_work_reschedule(&gsm->gsm_configure_work,
+		(void)gsm_work_reschedule(&gsm->gsm_configure_work,
 					K_MSEC(GSM_ATTACH_RETRY_DELAY_MSEC));
 		return;
 	}
@@ -889,7 +897,7 @@ attaching:
 
 		LOG_DBG("Not valid RSSI, %s", "retrying...");
 		if (gsm->rssi_retries-- > 0) {
-			(void)k_work_reschedule(&gsm->gsm_configure_work,
+			(void)gsm_work_reschedule(&gsm->gsm_configure_work,
 						K_MSEC(GSM_RSSI_RETRY_DELAY_MSEC));
 			return;
 		}
@@ -910,7 +918,7 @@ attaching:
 	if (ret < 0) {
 		LOG_DBG("modem setup returned %d, %s",
 			ret, "retrying...");
-		(void)k_work_reschedule(&gsm->gsm_configure_work, K_SECONDS(1));
+		(void)gsm_work_reschedule(&gsm->gsm_configure_work, K_SECONDS(1));
 		return;
 	}
 
@@ -1003,7 +1011,7 @@ static int mux_enable(struct gsm_modem *gsm)
 
 static void mux_setup_next(struct gsm_modem *gsm)
 {
-	(void)k_work_reschedule(&gsm->gsm_configure_work, K_MSEC(1));
+	(void)gsm_work_reschedule(&gsm->gsm_configure_work, K_MSEC(1));
 }
 
 static void mux_attach_cb(const struct device *mux, int dlci_address,
@@ -1138,7 +1146,7 @@ static void mux_setup(struct k_work *work)
 
 fail:
 	gsm->state = GSM_PPP_STATE_ERROR;
-	(void)k_work_reschedule(&gsm->gsm_reset_work, K_NO_WAIT);
+	(void)gsm_work_reschedule(&gsm->gsm_reset_work, K_NO_WAIT);
 }
 #endif /* CONFIG_GSM_MUX */
 
@@ -1356,42 +1364,42 @@ static void gnss_configure(struct k_work *work)
 			ret =  quectel_gnss_cfg_outport(CONFIG_MODEM_GSM_QUECTEL_GNSS_OP);
 			if (ret < 0) {
 				LOG_ERR("quectel_gnss_cfg_outport failed: %d", ret);
-				k_work_reschedule(&gnss_configure_work, K_SECONDS(2));
+				gsm_work_reschedule(&gnss_configure_work, K_SECONDS(2));
 				return;
 			}
 
 			gnss_state = PPP_GNSS_CFG_CONSTELLATION;
-			k_work_reschedule(&gnss_configure_work, K_NO_WAIT);
+			gsm_work_reschedule(&gnss_configure_work, K_NO_WAIT);
 			break;
 		case PPP_GNSS_CFG_CONSTELLATION:
 			ret =  quectel_gnss_cfg_constellation(GNSS_CONSTELLATION_CFG);
 			if (ret < 0) {
 				LOG_ERR("quectel_gnss_cfg_constellation: %d failed: %d",
 					GNSS_CONSTELLATION_CFG, ret);
-				k_work_reschedule(&gnss_configure_work, K_SECONDS(2));
+				gsm_work_reschedule(&gnss_configure_work, K_SECONDS(2));
 				return;
 			}
 
 			gnss_state = PPP_GNSS_CFG_NMEA;
-			k_work_reschedule(&gnss_configure_work, K_NO_WAIT);
+			gsm_work_reschedule(&gnss_configure_work, K_NO_WAIT);
 			break;
 		case PPP_GNSS_CFG_NMEA:
 			ret =  quectel_gnss_cfg_nmea(QUECTEL_NMEA_GPS, QUECTEL_NMEA_GPS_STR, &cfg);
 			if (ret < 0) {
 				LOG_ERR("quectel_gnss_cfg_nmea failed: %d", ret);
-				k_work_reschedule(&gnss_configure_work, K_SECONDS(2));
+				gsm_work_reschedule(&gnss_configure_work, K_SECONDS(2));
 				return;
 			}
 
 			gnss_state = PPP_GNSS_CFG_TURN_ON;
-			k_work_reschedule(&gnss_configure_work, K_NO_WAIT);
+			gsm_work_reschedule(&gnss_configure_work, K_NO_WAIT);
 			break;
 		case PPP_GNSS_CFG_TURN_ON:
 			ret =  quectel_gnss_enable(FIX_MAX_TIME, FIX_MAX_DIST,
 							FIX_COUNT, FIX_INTERVAL);
 			if (ret < 0) {
 				LOG_ERR("quectel_gnss_enable failed: %d", ret);
-				k_work_reschedule(&gnss_configure_work, K_SECONDS(2));
+				gsm_work_reschedule(&gnss_configure_work, K_SECONDS(2));
 				return;
 			}
 
@@ -1456,20 +1464,20 @@ static void gsm_configure(struct k_work *work)
 		disable_power_source(&gsm->context);
 		gsm->state = GSM_PPP_PWR_SRC_OFF;
 		/* Arbitrary delay to drain the power */
-		(void)k_work_reschedule(&gsm->gsm_configure_work, K_SECONDS(1));
+		(void)gsm_work_reschedule(&gsm->gsm_configure_work, K_SECONDS(1));
 	}
 
 	if (gsm->state == GSM_PPP_PWR_SRC_OFF) {
 		enable_power_source(&gsm->context);
 		gsm->state = GSM_PPP_PWR_SRC_ON;
 		/* Arbitrary delay for the power to stabilize */
-		(void)k_work_reschedule(&gsm->gsm_configure_work, K_SECONDS(2));
+		(void)gsm_work_reschedule(&gsm->gsm_configure_work, K_SECONDS(2));
 	}
 
 	if (gsm->state == GSM_PPP_PWR_SRC_ON) {
 		power_on_ops(&gsm->context);
 		gsm->state = GSM_PPP_WAIT_AT;
-		(void)k_work_reschedule(&gsm->gsm_configure_work, K_SECONDS(15));
+		(void)gsm_work_reschedule(&gsm->gsm_configure_work, K_SECONDS(15));
 		return;
 	}
 
@@ -1482,7 +1490,7 @@ static void gsm_configure(struct k_work *work)
 	if (ret < 0) {
 		LOG_DBG("modem not ready %d", ret);
 
-		(void)k_work_reschedule(&gsm->gsm_configure_work, K_NO_WAIT);
+		(void)gsm_work_reschedule(&gsm->gsm_configure_work, K_NO_WAIT);
 
 		return;
 	}
@@ -1499,7 +1507,7 @@ static void gsm_configure(struct k_work *work)
 	if (mux_enable(gsm) == 0) {
 		gsm->state = GSM_PPP_MUX_ENABLED;
 	} else {
-		(void)k_work_reschedule(&gsm->gsm_configure_work,
+		(void)gsm_work_reschedule(&gsm->gsm_configure_work,
 					K_NO_WAIT);
 		return;
 	}
@@ -1510,7 +1518,7 @@ static void gsm_configure(struct k_work *work)
 	k_work_init_delayable(&gsm->gsm_configure_work,
 			      mux_setup);
 
-	(void)k_work_reschedule(&gsm->gsm_configure_work,
+	(void)gsm_work_reschedule(&gsm->gsm_configure_work,
 				K_NO_WAIT);
 #else
 	gsm->state = GSM_PPP_SETUP;
@@ -1544,7 +1552,7 @@ void gsm_ppp_start(const struct device *dev)
 	}
 
 	k_work_init_delayable(&gsm->gsm_configure_work, gsm_configure);
-	(void)k_work_reschedule(&gsm->gsm_configure_work, K_NO_WAIT);
+	(void)gsm_work_reschedule(&gsm->gsm_configure_work, K_NO_WAIT);
 
 #if IS_ENABLED(CONFIG_GSM_MUX)
 	k_work_init_delayable(&rssi_work_handle, rssi_handler);
@@ -1601,6 +1609,12 @@ static int gsm_init(const struct device *dev)
 	gsm->cmd_handler_data.buf_pool = &gsm_recv_pool;
 	gsm->cmd_handler_data.alloc_timeout = K_NO_WAIT;
 	gsm->cmd_handler_data.eol = "\r";
+
+	/* initialize the work queue */
+	k_work_queue_init(&gsm_workq);
+	k_work_queue_start(&gsm_workq, gsm_workq_stack, K_THREAD_STACK_SIZEOF(gsm_workq_stack),
+			   K_PRIO_COOP(7), NULL);
+	k_thread_name_set(&gsm_workq.thread, "gsm_workq");
 
 	k_sem_init(&gsm->sem_response, 0, 1);
 	k_sem_init(&gnss_ready_sem, 0, 1);
