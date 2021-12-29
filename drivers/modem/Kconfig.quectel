@@ -3,23 +3,52 @@
 
 config MODEM_GSM_QUECTEL_GNSS
 	bool "Enables GNSS functions for Quectel modems"
-	depends on MODEM_GSM_QUECTEL
 	default y
 	help
 	  Enables GPS functions for Quectel modems that support GNSS.
 
 if MODEM_GSM_QUECTEL_GNSS
 
+config MODEM_GSM_QUECTELL_GNSS_SUPL
+	bool "Enable SUPL AGPS configuration"
+	default y
+	help
+	  Enable SUPL AGPS configuration.
+
+if MODEM_GSM_QUECTELL_GNSS_SUPL
+
+config MODEM_GSM_QUECTELL_GNSS_SUPL_URL
+	string "SUPL AGPS server url"
+	default "supl.google.com:7276"
+	help
+	  SUPL AGPS server url.
+
+endif # MODEM_GSM_QUECTELL_GNSS_SUPL
+
+config MODEM_GSM_QUECTELL_GNSS_QLOC
+	bool "Enable QuecLocator configuration"
+	default y
+	help
+	  Enable QuecLocator configuration.
+
+if MODEM_GSM_QUECTELL_GNSS_QLOC
+
+config MODEM_GSM_QUECTELL_GNSS_QLOC_TOK
+	string "QuecLocator token"
+	default "hHP0F4GoA604u3zn"
+	help
+	  QuecLocator token.
+
+endif # MODEM_GSM_QUECTELL_GNSS_QLOC
+
 config MODEM_GSM_QUECTEL_GNSS_AUTOSTART
 	bool "Autostart GNSS engine"
-	depends on MODEM_GSM_QUECTEL
 	default y
 	help
 	  Autostart GNSS engine.
 
 config MODEM_GSM_QUECTEL_GNSS_FIX_MAX_TIME_S
 	int "Maximum GNSS positioning time in seconds"
-	depends on MODEM_GSM_QUECTEL_GNSS
 	default 30
 	help
 	  Defines the maximum GNSS positioning time in seconds. Minimum 1s,
@@ -27,7 +56,6 @@ config MODEM_GSM_QUECTEL_GNSS_FIX_MAX_TIME_S
 
 config MODEM_GSM_QUECTEL_GNSS_FIX_MAX_DIST_M
 	int "Accuracy threshold of positioning in meter"
-	depends on MODEM_GSM_QUECTEL_GNSS
 	default 50
 	help
 	  Defines the accuracy threshold of positioning in meter. Minimum 1 meter,
@@ -35,7 +63,6 @@ config MODEM_GSM_QUECTEL_GNSS_FIX_MAX_DIST_M
 
 config MODEM_GSM_QUECTEL_GNSS_FIX_COUNT
 	int "Number of attempts for positioning"
-	depends on MODEM_GSM_QUECTEL_GNSS
 	default 0
 	help
 	  Defines the number of attempts for positioning. 0 indicates continuous
@@ -44,7 +71,6 @@ config MODEM_GSM_QUECTEL_GNSS_FIX_COUNT
 
 config MODEM_GSM_QUECTEL_GNSS_FIX_INTERVAL_S
 	int "Interval between each GNSS fix in seconds"
-	depends on MODEM_GSM_QUECTEL_GNSS
 	default 3
 	help
 	  Defines the interval between each GNSS fix in seconds. Minimum 1s, maximum
