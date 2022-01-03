@@ -361,7 +361,6 @@ static int adc_stm32_enable(ADC_TypeDef *adc)
 	return 0;
 }
 
-
 static int start_read(const struct device *dev,
 		      const struct adc_sequence *sequence)
 {
@@ -479,7 +478,8 @@ static int start_read(const struct device *dev,
 	LL_ADC_Disable(adc);
 	while (LL_ADC_IsEnabled(adc) == 1UL) {
 	}
-#endif /* CONFIG_SOC_SERIES_STM32L0X */
+#endif
+
 #if defined(CONFIG_SOC_SERIES_STM32G0X) || \
 	defined(CONFIG_SOC_SERIES_STM32G4X) || \
 	defined(CONFIG_SOC_SERIES_STM32H7X) || \
