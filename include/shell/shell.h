@@ -648,8 +648,8 @@ struct shell_backend_ctx_flags {
 	uint32_t history_exit :1; /*!< Request to exit history mode */
 	uint32_t last_nl      :8; /*!< Last received new line character */
 	uint32_t cmd_ctx      :1; /*!< Shell is executing command */
-	uint32_t print_noinit :1; /*!< Print request from not initialized shell*/
-	uint32_t panic_mode   :1; /*!< Shell in panic mode */
+	uint32_t print_noinit :1; /*!< Print request from not initialized shell */
+	uint32_t sync_mode    :1; /*!< Shell in synchronous mode */
 };
 
 BUILD_ASSERT((sizeof(struct shell_backend_ctx_flags) == sizeof(uint32_t)),
