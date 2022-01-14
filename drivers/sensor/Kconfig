@@ -132,6 +132,8 @@ source "drivers/sensor/lis2mdl/Kconfig"
 
 source "drivers/sensor/lis3mdl/Kconfig"
 
+source "drivers/sensor/kx022/Kconfig"
+
 source "drivers/sensor/lm75/Kconfig"
 
 source "drivers/sensor/lm77/Kconfig"
