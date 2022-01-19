@@ -126,7 +126,7 @@ static struct gsm_modem {
 NET_BUF_POOL_DEFINE(gsm_recv_pool, GSM_RECV_MAX_BUF, GSM_RECV_BUF_SIZE,
 		    0, NULL);
 K_KERNEL_STACK_DEFINE(gsm_rx_stack, GSM_RX_STACK_SIZE);
-K_THREAD_STACK_DEFINE(gsm_workq_stack, GSM_WORKQ_STACK_SIZE);
+K_KERNEL_STACK_DEFINE(gsm_workq_stack, GSM_WORKQ_STACK_SIZE);
 
 struct k_thread gsm_rx_thread;
 static struct k_work_q gsm_workq;
@@ -1814,7 +1814,7 @@ static int gsm_init(const struct device *dev)
 
 	/* initialize the work queue */
 	k_work_queue_init(&gsm_workq);
-	k_work_queue_start(&gsm_workq, gsm_workq_stack, K_THREAD_STACK_SIZEOF(gsm_workq_stack),
+	k_work_queue_start(&gsm_workq, gsm_workq_stack, K_KERNEL_STACK_SIZEOF(gsm_workq_stack),
 			   K_PRIO_COOP(7), NULL);
 	k_thread_name_set(&gsm_workq.thread, "gsm_workq");
 
