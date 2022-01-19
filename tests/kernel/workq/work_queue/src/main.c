@@ -65,8 +65,9 @@ static int expected_poll_result;
 
 static void work_handler(struct k_work *work)
 {
+	struct k_work_delayable *dwork = k_work_delayable_from_work(work);
 	struct delayed_test_item *ti =
-			CONTAINER_OF(work, struct delayed_test_item, work);
+			CONTAINER_OF(dwork, struct delayed_test_item, work);
 
 	TC_PRINT(" - Running test item %d\n", ti->key);
 	k_msleep(WORK_ITEM_WAIT);
@@ -178,8 +179,9 @@ static void test_sequence(void)
 
 static void resubmit_work_handler(struct k_work *work)
 {
+	struct k_work_delayable *dwork = k_work_delayable_from_work(work);
 	struct delayed_test_item *ti =
-			CONTAINER_OF(work, struct delayed_test_item, work);
+			CONTAINER_OF(dwork, struct delayed_test_item, work);
 
 	k_msleep(WORK_ITEM_WAIT);
 
@@ -218,8 +220,9 @@ static void test_resubmit(void)
 
 static void delayed_work_handler(struct k_work *work)
 {
+	struct k_work_delayable *dwork = k_work_delayable_from_work(work);
 	struct delayed_test_item *ti =
-			CONTAINER_OF(work, struct delayed_test_item, work);
+			CONTAINER_OF(dwork, struct delayed_test_item, work);
 
 	TC_PRINT(" - Running delayed test item %d\n", ti->key);
 
@@ -384,8 +387,9 @@ static void test_delayed(void)
 
 static void triggered_work_handler(struct k_work *work)
 {
+	struct k_work_delayable *dwork = k_work_delayable_from_work(work);
 	struct triggered_test_item *ti =
-			CONTAINER_OF(work, struct triggered_test_item, work);
+			CONTAINER_OF(dwork, struct triggered_test_item, work);
 
 	TC_PRINT(" - Running triggered test item %d\n", ti->key);
 
@@ -518,8 +522,9 @@ static void test_already_triggered(void)
 
 static void triggered_resubmit_work_handler(struct k_work *work)
 {
+	struct k_work_delayable *dwork = k_work_delayable_from_work(work);
 	struct triggered_test_item *ti =
-			CONTAINER_OF(work, struct triggered_test_item, work);
+			CONTAINER_OF(dwork, struct triggered_test_item, work);
 
 	results[num_results++] = ti->key;
 
