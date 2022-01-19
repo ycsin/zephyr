@@ -82,7 +82,6 @@ static struct gsm_modem {
 
 	struct modem_iface_uart_data gsm_data;
 	struct k_work_delayable gsm_configure_work;
-	struct k_work_delayable gsm_reset_work;
 	char gsm_rx_rb_buf[PPP_MRU * 3];
 
 	uint8_t *ppp_recv_buf;
@@ -223,12 +222,6 @@ MODEM_CMD_DEFINE(gsm_cmd_error)
 /* Handler: Modem initialization ready. */
 MODEM_CMD_DEFINE(on_cmd_unsol_rdy)
 {
-	if (gsm.state > GSM_PPP_AT_RDY) {
-		LOG_ERR("Modem %s", "reset unexpectedly");
-		gsm.state = GSM_PPP_STATE_ERROR;
-		(void)gsm_work_reschedule(&gsm.gsm_reset_work, K_NO_WAIT);
-	}
-
 	LOG_WRN("Modem %s", "AT RDY");
 
 	return 0;
@@ -799,30 +792,6 @@ static void set_ppp_carrier_on(struct gsm_modem *gsm)
 	}
 }
 
-static void gsm_reset(struct k_work *work)
-{
-	const struct device *dev;
-	struct k_work_delayable *dwork = k_work_delayable_from_work(work);
-	struct gsm_modem *gsm = CONTAINER_OF(dwork, struct gsm_modem,
-					     gsm_reset_work);
-
-	dev = DEVICE_DT_GET(DT_INST(0, zephyr_gsm_ppp));
-
-	if (gsm->state == GSM_PPP_STATE_ERROR) {
-		LOG_WRN("Resetting GSM");
-		gsm_ppp_stop(dev);
-		(void)gsm_work_reschedule(&gsm->gsm_reset_work, K_SECONDS(2));
-		return;
-	}
-
-	if (gsm->state == GSM_PPP_STOP) {
-		gsm_ppp_start(dev);
-		return;
-	}
-
-	LOG_ERR("Unable to reset in state %d", gsm->state);
-}
-
 static void rssi_handler(struct k_work *work)
 {
 	int ret;
@@ -1209,7 +1178,6 @@ static void mux_setup(struct k_work *work)
 
 fail:
 	gsm->state = GSM_PPP_STATE_ERROR;
-	(void)gsm_work_reschedule(&gsm->gsm_reset_work, K_NO_WAIT);
 }
 #endif /* CONFIG_GSM_MUX */
 
@@ -1796,6 +1764,10 @@ void gsm_ppp_stop(const struct device *dev)
 		return;
 	}
 
+	(void)k_work_cancel_delayable_sync(&gsm->gsm_configure_work, &work_sync);
+	(void)k_work_cancel_delayable_sync(&gnss_configure_work, &work_sync);
+	(void)k_work_cancel_delayable_sync(&rssi_work_handle, &work_sync);
+
 	net_if_l2(iface)->enable(iface, false);
 
 #if IS_ENABLED(CONFIG_GSM_MUX)
@@ -1808,10 +1780,6 @@ void gsm_ppp_stop(const struct device *dev)
 				      K_SECONDS(10))) {
 		LOG_WRN("Failed locking modem cmds!");
 	}
-
-	(void)k_work_cancel_delayable_sync(&gsm->gsm_configure_work, &work_sync);
-	(void)k_work_cancel_delayable_sync(&gnss_configure_work, &work_sync);
-	(void)k_work_cancel_delayable_sync(&rssi_work_handle, &work_sync);
 
 	gnss_state = PPP_GNSS_OFF;
 	gsm->state = GSM_PPP_STOP;
@@ -1900,8 +1868,6 @@ static int gsm_init(const struct device *dev)
 	k_work_init_delayable(&gnss_configure_work, gnss_configure);
 	gnss_enabled = IS_ENABLED(CONFIG_MODEM_GSM_QUECTEL_GNSS_AUTOSTART);
 	gnss_state = PPP_GNSS_OFF;
-
-	k_work_init_delayable(&gsm->gsm_reset_work, gsm_reset);
 
 	LOG_DBG("iface->read %p iface->write %p",
 		gsm->context.iface.read, gsm->context.iface.write);
