@@ -47,6 +47,11 @@ static inline int sh_mqtt_work_reschedule(struct k_work_delayable *dwork, k_time
 	return k_work_reschedule_for_queue(&sh_mqtt->workq, dwork, delay);
 }
 
+static inline int sh_mqtt_work_submit(struct k_work *work)
+{
+	return k_work_submit_to_queue(&sh_mqtt->workq, work);
+}
+
 /* Lock the context of the shell mqtt */
 static inline int sh_mqtt_context_lock(k_timeout_t timeout)
 {
@@ -468,35 +473,51 @@ static void cancel_dworks_and_cleanup(struct k_work_sync *ws)
 	sh_mqtt_close_and_cleanup();
 }
 
+static void net_connected_handler(struct k_work *work)
+{
+	ARG_UNUSED(work);
+	struct k_work_sync ws;
+
+	LOG_WRN("Network %s", "connected");
+
+	(void)sh_mqtt_context_lock(K_FOREVER);
+	cancel_dworks_and_cleanup(&ws);
+	sh_mqtt_context_unlock();
+
+	/* Set state when nothing is running */
+	sh_mqtt->network_state = SHELL_MQTT_NETWORK_CONNECTED;
+	(void)sh_mqtt_work_reschedule(&sh_mqtt->connect_dwork, K_SECONDS(1));
+}
+
+static void net_disconnected_handler(struct k_work *work)
+{
+	ARG_UNUSED(work);
+	struct k_work_sync ws;
+
+	LOG_WRN("Network %s", "disconnected");
+	sh_mqtt->network_state = SHELL_MQTT_NETWORK_DISCONNECTED;
+
+	/* Stop all possible work */
+	(void)sh_mqtt_context_lock(K_FOREVER);
+	cancel_dworks_and_cleanup(&ws);
+	sh_mqtt_context_unlock();
+	/* If the transport was requested, the connect work will be rescheduled
+	 * when internet is connected again
+	 */
+}
+
 /* Network connection event handler */
 static void network_evt_handler(struct net_mgmt_event_callback *cb, uint32_t mgmt_event,
 				struct net_if *iface)
 {
-	struct k_work_sync ws;
-
 	if (mgmt_event == NET_EVENT_L4_CONNECTED &&
 	    sh_mqtt->network_state == SHELL_MQTT_NETWORK_DISCONNECTED) {
-		LOG_WRN("Network %s", "connected");
-
-		(void)sh_mqtt_context_lock(K_FOREVER);
-		cancel_dworks_and_cleanup(&ws);
-		sh_mqtt_context_unlock();
-
-		/* Set state when nothing is running */
-		sh_mqtt->network_state = SHELL_MQTT_NETWORK_CONNECTED;
-		(void)sh_mqtt_work_reschedule(&sh_mqtt->connect_dwork, K_SECONDS(1));
+		sh_mqtt_work_submit(&sh_mqtt->net_connected_work);
 	} else if (mgmt_event == NET_EVENT_L4_DISCONNECTED &&
 		   sh_mqtt->network_state == SHELL_MQTT_NETWORK_CONNECTED) {
-		LOG_WRN("Network %s", "disconnected");
-		sh_mqtt->network_state = SHELL_MQTT_NETWORK_DISCONNECTED;
-
-		/* Stop all possible work */
-		(void)sh_mqtt_context_lock(K_FOREVER);
-		cancel_dworks_and_cleanup(&ws);
-		sh_mqtt_context_unlock();
-		/* If the transport was requested, the connect work will be rescheduled
-		 * when internet is connected again */
+		sh_mqtt_work_submit(&sh_mqtt->net_disconnected_work);
 	}
+
 	return;
 }
 
@@ -649,6 +670,8 @@ static int init(const struct shell_transport *transport, const void *config,
 	k_work_queue_start(&sh_mqtt->workq, sh_mqtt_workq_stack,
 			   K_KERNEL_STACK_SIZEOF(sh_mqtt_workq_stack), K_PRIO_COOP(7), NULL);
 	(void)k_thread_name_set(&sh_mqtt->workq.thread, "sh_mqtt_workq");
+	k_work_init(&sh_mqtt->net_connected_work, net_connected_handler);
+	k_work_init(&sh_mqtt->net_disconnected_work, net_disconnected_handler);
 	k_work_init_delayable(&sh_mqtt->connect_dwork, sh_mqtt_connect_handler);
 	k_work_init_delayable(&sh_mqtt->subscribe_dwork, sh_mqtt_subscribe_handler);
 	k_work_init_delayable(&sh_mqtt->process_dwork, sh_mqtt_process_handler);
