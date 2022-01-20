@@ -80,6 +80,8 @@ struct shell_mqtt {
 
 	/* work */
 	struct k_work_q workq;
+	struct k_work net_connected_work;
+	struct k_work net_disconnected_work;
 	struct k_work_delayable connect_dwork;
 	struct k_work_delayable subscribe_dwork;
 	struct k_work_delayable process_dwork;
