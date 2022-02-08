@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <zephyr.h>
 #include <shell/shell_mqtt.h>
 #include <init.h>
 #include <logging/log.h>
@@ -64,6 +65,17 @@ static inline void sh_mqtt_context_unlock(void)
 	k_mutex_unlock(&sh_mqtt->lock);
 }
 
+static void sh_mqtt_rb_flush(void)
+{
+	uint8_t c;
+	uint32_t size = ring_buf_size_get(&sh_mqtt->rx_rb);
+
+	while (size)
+	{
+		size = ring_buf_get(&sh_mqtt->rx_rb, &c, 1U);
+	}
+}
+
 bool __weak shell_mqtt_get_devid(char *id, int id_max_len)
 {
 	uint8_t hwinfo_id[DEVICE_ID_BIN_MAX_SIZE];
@@ -118,9 +130,13 @@ static int get_mqtt_broker_addrinfo(void)
 	sh_mqtt->hints.ai_socktype = SOCK_STREAM;
 	sh_mqtt->hints.ai_protocol = 0;
 
+	if (sh_mqtt->haddr != NULL) {
+		zsock_freeaddrinfo(sh_mqtt->haddr);
+	}
+
 	rc = zsock_getaddrinfo(CONFIG_SHELL_MQTT_SERVER_ADDR,
-				STRINGIFY(CONFIG_SHELL_MQTT_SERVER_PORT), &sh_mqtt->hints,
-				&sh_mqtt->haddr);
+			       STRINGIFY(CONFIG_SHELL_MQTT_SERVER_PORT), &sh_mqtt->hints,
+			       &sh_mqtt->haddr);
 	if (rc == 0) {
 		LOG_INF("DNS%s resolved for %s:%d", "", CONFIG_SHELL_MQTT_SERVER_ADDR,
 			CONFIG_SHELL_MQTT_SERVER_PORT);
@@ -142,7 +158,8 @@ static void sh_mqtt_close_and_cleanup(void)
 
 	/* If both network & mqtt connected, mqtt_disconnect will send a
 	 * disconnection packet to the broker, it will invoke
-	 * mqtt_evt_handler:MQTT_EVT_DISCONNECT if success */
+	 * mqtt_evt_handler:MQTT_EVT_DISCONNECT if success
+	 */
 	if ((sh_mqtt->network_state == SHELL_MQTT_NETWORK_CONNECTED) &&
 	    (sh_mqtt->transport_state == SHELL_MQTT_TRANSPORT_CONNECTED)) {
 		rc = mqtt_disconnect(&sh_mqtt->mqtt_cli);
@@ -152,7 +169,8 @@ static void sh_mqtt_close_and_cleanup(void)
 	if (rc) {
 		/* mqtt_abort doesn't send disconnection packet to the broker, but it
 		 * makes sure that the MQTT connection is aborted locally and will
-		 * always invoke mqtt_evt_handler:MQTT_EVT_DISCONNECT */
+		 * always invoke mqtt_evt_handler:MQTT_EVT_DISCONNECT
+		 */
 		(void)mqtt_abort(&sh_mqtt->mqtt_cli);
 	}
 
@@ -167,11 +185,7 @@ static void broker_init(void)
 	broker4->sin_family = AF_INET;
 	broker4->sin_port = htons(CONFIG_SHELL_MQTT_SERVER_PORT);
 
-#if defined(CONFIG_DNS_RESOLVER)
 	net_ipaddr_copy(&broker4->sin_addr, &net_sin(sh_mqtt->haddr->ai_addr)->sin_addr);
-#else
-	(void)zsock_inet_pton(AF_INET, CONFIG_SHELL_MQTT_SERVER_ADDR, &broker4->sin_addr);
-#endif
 }
 
 static void client_init(void)
@@ -277,20 +291,12 @@ static void sh_mqtt_subscribe_handler(struct k_work *work)
 {
 	ARG_UNUSED(work);
 	/* Subscribe config information */
-	/* clang-format off */
-	struct mqtt_topic subs_topic = {
-		.topic = {
-			.utf8 = sh_mqtt->sub_topic,
-			.size = strlen(sh_mqtt->sub_topic)
-		},
-		.qos = MQTT_QOS_1_AT_LEAST_ONCE
-	};
-	const struct mqtt_subscription_list subs_list = {
-		.list = &subs_topic,
-		.list_count = 1U,
-		.message_id = 1U
-	};
-	/* clang-format on */
+	struct mqtt_topic subs_topic = { .topic = { .utf8 = sh_mqtt->sub_topic,
+						    .size = strlen(sh_mqtt->sub_topic) },
+					 .qos = MQTT_QOS_1_AT_LEAST_ONCE };
+	const struct mqtt_subscription_list subs_list = { .list = &subs_topic,
+							  .list_count = 1U,
+							  .message_id = 1U };
 	int rc;
 
 	if (sh_mqtt->network_state != SHELL_MQTT_NETWORK_CONNECTED) {
@@ -366,10 +372,6 @@ static void sh_mqtt_connect_handler(struct k_work *work)
 		goto connect_error;
 	}
 
-	LOG_DBG("Initializing MQTT client");
-	broker_init();
-	client_init();
-
 	/* Resolve the broker URL */
 	LOG_DBG("Resolving DNS");
 	rc = get_mqtt_broker_addrinfo();
@@ -378,6 +380,10 @@ static void sh_mqtt_connect_handler(struct k_work *work)
 		sh_mqtt_context_unlock();
 		return;
 	}
+
+	LOG_DBG("Initializing MQTT client");
+	broker_init();
+	client_init();
 
 	/* Try to connect to mqtt */
 	LOG_DBG("Connecting to MQTT broker");
@@ -464,42 +470,27 @@ static void sh_mqtt_publish_handler(struct k_work *work)
 	sh_mqtt_context_unlock();
 }
 
-static void cancel_dworks_and_cleanup(struct k_work_sync *ws)
+static void cancel_dworks_and_cleanup(void)
 {
-	(void)k_work_cancel_delayable_sync(&sh_mqtt->connect_dwork, ws);
-	(void)k_work_cancel_delayable_sync(&sh_mqtt->subscribe_dwork, ws);
-	(void)k_work_cancel_delayable_sync(&sh_mqtt->process_dwork, ws);
-	(void)k_work_cancel_delayable_sync(&sh_mqtt->publish_dwork, ws);
+	struct k_work_sync ws;
+
+	(void)k_work_cancel_delayable_sync(&sh_mqtt->connect_dwork, &ws);
+	(void)k_work_cancel_delayable_sync(&sh_mqtt->subscribe_dwork, &ws);
+	(void)k_work_cancel_delayable_sync(&sh_mqtt->process_dwork, &ws);
+	(void)k_work_cancel_delayable_sync(&sh_mqtt->publish_dwork, &ws);
 	sh_mqtt_close_and_cleanup();
 }
 
-static void net_connected_handler(struct k_work *work)
+static void net_disconnect_handler(struct k_work *work)
 {
 	ARG_UNUSED(work);
-	struct k_work_sync ws;
-
-	LOG_WRN("Network %s", "connected");
-
-	(void)sh_mqtt_context_lock(K_FOREVER);
-	cancel_dworks_and_cleanup(&ws);
-	sh_mqtt_context_unlock();
-
-	/* Set state when nothing is running */
-	sh_mqtt->network_state = SHELL_MQTT_NETWORK_CONNECTED;
-	(void)sh_mqtt_work_reschedule(&sh_mqtt->connect_dwork, K_SECONDS(1));
-}
-
-static void net_disconnected_handler(struct k_work *work)
-{
-	ARG_UNUSED(work);
-	struct k_work_sync ws;
 
 	LOG_WRN("Network %s", "disconnected");
 	sh_mqtt->network_state = SHELL_MQTT_NETWORK_DISCONNECTED;
 
 	/* Stop all possible work */
 	(void)sh_mqtt_context_lock(K_FOREVER);
-	cancel_dworks_and_cleanup(&ws);
+	cancel_dworks_and_cleanup();
 	sh_mqtt_context_unlock();
 	/* If the transport was requested, the connect work will be rescheduled
 	 * when internet is connected again
@@ -512,13 +503,13 @@ static void network_evt_handler(struct net_mgmt_event_callback *cb, uint32_t mgm
 {
 	if (mgmt_event == NET_EVENT_L4_CONNECTED &&
 	    sh_mqtt->network_state == SHELL_MQTT_NETWORK_DISCONNECTED) {
-		sh_mqtt_work_submit(&sh_mqtt->net_connected_work);
+		LOG_WRN("Network %s", "connected");
+		sh_mqtt->network_state = SHELL_MQTT_NETWORK_CONNECTED;
+		(void)sh_mqtt_work_reschedule(&sh_mqtt->connect_dwork, K_SECONDS(1));
 	} else if (mgmt_event == NET_EVENT_L4_DISCONNECTED &&
 		   sh_mqtt->network_state == SHELL_MQTT_NETWORK_CONNECTED) {
-		sh_mqtt_work_submit(&sh_mqtt->net_disconnected_work);
+		(void)sh_mqtt_work_submit(&sh_mqtt->net_disconnected_work);
 	}
-
-	return;
 }
 
 static void mqtt_evt_handler(struct mqtt_client *const client, const struct mqtt_evt *evt)
@@ -570,11 +561,7 @@ static void mqtt_evt_handler(struct mqtt_client *const client, const struct mqtt
 
 		/* For MQTT_QOS_0_AT_MOST_ONCE no acknowledgment needed */
 		if (pub->message.topic.qos == MQTT_QOS_1_AT_LEAST_ONCE) {
-			/* clang-format off */
-			struct mqtt_puback_param puback = {
-				.message_id = pub->message_id
-			};
-			/* clang-format on */
+			struct mqtt_puback_param puback = { .message_id = pub->message_id };
 
 			(void)mqtt_publish_qos1_ack(client, &puback);
 		}
@@ -585,6 +572,14 @@ static void mqtt_evt_handler(struct mqtt_client *const client, const struct mqtt
 						  payload_left);
 			/* Read `size` bytes of payload from mqtt */
 			size = mqtt_read_publish_payload_blocking(client, sh_mqtt->rx_rb_ptr, size);
+
+			/* errno value, return */
+			if (size < 0) {
+				(void)ring_buf_put_finish(&sh_mqtt->rx_rb, 0U);
+				sh_mqtt_rb_flush();
+				return;
+			}
+
 			/* Indicate that `size` bytes of payload has been written into rb */
 			(void)ring_buf_put_finish(&sh_mqtt->rx_rb, size);
 			/* Update `payload_left` */
@@ -670,8 +665,7 @@ static int init(const struct shell_transport *transport, const void *config,
 	k_work_queue_start(&sh_mqtt->workq, sh_mqtt_workq_stack,
 			   K_KERNEL_STACK_SIZEOF(sh_mqtt_workq_stack), K_PRIO_COOP(7), NULL);
 	(void)k_thread_name_set(&sh_mqtt->workq.thread, "sh_mqtt_workq");
-	k_work_init(&sh_mqtt->net_connected_work, net_connected_handler);
-	k_work_init(&sh_mqtt->net_disconnected_work, net_disconnected_handler);
+	k_work_init(&sh_mqtt->net_disconnected_work, net_disconnect_handler);
 	k_work_init_delayable(&sh_mqtt->connect_dwork, sh_mqtt_connect_handler);
 	k_work_init_delayable(&sh_mqtt->subscribe_dwork, sh_mqtt_subscribe_handler);
 	k_work_init_delayable(&sh_mqtt->process_dwork, sh_mqtt_process_handler);
@@ -753,7 +747,8 @@ static int write(const struct shell_transport *transport, const void *data, size
 			rc = sh_mqtt_publish_tx_buf(false);
 			if (rc != 0) {
 				sh_mqtt_close_and_cleanup();
-				(void)sh_mqtt_work_reschedule(&sh_mqtt->connect_dwork, K_SECONDS(2));
+				(void)sh_mqtt_work_reschedule(&sh_mqtt->connect_dwork,
+							      K_SECONDS(2));
 				*cnt = length;
 				return rc;
 			}
@@ -800,15 +795,11 @@ static int read(const struct shell_transport *transport, void *data, size_t leng
 	return 0;
 }
 
-/* clang-format off */
-const struct shell_transport_api shell_mqtt_transport_api = {
-	.init = init,
-	.uninit = uninit,
-	.enable = enable,
-	.write = write,
-	.read = read
-};
-/* clang-format on */
+const struct shell_transport_api shell_mqtt_transport_api = { .init = init,
+							      .uninit = uninit,
+							      .enable = enable,
+							      .write = write,
+							      .read = read };
 
 static int enable_shell_mqtt(const struct device *arg)
 {
