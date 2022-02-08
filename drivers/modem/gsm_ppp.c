@@ -1750,10 +1750,6 @@ void gsm_ppp_start(const struct device *dev)
 
 	k_work_init_delayable(&gsm->gsm_configure_work, gsm_configure);
 	(void)gsm_work_reschedule(&gsm->gsm_configure_work, K_NO_WAIT);
-
-#if IS_ENABLED(CONFIG_GSM_MUX)
-	k_work_init_delayable(&rssi_work_handle, rssi_handler);
-#endif
 }
 
 void gsm_ppp_stop(const struct device *dev)
@@ -1869,6 +1865,9 @@ static int gsm_init(const struct device *dev)
 	gsm->state = GSM_PPP_STOP;
 
 	k_work_init_delayable(&gnss_configure_work, gnss_configure);
+#if IS_ENABLED(CONFIG_GSM_MUX)
+	k_work_init_delayable(&rssi_work_handle, rssi_handler);
+#endif
 	gnss_enabled = IS_ENABLED(CONFIG_MODEM_GSM_QUECTEL_GNSS_AUTOSTART);
 	gnss_state = PPP_GNSS_OFF;
 
