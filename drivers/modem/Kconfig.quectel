@@ -1,0 +1,128 @@
+# Copyright (c) 2022 G-Technologies Sdn. Bhd.
+# SPDX-License-Identifier: Apache-2.0
+
+config MODEM_GSM_QUECTEL_GNSS
+	bool "Enables GNSS functions for Quectel modems"
+	default y
+	help
+	  Enables GPS functions for Quectel modems that support GNSS.
+
+if MODEM_GSM_QUECTEL_GNSS
+
+config MODEM_GSM_QUECTELL_GNSS_SUPL
+	bool "Enable SUPL AGPS configuration"
+	default y
+	help
+	  Enable SUPL AGPS configuration.
+
+if MODEM_GSM_QUECTELL_GNSS_SUPL
+
+config MODEM_GSM_QUECTELL_GNSS_SUPL_URL
+	string "SUPL AGPS server url"
+	default "supl.google.com:7276"
+	help
+	  SUPL AGPS server url.
+
+endif # MODEM_GSM_QUECTELL_GNSS_SUPL
+
+config MODEM_GSM_QUECTELL_GNSS_QLOC
+	bool "Enable QuecLocator configuration"
+	default y
+	help
+	  Enable QuecLocator configuration.
+
+if MODEM_GSM_QUECTELL_GNSS_QLOC
+
+config MODEM_GSM_QUECTELL_GNSS_QLOC_TOK
+	string "QuecLocator token"
+	default "hHP0F4GoA604u3zn"
+	help
+	  QuecLocator token.
+
+endif # MODEM_GSM_QUECTELL_GNSS_QLOC
+
+config MODEM_GSM_QUECTEL_GNSS_AUTOSTART
+	bool "Autostart GNSS engine"
+	default y
+	help
+	  Autostart GNSS engine.
+
+choice "MODEM_GSM_QUECTEL_GNSS_OP_CHOICE"
+	prompt "Quectel GNSS output port"
+	default MODEM_GSM_QUECTEL_GNSS_OP_UART
+
+config MODEM_GSM_QUECTEL_GNSS_OP_NONE
+	bool "GNSS output to none"
+	help
+	  GNSS no NMEA output.
+
+config MODEM_GSM_QUECTEL_GNSS_OP_USB
+	bool "GNSS output to USB"
+	help
+	  Route GNSS's NMEA output to USB.
+
+config MODEM_GSM_QUECTEL_GNSS_OP_UART
+	bool "GNSS output to UART"
+	help
+	  Route GNSS's NMEA output to UART.
+
+endchoice
+
+config MODEM_GSM_QUECTEL_GNSS_OP
+	string
+	default "none" if MODEM_GSM_QUECTEL_GNSS_OP_NONE
+	default "usbnmea" if MODEM_GSM_QUECTEL_GNSS_OP_USB
+	default "uartdebug" if MODEM_GSM_QUECTEL_GNSS_OP_UART
+
+choice "MODEM_GSM_QUECTEL_GNSS_CONSTELLATION_CHOICE"
+	prompt "Quectel GNSS constellation configurations"
+	default MODEM_GSM_QUECTEL_GNSS_GN_ON_BD_OFF_GL_OFF
+
+config MODEM_GSM_QUECTEL_GNSS_GN_OFF_BD_OFF_GL_OFF
+	bool "GPS on, GLONASS off, BeiDou off, Galileo off"
+	help
+	  GPS on, GLONASS off, BeiDou off, Galileo off.
+
+config MODEM_GSM_QUECTEL_GNSS_GN_ON_BD_ON_GL_ON
+	bool "GPS on, GLONASS on, BeiDou on, Galileo on"
+	help
+	  GPS on, GLONASS on, BeiDou on, Galileo on.
+
+config MODEM_GSM_QUECTEL_GNSS_GN_ON_BD_ON_GL_OFF
+	bool "GPS on, GLONASS on, BeiDou on, Galileo off"
+	help
+	  GPS on, GLONASS on, BeiDou on, Galileo off.
+
+config MODEM_GSM_QUECTEL_GNSS_GN_ON_BD_OFF_GL_ON
+	bool "GPS on, GLONASS on, BeiDou off, Galileo on"
+	help
+	  GPS on, GLONASS on, BeiDou off, Galileo on.
+
+config MODEM_GSM_QUECTEL_GNSS_GN_ON_BD_OFF_GL_OFF
+	bool "GPS on, GLONASS on, BeiDou off, Galileo off"
+	help
+	  GPS on, GLONASS on, BeiDou off, Galileo off.
+
+config MODEM_GSM_QUECTEL_GNSS_GN_OFF_BD_ON_GL_ON
+	bool "GPS on, GLONASS off, BeiDou on, Galileo on"
+	help
+	  GPS on, GLONASS off, BeiDou on, Galileo on.
+
+config MODEM_GSM_QUECTEL_GNSS_GN_OFF_BD_OFF_GL_ON
+	bool "GPS on, GLONASS off, BeiDou off, Galileo on"
+	help
+	  GPS on, GLONASS off, BeiDou off, Galileo on.
+
+endchoice
+
+config MODEM_GSM_QUECTEL_GNSS_CONSTELLATION
+	int
+	default 0 if MODEM_GSM_QUECTEL_GNSS_GN_OFF_BD_OFF_GL_OFF
+	default 1 if MODEM_GSM_QUECTEL_GNSS_GN_ON_BD_ON_GL_ON
+	default 2 if MODEM_GSM_QUECTEL_GNSS_GN_ON_BD_ON_GL_OFF
+	default 3 if MODEM_GSM_QUECTEL_GNSS_GN_ON_BD_OFF_GL_ON
+	default 4 if MODEM_GSM_QUECTEL_GNSS_GN_ON_BD_OFF_GL_OFF
+	default 5 if MODEM_GSM_QUECTEL_GNSS_GN_OFF_BD_ON_GL_ON
+	default 6 if MODEM_GSM_QUECTEL_GNSS_GN_OFF_BD_OFF_GL_ON
+
+endif

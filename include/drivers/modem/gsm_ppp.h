@@ -14,6 +14,9 @@
 #define GSM_PPP_MDM_IMSI_LENGTH          16
 #define GSM_PPP_MDM_ICCID_LENGTH         32
 
+#include <zephyr.h>
+#include <time.h>
+
 struct gsm_ppp_modem_info {
 	char mdm_manufacturer[GSM_PPP_MDM_MANUFACTURER_LENGTH];
 	char mdm_model[GSM_PPP_MDM_MODEL_LENGTH];
@@ -59,5 +62,17 @@ void gsm_ppp_register_modem_power_callback(const struct device *dev,
  * @retval struct gsm_ppp_modem_info * pointer to modem information structure.
  */
 const struct gsm_ppp_modem_info *gsm_ppp_modem_info(const struct device *dev);
+
+/**
+ * @brief Get the local time from the modem's real time clock.
+ *
+ * @param dev Pointer to the GSM modem
+ * @param[inout] tm time structure
+ * @param[inout] offset The amount the local time is offset from GMT/UTC in seconds.
+ *
+ * @retval 0 if successful
+ * @retval -EIO if RTC time invalid
+ */
+int32_t gsm_ppp_get_local_time(const struct device *dev, struct tm *tm, int32_t *offset);
 
 #endif /* ZEPHYR_INCLUDE_DRIVERS_MODEM_GSM_PPP_H_ */

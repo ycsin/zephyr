@@ -34,6 +34,12 @@ config MODEM_GSM_QUECTEL
 
 endchoice
 
+if MODEM_GSM_QUECTEL
+
+source "drivers/modem/Kconfig.quectel"
+
+endif
+
 config MODEM_GSM_RX_STACK_SIZE
 	int "Size of the stack allocated for receiving data from modem"
 	default 512
