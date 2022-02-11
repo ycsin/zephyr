@@ -4,9 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef GSM_PPP_H_
-#define GSM_PPP_H_
+#ifndef ZEPHYR_INCLUDE_DRIVERS_MODEM_GSM_H_
+#define ZEPHYR_INCLUDE_DRIVERS_MODEM_GSM_H_
 
+#include <zephyr.h>
 #include <time.h>
 
 struct qlbs_coordinates
@@ -67,4 +68,4 @@ int gsm_ppp_get_qlbs(const struct device *dev, struct qlbs_coordinates *coordina
 
 void gsm_ppp_register_gnss_callback(const struct device *dev, gsm_modem_gnss_cb cb);
 
-#endif /* GSM_PPP_H_ */
+#endif /* ZEPHYR_INCLUDE_DRIVERS_MODEM_GSM_H_ */

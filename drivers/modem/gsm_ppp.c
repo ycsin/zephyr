@@ -15,7 +15,7 @@ LOG_MODULE_REGISTER(modem_gsm, CONFIG_MODEM_LOG_LEVEL);
 #include <sys/ring_buffer.h>
 #include <sys/util.h>
 #include <net/ppp.h>
-#include <drivers/gsm_ppp.h>
+#include <drivers/modem/gsm_ppp.h>
 #include <drivers/uart.h>
 
 #include "gsm_ppp.h"
@@ -38,7 +38,7 @@ LOG_MODULE_REGISTER(modem_gsm, CONFIG_MODEM_LOG_LEVEL);
 #define GSM_CMD_AT_TIMEOUT              K_SECONDS(2)
 #define GSM_CMD_SETUP_TIMEOUT           K_SECONDS(6)
 #define GSM_RX_STACK_SIZE               CONFIG_MODEM_GSM_RX_STACK_SIZE
-#define GSM_WORKQ_STACK_SIZE            2048
+#define GSM_WORKQ_STACK_SIZE            768
 #define GSM_RECV_MAX_BUF                30
 #define GSM_RECV_BUF_SIZE               128
 #define GSM_ATTACH_RETRY_DELAY_MSEC     1000
@@ -121,6 +121,29 @@ static struct gsm_modem {
 
 	int rssi_retries;
 	int attach_retries;
+
+	struct k_thread rx_thread;
+	struct k_work_q workq;
+	struct k_work_delayable rssi_work_handle;
+
+	struct k_sem gnss_ready_sem;
+	struct k_work_delayable gnss_configure_work;
+	bool gnss_enabled;
+	enum ppp_gnss_state {
+		PPP_GNSS_OFF,
+		PPP_GNSS_STARTING,
+		PPP_GNSS_CFG_OUTPORT,
+		PPP_GNSS_CFG_CONSTELLATION,
+		PPP_GNSS_CFG_NMEA,
+		PPP_GNSS_CFG_SUPLVER,
+		PPP_GNSS_CFG_PLANE,
+		PPP_GNSS_CFG_SUPLURL,
+		PPP_GNSS_CFG_TOKEN,
+		PPP_GNSS_CFG_LATORDER,
+		PPP_GNSS_CFG_TURN_ON,
+		PPP_GNSS_READY,
+	} gnss_state;
+	struct qlbs_coordinates gnss_coordinates;
 } gsm;
 
 NET_BUF_POOL_DEFINE(gsm_recv_pool, GSM_RECV_MAX_BUF, GSM_RECV_BUF_SIZE,
@@ -128,35 +151,9 @@ NET_BUF_POOL_DEFINE(gsm_recv_pool, GSM_RECV_MAX_BUF, GSM_RECV_BUF_SIZE,
 K_KERNEL_STACK_DEFINE(gsm_rx_stack, GSM_RX_STACK_SIZE);
 K_KERNEL_STACK_DEFINE(gsm_workq_stack, GSM_WORKQ_STACK_SIZE);
 
-struct k_thread gsm_rx_thread;
-static struct k_work_q gsm_workq;
-static struct k_work_delayable rssi_work_handle;
-
-static struct k_sem gnss_ready_sem;
-static struct k_work_delayable gnss_configure_work;
-static bool gnss_enabled;
-enum ppp_gnss_state {
-	PPP_GNSS_OFF,
-	PPP_GNSS_STARTING,
-	PPP_GNSS_CFG_OUTPORT,
-	PPP_GNSS_CFG_CONSTELLATION,
-	PPP_GNSS_CFG_NMEA,
-	PPP_GNSS_CFG_SUPLVER,
-	PPP_GNSS_CFG_PLANE,
-	PPP_GNSS_CFG_SUPLURL,
-	PPP_GNSS_CFG_TOKEN,
-	PPP_GNSS_CFG_LATORDER,
-	PPP_GNSS_CFG_TURN_ON,
-	PPP_GNSS_READY,
-};
-
-static struct qlbs_coordinates gnss_coordinates;
-
-static enum ppp_gnss_state gnss_state;
-
-static int gsm_work_reschedule(struct k_work_delayable *dwork, k_timeout_t delay)
+static inline int gsm_work_reschedule(struct k_work_delayable *dwork, k_timeout_t delay)
 {
-	return k_work_reschedule_for_queue(&gsm_workq, dwork, delay);
+	return k_work_reschedule_for_queue(&gsm.workq, dwork, delay);
 }
 
 #if IS_ENABLED(CONFIG_MODEM_GSM_ENABLE_CESQ_RSSI)
@@ -490,14 +487,14 @@ MODEM_CMD_DEFINE(on_cmd_gnss_qlbs)
 {
 	int lat, lon;
 
-	gnss_coordinates.error = atoi(argv[0]);
-	gnss_coordinates.latitude = strtod(argv[1], NULL);
-	gnss_coordinates.longitude = strtod(argv[2], NULL);
+	gsm.gnss_coordinates.error = atoi(argv[0]);
+	gsm.gnss_coordinates.latitude = strtod(argv[1], NULL);
+	gsm.gnss_coordinates.longitude = strtod(argv[2], NULL);
 
-	lat = gnss_coordinates.latitude * 1000000;
-	lon = gnss_coordinates.longitude * 1000000;
+	lat = gsm.gnss_coordinates.latitude * 1000000;
+	lon = gsm.gnss_coordinates.longitude * 1000000;
 
-	LOG_WRN("[%d] %d.%d, %d.%d", gnss_coordinates.error, lat / 1000000, lat % 1000000,
+	LOG_WRN("[%d] %d.%d, %d.%d", gsm.gnss_coordinates.error, lat / 1000000, lat % 1000000,
 		lon / 1000000, lon % 1000000);
 
 	return 0;
@@ -662,7 +659,7 @@ int gsm_ppp_get_qlbs(const struct device *dev, struct qlbs_coordinates *coordina
 		return -EACCES;
 	}
 
-	if (gnss_state != PPP_GNSS_READY)
+	if (gsm->gnss_state != PPP_GNSS_READY)
 	{
 		LOG_WRN("GNSS not ready");
 		return -EIO;
@@ -679,7 +676,7 @@ int gsm_ppp_get_qlbs(const struct device *dev, struct qlbs_coordinates *coordina
 
 	if (!ret)
 	{
-		(void)memcpy(coordinates, &gnss_coordinates, sizeof(struct qlbs_coordinates));
+		(void)memcpy(coordinates, &gsm->gnss_coordinates, sizeof(struct qlbs_coordinates));
 	}
 
 	return ret;
@@ -797,13 +794,15 @@ static void set_ppp_carrier_on(struct gsm_modem *gsm)
 
 static void rssi_handler(struct k_work *work)
 {
+	struct k_work_delayable *dwork = k_work_delayable_from_work(work);
+	struct gsm_modem *gsm = CONTAINER_OF(dwork, struct gsm_modem, rssi_work_handle);
 	int ret;
 #if IS_ENABLED(CONFIG_MODEM_GSM_ENABLE_CESQ_RSSI)
-	ret = modem_cmd_send_nolock(&gsm.context.iface, &gsm.context.cmd_handler,
-		&read_rssi_cmd, 1, "AT+CESQ", &gsm.sem_response, GSM_CMD_SETUP_TIMEOUT);
+	ret = modem_cmd_send_nolock(&gsm->context.iface, &gsm->context.cmd_handler,
+		&read_rssi_cmd, 1, "AT+CESQ", &gsm->sem_response, GSM_CMD_SETUP_TIMEOUT);
 #else
-	ret = modem_cmd_send_nolock(&gsm.context.iface, &gsm.context.cmd_handler,
-		&read_rssi_cmd, 1, "AT+CSQ", &gsm.sem_response, GSM_CMD_SETUP_TIMEOUT);
+	ret = modem_cmd_send_nolock(&gsm->context.iface, &gsm->context.cmd_handler,
+		&read_rssi_cmd, 1, "AT+CSQ", &gsm->sem_response, GSM_CMD_SETUP_TIMEOUT);
 #endif /* CONFIG_MODEM_GSM_ENABLE_CESQ_RSSI */
 
 	if (ret < 0) {
@@ -812,16 +811,19 @@ static void rssi_handler(struct k_work *work)
 
 #if IS_ENABLED(CONFIG_GSM_MUX)
 #if IS_ENABLED(CONFIG_MODEM_CELL_INFO)
-	(void) gsm_query_cellinfo(&gsm);
+	(void) gsm_query_cellinfo(gsm);
 #endif
-	gsm_work_reschedule(&rssi_work_handle, K_SECONDS(CONFIG_MODEM_GSM_RSSI_POLLING_PERIOD));
+	gsm_work_reschedule(&gsm->rssi_work_handle, K_SECONDS(CONFIG_MODEM_GSM_RSSI_POLLING_PERIOD));
 #endif /* CONFIG_GSM_MUX */
 
 }
 
-static void gsm_finalize_connection(struct gsm_modem *gsm)
+static void gsm_finalize_connection(struct k_work *work)
 {
 	int ret = 0;
+	struct k_work_delayable *dwork = k_work_delayable_from_work(work);
+	struct gsm_modem *gsm = CONTAINER_OF(dwork, struct gsm_modem,
+					     gsm_configure_work);
 
 	/* If already attached, jump right to RSSI readout */
 	if (gsm->state == GSM_PPP_ATTACHED) {
@@ -925,7 +927,7 @@ attaching:
 
 #if !IS_ENABLED(CONFIG_GSM_MUX)
 	/* Read connection quality (RSSI) before PPP carrier is ON */
-	rssi_handler(NULL);
+	rssi_handler(&gsm->rssi_work_handler.work);
 
 	if (!(gsm->context.data_rssi && gsm->context.data_rssi != GSM_RSSI_INVALID &&
 		gsm->context.data_rssi < GSM_RSSI_MAXVAL)) {
@@ -983,7 +985,7 @@ attaching:
 		}
 	}
 	modem_cmd_handler_tx_unlock(&gsm->context.cmd_handler);
-	k_work_schedule(&rssi_work_handle, K_SECONDS(CONFIG_MODEM_GSM_RSSI_POLLING_PERIOD));
+	k_work_schedule(&gsm->rssi_work_handle, K_SECONDS(CONFIG_MODEM_GSM_RSSI_POLLING_PERIOD));
 #endif /* CONFIG_GSM_MUX */
 }
 
@@ -1104,12 +1106,12 @@ static void mux_setup(struct k_work *work)
 			}
 		}
 
-		gsm->state = GSM_PPP_STATE_PPP_CHANNEL;
-
 		ret = mux_attach(gsm->control_dev, uart, DLCI_CONTROL, gsm);
 		if (ret < 0) {
 			goto fail;
 		}
+
+		gsm->state = GSM_PPP_STATE_PPP_CHANNEL;
 
 		break;
 
@@ -1123,12 +1125,12 @@ static void mux_setup(struct k_work *work)
 			}
 		}
 
-		gsm->state = GSM_PPP_STATE_AT_CHANNEL;
-
 		ret = mux_attach(gsm->ppp_dev, uart, DLCI_PPP, gsm);
 		if (ret < 0) {
 			goto fail;
 		}
+
+		gsm->state = GSM_PPP_STATE_AT_CHANNEL;
 
 		break;
 
@@ -1142,12 +1144,12 @@ static void mux_setup(struct k_work *work)
 			}
 		}
 
-		gsm->state = GSM_PPP_STATE_DONE;
-
 		ret = mux_attach(gsm->at_dev, uart, DLCI_AT, gsm);
 		if (ret < 0) {
 			goto fail;
 		}
+
+		gsm->state = GSM_PPP_STATE_DONE;
 
 		break;
 
@@ -1170,7 +1172,8 @@ static void mux_setup(struct k_work *work)
 		LOG_INF("PPP channel %d connected to %s",
 			DLCI_PPP, gsm->ppp_dev->name);
 
-		gsm_finalize_connection(gsm);
+		k_work_init_delayable(&gsm->gsm_configure_work, gsm_finalize_connection);
+		(void)gsm_work_reschedule(&gsm->gsm_configure_work, K_NO_WAIT);
 		break;
 	default:
 		LOG_ERR("mux_setup while in state: %d", gsm->state);
@@ -1414,22 +1417,13 @@ static int quectel_gnss_cfg_latorder(void)
  *
  * @retval 0 on success, negative on failure.
  */
-static int quectel_gnss_enable(const uint8_t fixmaxtime,
-			const uint16_t fixmaxdist, const uint16_t fixcount, const uint16_t fixrate)
+static int quectel_gnss_enable(void)
 {
 	int  ret;
-	char buf[sizeof("AT+QGPS=#,###,####,####,#####")] = {0};
+	char buf[sizeof("AT+QGPS=#")] = {0};
 
-	if ((fixmaxtime == 0) ||
-		(fixmaxtime == 0) || (fixmaxtime > 1000) ||
-		(fixcount > 1000) ||
-		(fixrate == 0))
-	{
-		return -EINVAL;
-	}
-
-	snprintk(buf, sizeof(buf), "AT+QGPS=%d,%u,%u,%u,%u", IS_ENABLED(CONFIG_MODEM_GSM_QUECTELL_GNSS_SUPL) ? 2 : 1,
-							     fixmaxtime, fixmaxdist, fixcount, fixrate);
+	snprintk(buf, sizeof(buf), "AT+QGPS=%d",
+		 IS_ENABLED(CONFIG_MODEM_GSM_QUECTELL_GNSS_SUPL) ? 2 : 1);
 
 	ret = modem_cmd_send(&gsm.context.iface, &gsm.context.cmd_handler,
 			NULL, 0U, buf, &gsm.sem_response,
@@ -1478,129 +1472,128 @@ static void gnss_configure(struct k_work *work)
 		.gps.vtg = 0,
 	};
 
-	switch (gnss_state) {
+	switch (gsm.gnss_state) {
 		case PPP_GNSS_OFF:
 			LOG_WRN("GNSS is off");
 			break;
 		case PPP_GNSS_STARTING:
-			gnss_state = PPP_GNSS_CFG_OUTPORT;
+			gsm.gnss_state = PPP_GNSS_CFG_OUTPORT;
 			__fallthrough;
 		case PPP_GNSS_CFG_OUTPORT:
 			ret =  quectel_gnss_cfg_outport(CONFIG_MODEM_GSM_QUECTEL_GNSS_OP);
 			if (ret < 0) {
 				LOG_ERR("quectel_gnss_cfg_outport failed: %d", ret);
-				gsm_work_reschedule(&gnss_configure_work, K_SECONDS(2));
+				(void)gsm_work_reschedule(&gsm.gnss_configure_work, K_SECONDS(2));
 				return;
 			}
 
-			gnss_state = PPP_GNSS_CFG_CONSTELLATION;
-			gsm_work_reschedule(&gnss_configure_work, K_NO_WAIT);
+			gsm.gnss_state = PPP_GNSS_CFG_CONSTELLATION;
+			(void)gsm_work_reschedule(&gsm.gnss_configure_work, K_NO_WAIT);
 			break;
 		case PPP_GNSS_CFG_CONSTELLATION:
 			ret =  quectel_gnss_cfg_constellation(GNSS_CONSTELLATION_CFG);
 			if (ret < 0) {
 				LOG_ERR("quectel_gnss_cfg_constellation: %d failed: %d",
 					GNSS_CONSTELLATION_CFG, ret);
-				gsm_work_reschedule(&gnss_configure_work, K_SECONDS(2));
+				(void)gsm_work_reschedule(&gsm.gnss_configure_work, K_SECONDS(2));
 				return;
 			}
 
-			gnss_state = PPP_GNSS_CFG_NMEA;
-			gsm_work_reschedule(&gnss_configure_work, K_NO_WAIT);
+			gsm.gnss_state = PPP_GNSS_CFG_NMEA;
+			(void)gsm_work_reschedule(&gsm.gnss_configure_work, K_NO_WAIT);
 			break;
 		case PPP_GNSS_CFG_NMEA:
 			ret =  quectel_gnss_cfg_nmea(QUECTEL_NMEA_GPS, QUECTEL_NMEA_GPS_STR, &cfg);
 			if (ret < 0) {
 				LOG_ERR("quectel_gnss_cfg_nmea failed: %d", ret);
-				gsm_work_reschedule(&gnss_configure_work, K_SECONDS(2));
+				(void)gsm_work_reschedule(&gsm.gnss_configure_work, K_SECONDS(2));
 				return;
 			}
 
 			if (IS_ENABLED(CONFIG_MODEM_GSM_QUECTELL_GNSS_SUPL)) {
-				gnss_state = PPP_GNSS_CFG_SUPLVER;
+				gsm.gnss_state = PPP_GNSS_CFG_SUPLVER;
 			} else if (IS_ENABLED(CONFIG_MODEM_GSM_QUECTELL_GNSS_QLOC)) {
-				gnss_state = PPP_GNSS_CFG_TOKEN;
+				gsm.gnss_state = PPP_GNSS_CFG_TOKEN;
 			} else {
-				gnss_state = PPP_GNSS_CFG_TURN_ON;
+				gsm.gnss_state = PPP_GNSS_CFG_TURN_ON;
 			}
 
-			gsm_work_reschedule(&gnss_configure_work, K_NO_WAIT);
+			(void)gsm_work_reschedule(&gsm.gnss_configure_work, K_NO_WAIT);
 			break;
 		case PPP_GNSS_CFG_SUPLVER:
 			ret =  quectel_gnss_cfg_suplver();
 			if (ret < 0) {
 				LOG_ERR("%s failed: %d", "quectel_gnss_cfg_suplver", ret);
-				gsm_work_reschedule(&gnss_configure_work, K_SECONDS(2));
+				(void)gsm_work_reschedule(&gsm.gnss_configure_work, K_SECONDS(2));
 				return;
 			}
 
-			gnss_state = PPP_GNSS_CFG_PLANE;
-			gsm_work_reschedule(&gnss_configure_work, K_NO_WAIT);
+			gsm.gnss_state = PPP_GNSS_CFG_PLANE;
+			(void)gsm_work_reschedule(&gsm.gnss_configure_work, K_NO_WAIT);
 			break;
 		case PPP_GNSS_CFG_PLANE:
 			ret =  quectel_gnss_cfg_plane();
 			if (ret < 0) {
 				LOG_ERR("%s failed: %d", "quectel_gnss_cfg_plane", ret);
-				gsm_work_reschedule(&gnss_configure_work, K_SECONDS(2));
+				(void)gsm_work_reschedule(&gsm.gnss_configure_work, K_SECONDS(2));
 				return;
 			}
 
-			gnss_state = PPP_GNSS_CFG_SUPLURL;
-			gsm_work_reschedule(&gnss_configure_work, K_NO_WAIT);
+			gsm.gnss_state = PPP_GNSS_CFG_SUPLURL;
+			(void)gsm_work_reschedule(&gsm.gnss_configure_work, K_NO_WAIT);
 			break;
 		case PPP_GNSS_CFG_SUPLURL:
 			ret =  quectel_gnss_cfg_suplurl();
 			if (ret < 0) {
 				LOG_ERR("%s failed: %d", "quectel_gnss_cfg_suplurl", ret);
-				gsm_work_reschedule(&gnss_configure_work, K_SECONDS(2));
+				gsm_work_reschedule(&gsm.gnss_configure_work, K_SECONDS(2));
 				return;
 			}
 
-			gnss_state = PPP_GNSS_CFG_TOKEN;
+			gsm.gnss_state = PPP_GNSS_CFG_TOKEN;
 
 			if (IS_ENABLED(CONFIG_MODEM_GSM_QUECTELL_GNSS_QLOC)) {
-				gnss_state = PPP_GNSS_CFG_TOKEN;
+				gsm.gnss_state = PPP_GNSS_CFG_TOKEN;
 			} else {
-				gnss_state = PPP_GNSS_CFG_TURN_ON;
+				gsm.gnss_state = PPP_GNSS_CFG_TURN_ON;
 			}
 
-			gsm_work_reschedule(&gnss_configure_work, K_NO_WAIT);
+			(void)gsm_work_reschedule(&gsm.gnss_configure_work, K_NO_WAIT);
 			break;
 		case PPP_GNSS_CFG_TOKEN:
 			ret =  quectel_gnss_cfg_token();
 			if (ret < 0) {
 				LOG_ERR("%s failed: %d", "quectel_gnss_cfg_token", ret);
-				gsm_work_reschedule(&gnss_configure_work, K_SECONDS(2));
+				(void)gsm_work_reschedule(&gsm.gnss_configure_work, K_SECONDS(2));
 				return;
 			}
 
-			gnss_state = PPP_GNSS_CFG_LATORDER;
-			gsm_work_reschedule(&gnss_configure_work, K_NO_WAIT);
+			gsm.gnss_state = PPP_GNSS_CFG_LATORDER;
+			(void)gsm_work_reschedule(&gsm.gnss_configure_work, K_NO_WAIT);
 			break;
 		case PPP_GNSS_CFG_LATORDER:
 			ret =  quectel_gnss_cfg_latorder();
 			if (ret < 0) {
 				LOG_ERR("%s failed: %d", "quectel_gnss_cfg_latorder", ret);
-				gsm_work_reschedule(&gnss_configure_work, K_SECONDS(2));
+				(void)gsm_work_reschedule(&gsm.gnss_configure_work, K_SECONDS(2));
 				return;
 			}
 
-			gnss_state = PPP_GNSS_CFG_TURN_ON;
-			gsm_work_reschedule(&gnss_configure_work, K_NO_WAIT);
+			gsm.gnss_state = PPP_GNSS_CFG_TURN_ON;
+			(void)gsm_work_reschedule(&gsm.gnss_configure_work, K_NO_WAIT);
 			break;
 		case PPP_GNSS_CFG_TURN_ON:
-			ret =  quectel_gnss_enable(FIX_MAX_TIME, FIX_MAX_DIST,
-							FIX_COUNT, FIX_INTERVAL);
+			ret =  quectel_gnss_enable();
 			if (ret < 0) {
 				LOG_ERR("quectel_gnss_enable failed: %d", ret);
-				gsm_work_reschedule(&gnss_configure_work, K_SECONDS(2));
+				(void)gsm_work_reschedule(&gsm.gnss_configure_work, K_SECONDS(2));
 				return;
 			}
 
-			gnss_state = PPP_GNSS_READY;
+			gsm.gnss_state = PPP_GNSS_READY;
 			__fallthrough;
 		case PPP_GNSS_READY:
-			k_sem_give(&gnss_ready_sem);
+			k_sem_give(&gsm.gnss_ready_sem);
 			if (gsm.gnss_on_cb) {
 				gsm.gnss_on_cb();
 			}
@@ -1610,7 +1603,7 @@ static void gnss_configure(struct k_work *work)
 }
 
 int gsm_ppp_gnss_enable(void) {
-	gnss_enabled = true;
+	gsm.gnss_enabled = true;
 
 	return 0;
 }
@@ -1618,14 +1611,14 @@ int gsm_ppp_gnss_enable(void) {
 int gsm_ppp_gnss_disable(void) {
 	struct k_work_sync work_sync;
 
-	gnss_enabled = false;
-	(void)k_work_cancel_delayable_sync(&gnss_configure_work, &work_sync);
+	gsm.gnss_enabled = false;
+	(void)k_work_cancel_delayable_sync(&gsm.gnss_configure_work, &work_sync);
 
-	if (gnss_state == PPP_GNSS_READY) {
-		quectel_gnss_disable();
+	if (gsm.gnss_state == PPP_GNSS_READY) {
+		(void)quectel_gnss_disable();
 	}
 
-	k_sem_reset(&gnss_ready_sem);
+	k_sem_reset(&gsm.gnss_ready_sem);
 
 	return 0;
 }
@@ -1633,13 +1626,13 @@ int gsm_ppp_gnss_disable(void) {
 int gsm_ppp_gnss_wait_until_ready(int s) {
 	int ret;
 
-	k_sem_reset(&gnss_ready_sem);
+	k_sem_reset(&gsm.gnss_ready_sem);
 
-	if (gnss_state == PPP_GNSS_READY) {
+	if (gsm.gnss_state == PPP_GNSS_READY) {
 		return 0;
 	}
 
-	ret = k_sem_take(&gnss_ready_sem, K_SECONDS(s));
+	ret = k_sem_take(&gsm.gnss_ready_sem, K_SECONDS(s));
 	if (ret)
 	{
 		LOG_WRN("%s error: %d", "k_sem_take", ret);
@@ -1696,8 +1689,8 @@ static void gsm_configure(struct k_work *work)
 
 #if IS_ENABLED(CONFIG_MODEM_GSM_QUECTEL_GNSS_AUTOSTART)
 	LOG_WRN("Auto starting gnss configuration in %d seconds", 20);
-	gnss_state = PPP_GNSS_STARTING;
-	(void)gsm_work_reschedule(&gnss_configure_work, K_SECONDS(20));
+	gsm->gnss_state = PPP_GNSS_STARTING;
+	(void)gsm_work_reschedule(&gsm->gnss_configure_work, K_SECONDS(20));
 #endif
 
 #if IS_ENABLED(CONFIG_GSM_MUX)
@@ -1719,7 +1712,8 @@ static void gsm_configure(struct k_work *work)
 				K_NO_WAIT);
 #else
 	gsm->state = GSM_PPP_SETUP;
-	gsm_finalize_connection(gsm);
+	k_work_init_delayable(&gsm->gsm_configure_work, gsm_finalize_connection);
+	(void)gsm_work_reschedule(&gsm->gsm_configure_work, K_NO_WAIT);
 #endif
 }
 
@@ -1764,8 +1758,8 @@ void gsm_ppp_stop(const struct device *dev)
 	}
 
 	(void)k_work_cancel_delayable_sync(&gsm->gsm_configure_work, &work_sync);
-	(void)k_work_cancel_delayable_sync(&gnss_configure_work, &work_sync);
-	(void)k_work_cancel_delayable_sync(&rssi_work_handle, &work_sync);
+	(void)k_work_cancel_delayable_sync(&gsm->rssi_work_handle, &work_sync);
+	(void)k_work_cancel_delayable_sync(&gsm->gnss_configure_work, &work_sync);
 
 	net_if_l2(iface)->enable(iface, false);
 
@@ -1780,7 +1774,7 @@ void gsm_ppp_stop(const struct device *dev)
 		LOG_WRN("Failed locking modem cmds!");
 	}
 
-	gnss_state = PPP_GNSS_OFF;
+	gsm->gnss_state = PPP_GNSS_OFF;
 	gsm->state = GSM_PPP_STOP;
 	power_off_ops(&gsm->context);
 	disable_power_source(&gsm->context);
@@ -1812,13 +1806,13 @@ static int gsm_init(const struct device *dev)
 	gsm->cmd_handler_data.eol = "\r";
 
 	/* initialize the work queue */
-	k_work_queue_init(&gsm_workq);
-	k_work_queue_start(&gsm_workq, gsm_workq_stack, K_KERNEL_STACK_SIZEOF(gsm_workq_stack),
+	k_work_queue_init(&gsm->workq);
+	k_work_queue_start(&gsm->workq, gsm_workq_stack, K_KERNEL_STACK_SIZEOF(gsm_workq_stack),
 			   K_PRIO_COOP(7), NULL);
-	k_thread_name_set(&gsm_workq.thread, "gsm_workq");
+	k_thread_name_set(&gsm->workq.thread, "gsm.workq");
 
 	k_sem_init(&gsm->sem_response, 0, 1);
-	k_sem_init(&gnss_ready_sem, 0, 1);
+	k_sem_init(&gsm->gnss_ready_sem, 0, 1);
 
 	r = modem_cmd_handler_init(&gsm->context.cmd_handler,
 				   &gsm->cmd_handler_data);
@@ -1864,21 +1858,21 @@ static int gsm_init(const struct device *dev)
 	/* Initialize to stop state so that it can be started later */
 	gsm->state = GSM_PPP_STOP;
 
-	k_work_init_delayable(&gnss_configure_work, gnss_configure);
+	k_work_init_delayable(&gsm->gnss_configure_work, gnss_configure);
 #if IS_ENABLED(CONFIG_GSM_MUX)
-	k_work_init_delayable(&rssi_work_handle, rssi_handler);
+	k_work_init_delayable(&gsm->rssi_work_handle, rssi_handler);
 #endif
-	gnss_enabled = IS_ENABLED(CONFIG_MODEM_GSM_QUECTEL_GNSS_AUTOSTART);
-	gnss_state = PPP_GNSS_OFF;
+	gsm->gnss_enabled = IS_ENABLED(CONFIG_MODEM_GSM_QUECTEL_GNSS_AUTOSTART);
+	gsm->gnss_state = PPP_GNSS_OFF;
 
 	LOG_DBG("iface->read %p iface->write %p",
 		gsm->context.iface.read, gsm->context.iface.write);
 
-	k_thread_create(&gsm_rx_thread, gsm_rx_stack,
+	k_thread_create(&gsm->rx_thread, gsm_rx_stack,
 			K_KERNEL_STACK_SIZEOF(gsm_rx_stack),
 			(k_thread_entry_t) gsm_rx,
 			gsm, NULL, NULL, K_PRIO_COOP(7), 0, K_NO_WAIT);
-	k_thread_name_set(&gsm_rx_thread, "gsm_rx");
+	k_thread_name_set(&gsm->rx_thread, "gsm_rx");
 
 	gsm->iface = ppp_net_if();
 	if (!gsm->iface) {

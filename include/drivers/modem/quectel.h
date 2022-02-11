@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <zephyr.h>
 #include <device.h>
 
 #ifndef ZEPHYR_INCLUDE_DRIVERS_MODEM_QUECTEL_H_
