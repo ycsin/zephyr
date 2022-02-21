@@ -279,6 +279,8 @@ static uint8_t gsm_mux_fcs_add(uint8_t fcs, uint8_t recv_byte)
 
 static bool gsm_mux_read_ea(int *value, uint8_t recv_byte)
 {
+	__ASSERT(value, "%s can't be NULL", "value");
+
 	/* As the value can be larger than one byte, collect the read
 	 * bytes to given variable.
 	 */
@@ -291,6 +293,7 @@ static bool gsm_mux_read_ea(int *value, uint8_t recv_byte)
 
 static bool gsm_mux_read_msg_len(struct gsm_mux *mux, uint8_t recv_byte)
 {
+	__ASSERT(mux, "%s can't be NULL", "mux");
 	int value = mux->msg_len;
 	bool ret;
 
@@ -317,6 +320,8 @@ static struct net_buf *gsm_mux_alloc_buf(k_timeout_t timeout, void *user_data)
 
 static void hexdump_buf(const char *header, struct net_buf *buf)
 {
+	__ASSERT(header, "%s can't be NULL", "header");
+	__ASSERT(buf, "%s can't be NULL", "buf");
 	if (IS_ENABLED(CONFIG_GSM_MUX_VERBOSE_DEBUG)) {
 		while (buf) {
 			LOG_HEXDUMP_DBG(buf->data, buf->len, header);
@@ -328,6 +333,8 @@ static void hexdump_buf(const char *header, struct net_buf *buf)
 static int gsm_dlci_process_data(struct gsm_dlci *dlci, bool cmd,
 				 struct net_buf *buf)
 {
+	__ASSERT(dlci, "%s can't be NULL", "dlci");
+	__ASSERT(buf, "%s can't be NULL", "buf");
 	int len = 0;
 
 	LOG_DBG("[%p] DLCI %d data %s", dlci->mux, dlci->num,
@@ -345,6 +352,7 @@ static int gsm_dlci_process_data(struct gsm_dlci *dlci, bool cmd,
 
 static struct gsm_dlci *gsm_dlci_get(struct gsm_mux *mux, uint8_t dlci_address)
 {
+	__ASSERT(mux, "%s can't be NULL", "mux");
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(dlcis); i++) {
@@ -360,6 +368,8 @@ static struct gsm_dlci *gsm_dlci_get(struct gsm_mux *mux, uint8_t dlci_address)
 
 static int gsm_mux_modem_send(struct gsm_mux *mux, const uint8_t *buf, size_t size)
 {
+	__ASSERT(mux, "%s can't be NULL", "mux");
+	__ASSERT(buf, "%s can't be NULL", "buf");
 	if (mux->uart == NULL) {
 		return -ENOENT;
 	}
@@ -375,6 +385,9 @@ static int gsm_mux_send_data_msg(struct gsm_mux *mux, bool cmd,
 				 struct gsm_dlci *dlci, uint8_t frame_type,
 				 const uint8_t *buf, size_t size)
 {
+	__ASSERT(mux, "%s can't be NULL", "mux");
+	__ASSERT(dlci, "%s can't be NULL", "dlci");
+	__ASSERT(buf, "%s can't be NULL", "buf");
 	uint8_t hdr[7];
 	int pos;
 	int ret;
@@ -422,6 +435,7 @@ static int gsm_mux_send_data_msg(struct gsm_mux *mux, bool cmd,
 static int gsm_mux_send_control_msg(struct gsm_mux *mux, bool cmd,
 				    uint8_t dlci_address, uint8_t frame_type)
 {
+	__ASSERT(mux, "%s can't be NULL", "mux");
 	uint8_t buf[6];
 
 	buf[0] = SOF_MARKER;
@@ -471,6 +485,7 @@ static void dlci_run_timer(uint32_t current_time)
 
 static void gsm_dlci_open(struct gsm_dlci *dlci)
 {
+	__ASSERT(dlci, "%s can't be NULL", "dlci");
 	LOG_DBG("[%p/%d] DLCI id %d open", dlci, dlci->num, dlci->num);
 	dlci->state = GSM_DLCI_OPEN;
 
@@ -485,6 +500,7 @@ static void gsm_dlci_open(struct gsm_dlci *dlci)
 
 static void gsm_dlci_close(struct gsm_dlci *dlci)
 {
+	__ASSERT(dlci, "%s can't be NULL", "dlci");
 	LOG_DBG("[%p/%d] DLCI id %d closed", dlci, dlci->num, dlci->num);
 	dlci->state = GSM_DLCI_CLOSED;
 
@@ -506,6 +522,7 @@ static void gsm_dlci_close(struct gsm_dlci *dlci)
 /* Return true if we need to retry, false otherwise */
 static bool handle_t1_timeout(struct gsm_dlci *dlci)
 {
+	__ASSERT(dlci, "%s can't be NULL", "dlci");
 	LOG_DBG("[%p/%d] T1 timeout", dlci, dlci->num);
 
 	if (dlci->state == GSM_DLCI_OPENING) {
@@ -584,6 +601,7 @@ static struct gsm_control_msg *gsm_ctrl_msg_get_free(void)
 static struct gsm_control_msg *gsm_mux_alloc_control_msg(struct net_buf *buf,
 							 uint8_t cmd)
 {
+	__ASSERT(buf, "%s can't be NULL", "buf");
 	struct gsm_control_msg *msg;
 
 	msg = gsm_ctrl_msg_get_free();
@@ -599,6 +617,7 @@ static struct gsm_control_msg *gsm_mux_alloc_control_msg(struct net_buf *buf,
 
 static void ctrl_msg_cleanup(struct gsm_control_msg *entry, bool pending)
 {
+	__ASSERT(entry, "%s can't be NULL", "entry");
 	if (pending) {
 		LOG_DBG("Releasing pending buf %p (ref %d)",
 			entry->buf, entry->buf->ref - 1);
@@ -639,6 +658,7 @@ static void gsm_mux_t2_timeout(struct k_work *work)
 static int gsm_mux_send_control_message(struct gsm_mux *mux, uint8_t dlci_address,
 					int cmd, uint8_t *data, size_t data_len)
 {
+	__ASSERT(mux, "%s can't be NULL", "mux");
 	struct gsm_control_msg *ctrl;
 	struct net_buf *buf;
 
@@ -685,6 +705,7 @@ static int gsm_dlci_opening_or_closing(struct gsm_dlci *dlci,
 				       int command,
 				       dlci_command_cb_t cb)
 {
+	__ASSERT(dlci, "%s can't be NULL", "dlci");
 	dlci->retries = dlci->mux->retries;
 	dlci->req_start = k_uptime_get_32();
 	dlci->state = state;
@@ -703,6 +724,7 @@ static int gsm_dlci_opening_or_closing(struct gsm_dlci *dlci,
 
 static int gsm_dlci_closing(struct gsm_dlci *dlci, dlci_command_cb_t cb)
 {
+	__ASSERT(dlci, "%s can't be NULL", "dlci");
 	if (dlci->state == GSM_DLCI_CLOSED ||
 	    dlci->state == GSM_DLCI_CLOSING) {
 		return -EALREADY;
@@ -716,6 +738,7 @@ static int gsm_dlci_closing(struct gsm_dlci *dlci, dlci_command_cb_t cb)
 
 static int gsm_dlci_opening(struct gsm_dlci *dlci, dlci_command_cb_t cb)
 {
+	__ASSERT(dlci, "%s can't be NULL", "dlci");
 	if (dlci->state == GSM_DLCI_OPEN || dlci->state == GSM_DLCI_OPENING) {
 		return -EALREADY;
 	}
@@ -728,6 +751,7 @@ static int gsm_dlci_opening(struct gsm_dlci *dlci, dlci_command_cb_t cb)
 
 int gsm_mux_disconnect(struct gsm_mux *mux, k_timeout_t timeout)
 {
+	__ASSERT(mux, "%s can't be NULL", "mux");
 	struct gsm_dlci *dlci;
 
 	dlci = gsm_dlci_get(mux, 0);
@@ -748,6 +772,8 @@ int gsm_mux_disconnect(struct gsm_mux *mux, k_timeout_t timeout)
 static int gsm_mux_control_reply(struct gsm_dlci *dlci, bool sub_cr,
 				 uint8_t sub_cmd, const uint8_t *buf, size_t len)
 {
+	__ASSERT(dlci, "%s can't be NULL", "dlci");
+	__ASSERT(buf, "%s can't be NULL", "buf");
 	/* As this is a reply to received command, set the value according
 	 * to initiator status. See GSM 07.10 page 17.
 	 */
@@ -759,6 +785,8 @@ static int gsm_mux_control_reply(struct gsm_dlci *dlci, bool sub_cr,
 
 static bool get_field(struct net_buf *buf, int *ret_value)
 {
+	__ASSERT(buf, "%s can't be NULL", "buf");
+	__ASSERT(ret_value, "%s can't be NULL", "ret_value");
 	int value = 0;
 	uint8_t recv_byte;
 
@@ -784,6 +812,8 @@ static bool get_field(struct net_buf *buf, int *ret_value)
 static int gsm_mux_msc_reply(struct gsm_dlci *dlci, bool cmd,
 			     struct net_buf *buf, size_t len)
 {
+	__ASSERT(dlci, "%s can't be NULL", "dlci");
+	__ASSERT(buf, "%s can't be NULL", "buf");
 	uint32_t modem_sig = 0, break_sig = 0;
 	int ret;
 
@@ -811,6 +841,8 @@ static int gsm_mux_msc_reply(struct gsm_dlci *dlci, bool cmd,
 
 static int gsm_mux_control_message(struct gsm_dlci *dlci, struct net_buf *buf)
 {
+	__ASSERT(dlci, "%s can't be NULL", "dlci");
+	__ASSERT(buf, "%s can't be NULL", "buf");
 	uint32_t command = 0, len = 0;
 	int ret = 0;
 	bool cr;
@@ -898,6 +930,8 @@ static int gsm_mux_control_message(struct gsm_dlci *dlci, struct net_buf *buf)
 /* Handle a response to our control message */
 static int gsm_mux_control_response(struct gsm_dlci *dlci, struct net_buf *buf)
 {
+	__ASSERT(dlci, "%s can't be NULL", "dlci");
+	__ASSERT(buf, "%s can't be NULL", "buf");
 	struct gsm_control_msg *entry, *next;
 
 	SYS_SLIST_FOR_EACH_CONTAINER_SAFE(&dlci->mux->pending_ctrls,
@@ -922,6 +956,8 @@ static int gsm_mux_control_response(struct gsm_dlci *dlci, struct net_buf *buf)
 static int gsm_dlci_process_command(struct gsm_dlci *dlci, bool cmd,
 				    struct net_buf *buf)
 {
+	__ASSERT(dlci, "%s can't be NULL", "dlci");
+	__ASSERT(buf, "%s can't be NULL", "buf");
 	int ret;
 
 	LOG_DBG("[%p] DLCI %d control %s", dlci->mux, dlci->num,
@@ -939,6 +975,7 @@ static int gsm_dlci_process_command(struct gsm_dlci *dlci, bool cmd,
 
 static void gsm_dlci_free(struct gsm_mux *mux, uint8_t address)
 {
+	__ASSERT(mux, "%s can't be NULL", "mux");
 	struct gsm_dlci *dlci;
 	int i;
 
@@ -1008,6 +1045,7 @@ static struct gsm_dlci *gsm_dlci_alloc(struct gsm_mux *mux, uint8_t address,
 
 static int gsm_mux_process_pkt(struct gsm_mux *mux)
 {
+	__ASSERT(mux, "%s can't be NULL", "mux");
 	uint8_t dlci_address = mux->address >> 2;
 	int ret = 0;
 	bool cmd;   /* C/R bit, command (true) / response (false) */
@@ -1377,6 +1415,8 @@ static void gsm_mux_process_data(struct gsm_mux *mux, uint8_t recv_byte)
 
 void gsm_mux_recv_buf(struct gsm_mux *mux, uint8_t *buf, int len)
 {
+	__ASSERT(mux, "%s can't be NULL", "mux");
+	__ASSERT(buf, "%s can't be NULL", "buf");
 	int i = 0;
 
 	LOG_DBG("Received %d bytes", len);
@@ -1388,6 +1428,8 @@ void gsm_mux_recv_buf(struct gsm_mux *mux, uint8_t *buf, int len)
 
 static void dlci_done(struct gsm_dlci *dlci, bool connected)
 {
+	__ASSERT(dlci, "%s can't be NULL", "dlci");
+
 	LOG_DBG("[%p] DLCI id %d %screated", dlci, dlci->num,
 		connected == false ? "not " : "");
 
@@ -1404,6 +1446,8 @@ int gsm_dlci_create(struct gsm_mux *mux,
 		    void *user_data,
 		    struct gsm_dlci **dlci)
 {
+	__ASSERT(mux, "%s can't be NULL", "mux");
+	__ASSERT(uart, "%s can't be NULL", "uart");
 	int ret;
 
 	*dlci = gsm_dlci_alloc(mux, dlci_address, uart, dlci_created_cb,
@@ -1429,17 +1473,21 @@ fail:
 
 int gsm_dlci_send(struct gsm_dlci *dlci, const uint8_t *buf, size_t size)
 {
+	__ASSERT(dlci, "%s can't be NULL", "dlci");
+	__ASSERT(buf, "%s can't be NULL", "buf");
 	/* Mux the data and send to UART */
 	return gsm_mux_send_data_msg(dlci->mux, true, dlci, FT_UIH, buf, size);
 }
 
 int gsm_dlci_id(struct gsm_dlci *dlci)
 {
+	__ASSERT_NO_MSG(dlci);
 	return dlci->num;
 }
 
 struct gsm_mux *gsm_mux_create(const struct device *uart)
 {
+	__ASSERT(uart, "%s can't be NULL", "uart");
 	struct gsm_mux *mux = NULL;
 	int i;
 
@@ -1488,6 +1536,8 @@ struct gsm_mux *gsm_mux_create(const struct device *uart)
 int gsm_mux_send(struct gsm_mux *mux, uint8_t dlci_address,
 		 const uint8_t *buf, size_t size)
 {
+	__ASSERT(mux, "%s can't be NULL", "mux");
+	__ASSERT(buf, "%s can't be NULL", "buf");
 	struct gsm_dlci *dlci;
 
 	dlci = gsm_dlci_get(mux, dlci_address);
@@ -1501,6 +1551,7 @@ int gsm_mux_send(struct gsm_mux *mux, uint8_t dlci_address,
 
 void gsm_mux_detach(struct gsm_mux *mux)
 {
+	__ASSERT(mux, "%s can't be NULL", "mux");
 	struct gsm_dlci *dlci;
 
 	for (int i = 0; i < ARRAY_SIZE(dlcis); i++) {
