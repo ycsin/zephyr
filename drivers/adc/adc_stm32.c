@@ -361,6 +361,23 @@ static int adc_stm32_enable(ADC_TypeDef *adc)
 	return 0;
 }
 
+static void adc_stm32_remove_common_path(const struct device *dev)
+{
+	const struct adc_stm32_cfg *config =
+		(const struct adc_stm32_cfg *)dev->config;
+	ADC_TypeDef *adc = (ADC_TypeDef *)config->base;
+	(void) adc; /* Avoid 'unused variable' warning for some families */
+
+	LL_ADC_Disable(adc);
+	while (LL_ADC_IsEnabled(adc) == 1UL) {
+	}
+
+	LL_ADC_SetCommonPathInternalChRem(__LL_ADC_COMMON_INSTANCE(adc),
+					  (LL_ADC_PATH_INTERNAL_VREFINT | LL_ADC_PATH_INTERNAL_TEMPSENSOR | LL_ADC_PATH_INTERNAL_VBAT));
+
+	adc_stm32_enable(adc);
+}
+
 static int start_read(const struct device *dev,
 		      const struct adc_sequence *sequence)
 {
@@ -622,7 +639,11 @@ static int start_read(const struct device *dev,
 
 	adc_context_start_read(&data->ctx, sequence);
 
-	return adc_context_wait_for_completion(&data->ctx);
+	err = adc_context_wait_for_completion(&data->ctx);
+
+	adc_stm32_remove_common_path(dev);
+
+	return err;
 }
 
 static void adc_context_start_sampling(struct adc_context *ctx)
@@ -748,6 +769,8 @@ static void adc_stm32_setup_speed(const struct device *dev, uint8_t id,
 static int adc_stm32_channel_setup(const struct device *dev,
 				   const struct adc_channel_cfg *channel_cfg)
 {
+	const struct adc_stm32_cfg *config = dev->config;
+	ADC_TypeDef *adc = (ADC_TypeDef *)config->base;
 #if defined(CONFIG_SOC_SERIES_STM32F0X) || \
 	defined(CONFIG_SOC_SERIES_STM32G0X) || \
 	 defined(CONFIG_SOC_SERIES_STM32L0X)
@@ -760,8 +783,7 @@ static int adc_stm32_channel_setup(const struct device *dev,
 		return -EINVAL;
 	}
 
-	acq_time_index = adc_stm32_check_acq_time(
-				channel_cfg->acquisition_time);
+	acq_time_index = adc_stm32_check_acq_time(channel_cfg->acquisition_time);
 	if (acq_time_index < 0) {
 		return acq_time_index;
 	}
@@ -793,14 +815,21 @@ static int adc_stm32_channel_setup(const struct device *dev,
 		return -EINVAL;
 	}
 
+	LL_ADC_Disable(adc);
+	while (LL_ADC_IsEnabled(adc) == 1UL) {
+	}
+
 	if (__LL_ADC_CHANNEL_TO_DECIMAL_NB(ADC_CHANNEL_TEMPSENSOR) == channel_cfg->channel_id) {
 		adc_stm32_set_common_path(dev, LL_ADC_PATH_INTERNAL_TEMPSENSOR);
 	} else if (__LL_ADC_CHANNEL_TO_DECIMAL_NB(ADC_CHANNEL_VREFINT) == channel_cfg->channel_id) {
 		adc_stm32_set_common_path(dev, LL_ADC_PATH_INTERNAL_VREFINT);
+	} else if (__LL_ADC_CHANNEL_TO_DECIMAL_NB(ADC_CHANNEL_VBAT) == channel_cfg->channel_id) {
+		adc_stm32_set_common_path(dev, LL_ADC_PATH_INTERNAL_VBAT);
 	}
 
-	adc_stm32_setup_speed(dev, channel_cfg->channel_id,
-				  acq_time_index);
+	adc_stm32_enable(adc);
+
+	adc_stm32_setup_speed(dev, channel_cfg->channel_id, acq_time_index);
 
 	LOG_DBG("Channel setup succeeded!");
 
@@ -918,12 +947,6 @@ static int adc_stm32_init(const struct device *dev)
 		LL_ADC_ClearFlag_ADRDY(adc);
 	}
 
-	/*
-	 * These STM32 series has one internal voltage reference source
-	 * to be enabled.
-	 */
-	LL_ADC_SetCommonPathInternalCh(__LL_ADC_COMMON_INSTANCE(adc),
-				       LL_ADC_PATH_INTERNAL_VREFINT);
 #endif
 
 #if defined(CONFIG_SOC_SERIES_STM32F0X) || \
