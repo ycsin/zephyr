@@ -109,6 +109,9 @@ struct http_response {
 	/** Where the body starts */
 	uint8_t *body_start;
 
+	/** Length of the body contained in the recv_buf */
+	size_t body_len;
+
 	/** Where the response is stored, this is to be
 	 * provided by the user.
 	 */
