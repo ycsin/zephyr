@@ -71,7 +71,6 @@ struct hawkbit_download {
 	int download_progress;
 	size_t downloaded_size;
 	size_t http_content_size;
-	mbedtls_md_context_t hash_ctx;
 	uint8_t file_hash[SHA256_HASH_SIZE];
 };
 
@@ -144,16 +143,16 @@ static const struct json_obj_descr json_ctl_res_descr[] = {
 };
 
 static const struct json_obj_descr json_cfg_data_descr[] = {
-	JSON_OBJ_DESCR_PRIM(struct hawkbit_cfg_data, VIN, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(struct hawkbit_cfg_data, hwRevision,
-			    JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct hawkbit_cfg_data, serial_num, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct hawkbit_cfg_data, board, JSON_TOK_STRING),
+	JSON_OBJ_DESCR_PRIM(struct hawkbit_cfg_data, major, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct hawkbit_cfg_data, minor, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct hawkbit_cfg_data, revision, JSON_TOK_NUMBER),
 };
 
 static const struct json_obj_descr json_cfg_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct hawkbit_cfg, mode, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_OBJECT(struct hawkbit_cfg, data, json_cfg_data_descr),
-	JSON_OBJ_DESCR_PRIM(struct hawkbit_cfg, id, JSON_TOK_STRING),
-	JSON_OBJ_DESCR_PRIM(struct hawkbit_cfg, time, JSON_TOK_STRING),
 	JSON_OBJ_DESCR_OBJECT(struct hawkbit_cfg, status, json_status_descr),
 };
 
@@ -688,28 +687,12 @@ static void response_cb(struct http_response *rsp,
 	switch (type) {
 	case HAWKBIT_PROBE:
 		if (hb_context.dl.http_content_size == 0) {
-			body_data = rsp->body_start;
-			body_len = rsp->data_len;
-			/*
-			 * subtract the size of the HTTP header from body_len
-			 */
-			body_len -= (rsp->body_start - rsp->recv_buf);
 			hb_context.dl.http_content_size = rsp->content_length;
-		} else {
-			/*
-			 * more general case where body data is set, but no need
-			 * to take the HTTP header into account
-			 */
+		}
+
+		if (rsp->body_found == true) {
 			body_data = rsp->body_start;
-			body_len = rsp->data_len;
-		}
-
-		if ((rsp->body_found == 1) && (body_data == NULL)) {
-			body_data = rsp->recv_buf;
-			body_len = rsp->data_len;
-		}
-
-		if (body_data != NULL) {
+			body_len = rsp->body_len;
 			if ((hb_context.dl.downloaded_size + body_len) > response_buffer_size) {
 				response_buffer_size <<= 1;
 				rsp_tmp = realloc(hb_context.response_data,
@@ -762,28 +745,12 @@ static void response_cb(struct http_response *rsp,
 
 	case HAWKBIT_PROBE_DEPLOYMENT_BASE:
 		if (hb_context.dl.http_content_size == 0) {
-			body_data = rsp->body_start;
-			body_len = rsp->data_len;
-			/*
-			 * subtract the size of the HTTP header from body_len
-			 */
-			body_len -= (rsp->body_start - rsp->recv_buf);
 			hb_context.dl.http_content_size = rsp->content_length;
-		} else {
-			/*
-			 * more general case where body data is set, but no need
-			 * to take the HTTP header into account
-			 */
+		}
+
+		if (rsp->body_found == true) {
 			body_data = rsp->body_start;
-			body_len = rsp->data_len;
-		}
-
-		if ((rsp->body_found == 1) && (body_data == NULL)) {
-			body_data = rsp->recv_buf;
-			body_len = rsp->data_len;
-		}
-
-		if (body_data != NULL) {
+			body_len = rsp->body_len;
 			if ((hb_context.dl.downloaded_size + body_len) > response_buffer_size) {
 				response_buffer_size <<= 1;
 				rsp_tmp = realloc(hb_context.response_data,
@@ -804,7 +771,9 @@ static void response_cb(struct http_response *rsp,
 
 		if (final_data == HTTP_DATA_FINAL) {
 			if (hb_context.dl.http_content_size != hb_context.dl.downloaded_size) {
-				LOG_ERR("HTTP response len mismatch");
+				LOG_ERR("HTTP response len mismatch, expected %d, got %d",
+					hb_context.dl.http_content_size,
+					hb_context.dl.downloaded_size);
 				hb_context.code_status = HAWKBIT_METADATA_ERROR;
 				break;
 			}
@@ -825,36 +794,12 @@ static void response_cb(struct http_response *rsp,
 
 	case HAWKBIT_DOWNLOAD:
 		if (hb_context.dl.http_content_size == 0) {
-			body_data = rsp->body_start;
-			body_len = rsp->data_len;
-			/*
-			 * subtract the size of the HTTP header from body_len
-			 */
-			body_len -= (rsp->body_start - rsp->recv_buf);
 			hb_context.dl.http_content_size = rsp->content_length;
-		} else {
-			/*
-			 * more general case where body data is set, but no need
-			 * to take the HTTP header into account
-			 */
+		}
+
+		if (rsp->body_found == true) {
 			body_data = rsp->body_start;
-			body_len = rsp->data_len;
-		}
-
-		if ((rsp->body_found == 1) && (body_data == NULL)) {
-			body_data = rsp->recv_buf;
-			body_len = rsp->data_len;
-		}
-
-		if (body_data != NULL) {
-			ret = mbedtls_md_update(&hb_context.dl.hash_ctx, body_data,
-					  body_len);
-			if (ret != 0) {
-				LOG_ERR("mbedTLS md update error: %d", ret);
-				hb_context.code_status = HAWKBIT_DOWNLOAD_ERROR;
-				break;
-			}
-
+			body_len = rsp->body_len;
 			ret = flash_img_buffered_write(
 				&hb_context.flash_ctx, body_data, body_len,
 				final_data == HTTP_DATA_FINAL);
@@ -895,6 +840,7 @@ static bool send_request(enum http_method method,
 	struct hawkbit_cfg cfg;
 	struct hawkbit_close close;
 	struct hawkbit_dep_fbk feedback;
+	struct mcuboot_img_header header;
 	char acid[11];
 	const char *fini = hawkbit_status_finished(finished);
 	const char *exec = hawkbit_status_execution(execution);
@@ -934,7 +880,7 @@ static bool send_request(enum http_method method,
 		ret = http_client_req(hb_context.sock, &hb_context.http_req,
 				      HAWKBIT_RECV_TIMEOUT, "HAWKBIT_PROBE");
 		if (ret < 0) {
-			LOG_ERR("Unable to send HTTP request (HAWKBIT_PROBE): %d", ret);
+			LOG_ERR("Unable to send HTTP request (%s): %d", "HAWKBIT_PROBE", ret);
 			return false;
 		}
 
@@ -942,11 +888,15 @@ static bool send_request(enum http_method method,
 
 	case HAWKBIT_CONFIG_DEVICE:
 		memset(&cfg, 0, sizeof(cfg));
+
+		boot_read_bank_header(FLASH_AREA_ID(image_0), &header, sizeof(header));
 		cfg.mode = "merge";
-		cfg.data.VIN = device_id;
-		cfg.data.hwRevision = "3";
-		cfg.id = "";
-		cfg.time = "";
+		cfg.data.serial_num = device_id;
+		cfg.data.board = CONFIG_BOARD;
+		cfg.data.major = header.h.v1.sem_ver.major;
+		cfg.data.minor = header.h.v1.sem_ver.minor;
+		cfg.data.revision = header.h.v1.sem_ver.revision;
+
 		cfg.status.execution = exec;
 		cfg.status.result.finished = fini;
 
@@ -955,7 +905,7 @@ static bool send_request(enum http_method method,
 					  hb_context.status_buffer,
 					  hb_context.status_buffer_size - 1);
 		if (ret) {
-			LOG_ERR("Can't encode the JSON script (HAWKBIT_CONFIG_DEVICE): %d", ret);
+			LOG_ERR("Can't encode the JSON script (%s): %d", "HAWKBIT_CONFIG_DEVICE", ret);
 			return false;
 		}
 
@@ -969,7 +919,7 @@ static bool send_request(enum http_method method,
 				      HAWKBIT_RECV_TIMEOUT,
 				      "HAWKBIT_CONFIG_DEVICE");
 		if (ret < 0) {
-			LOG_ERR("Unable to send HTTP request (HAWKBIT_CONFIG_DEVICE): %d", ret);
+			LOG_ERR("Unable to send HTTP request (%s): %d", "HAWKBIT_CONFIG_DEVICE", ret);
 			return false;
 		}
 
@@ -990,7 +940,7 @@ static bool send_request(enum http_method method,
 					  hb_context.status_buffer,
 					  hb_context.status_buffer_size - 1);
 		if (ret) {
-			LOG_ERR("Can't encode the JSON script (HAWKBIT_CLOSE): %d", ret);
+			LOG_ERR("Can't encode the JSON script (%s): %d", "HAWKBIT_CLOSE", ret);
 			return false;
 		}
 
@@ -1003,7 +953,7 @@ static bool send_request(enum http_method method,
 		ret = http_client_req(hb_context.sock, &hb_context.http_req,
 				      HAWKBIT_RECV_TIMEOUT, "HAWKBIT_CLOSE");
 		if (ret < 0) {
-			LOG_ERR("Unable to send HTTP request (HAWKBIT_CLOSE): %d", ret);
+			LOG_ERR("Unable to send HTTP request (%s): %d", "HAWKBIT_CLOSE", ret);
 			return false;
 		}
 
@@ -1015,7 +965,8 @@ static bool send_request(enum http_method method,
 				      HAWKBIT_RECV_TIMEOUT,
 				      "HAWKBIT_PROBE_DEPLOYMENT_BASE");
 		if (ret < 0) {
-			LOG_ERR("Unable to send HTTP request (HAWKBIT_PROBE_DEPLOYMENT_BASE): %d",
+			LOG_ERR("Unable to send HTTP request (%s): %d",
+				"HAWKBIT_PROBE_DEPLOYMENT_BASE",
 				ret);
 			return false;
 		}
@@ -1041,7 +992,7 @@ static bool send_request(enum http_method method,
 					  &feedback, hb_context.status_buffer,
 					  hb_context.status_buffer_size - 1);
 		if (ret) {
-			LOG_ERR("Can't encode the JSON script (HAWKBIT_REPORT): %d", ret);
+			LOG_ERR("Can't encode the JSON script (%s): %d", "HAWKBIT_REPORT", ret);
 			return ret;
 		}
 
@@ -1054,7 +1005,7 @@ static bool send_request(enum http_method method,
 		ret = http_client_req(hb_context.sock, &hb_context.http_req,
 				      HAWKBIT_RECV_TIMEOUT, "HAWKBIT_REPORT");
 		if (ret < 0) {
-			LOG_ERR("Unable to send HTTP request (HAWKBIT_REPORT): %d", ret);
+			LOG_ERR("Unable to send HTTP request (%s): %d", "HAWKBIT_REPORT", ret);
 			return false;
 		}
 
@@ -1064,7 +1015,7 @@ static bool send_request(enum http_method method,
 		ret = http_client_req(hb_context.sock, &hb_context.http_req,
 				      HAWKBIT_RECV_TIMEOUT, "HAWKBIT_DOWNLOAD");
 		if (ret < 0) {
-			LOG_ERR("Unable to send HTTP request (HAWKBIT_DOWNLOAD): %d", ret);
+			LOG_ERR("Unable to send HTTP request (%s): %d", "HAWKBIT_DOWNLOAD", ret);
 			return false;
 		}
 
@@ -1079,8 +1030,7 @@ enum hawkbit_response hawkbit_probe(void)
 	int ret;
 	int32_t action_id;
 	int32_t file_size = 0;
-	uint8_t response_hash[SHA256_HASH_SIZE] = { 0 };
-	const mbedtls_md_info_t *hash_info;
+	struct flash_img_check fic;
 	char device_id[DEVICE_ID_HEX_MAX_SIZE] = { 0 },
 	     cancel_base[CANCEL_BASE_SIZE] = { 0 },
 	     download_http[DOWNLOAD_HTTP_SIZE] = { 0 },
@@ -1270,61 +1220,49 @@ enum hawkbit_response hawkbit_probe(void)
 
 	flash_img_init(&hb_context.flash_ctx);
 
-	hash_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
-	if (!hash_info) {
-		LOG_ERR("Unable to request hash type from mbedTLS");
-		hb_context.code_status = HAWKBIT_METADATA_ERROR;
-		goto cleanup;
-	}
-
-	mbedtls_md_init(&hb_context.dl.hash_ctx);
-	if (mbedtls_md_setup(&hb_context.dl.hash_ctx, hash_info, 0) < 0) {
-		LOG_ERR("Can't setup mbedTLS hash engine");
-		mbedtls_md_free(&hb_context.dl.hash_ctx);
-		hb_context.code_status = HAWKBIT_METADATA_ERROR;
-		goto free_md;
-	}
-
-	mbedtls_md_starts(&hb_context.dl.hash_ctx);
-
 	ret = (int)send_request(HTTP_GET, HAWKBIT_DOWNLOAD,
 			  HAWKBIT_STATUS_FINISHED_NONE,
 			  HAWKBIT_STATUS_EXEC_NONE);
 
-	mbedtls_md_finish(&hb_context.dl.hash_ctx, response_hash);
-
 	if (!ret) {
 		LOG_ERR("Send request failed (HAWKBIT_DOWNLOAD): %d", ret);
 		hb_context.code_status = HAWKBIT_NETWORKING_ERROR;
-		goto free_md;
+		goto cleanup;
 	}
 
 	if (hb_context.code_status == HAWKBIT_DOWNLOAD_ERROR) {
-		goto free_md;
+		goto cleanup;
 	}
 
+	/* Check if download finished */
 	if (!hb_context.final_data_received) {
 		LOG_ERR("Download is not complete");
 		hb_context.code_status = HAWKBIT_DOWNLOAD_ERROR;
-	} else if (memcmp(response_hash, hb_context.dl.file_hash,
-			  mbedtls_md_get_size(hash_info)) != 0) {
-		LOG_ERR("Hash mismatch");
-		LOG_HEXDUMP_DBG(response_hash, sizeof(response_hash), "resp");
-		LOG_HEXDUMP_DBG(hb_context.dl.file_hash,
-				sizeof(hb_context.dl.file_hash), "file");
-		hb_context.code_status = HAWKBIT_DOWNLOAD_ERROR;
-	} else if (boot_request_upgrade(BOOT_UPGRADE_TEST)) {
-		LOG_ERR("Failed to mark the image in slot 1 as pending");
-		hb_context.code_status = HAWKBIT_DOWNLOAD_ERROR;
-	} else {
-		hb_context.code_status = HAWKBIT_UPDATE_INSTALLED;
-		hawkbit_device_acid_update(hb_context.json_action_id);
+		goto cleanup;
 	}
 
-	hb_context.dl.http_content_size = 0;
+	/* Verify the storage's firmware's hash */
+	fic.match = hb_context.dl.file_hash;
+	fic.clen = hb_context.dl.downloaded_size;
 
-free_md:
-	mbedtls_md_free(&hb_context.dl.hash_ctx);
+	if (flash_img_check(&hb_context.flash_ctx, &fic, FLASH_AREA_ID(image_1))) {
+		LOG_ERR("Firmware - flash validation has failed");
+		hb_context.code_status = HAWKBIT_DOWNLOAD_ERROR;
+		goto cleanup;
+	}
+
+	/* Request mcuboot to upgrade */
+	if (boot_request_upgrade(BOOT_UPGRADE_TEST)) {
+		LOG_ERR("Failed to mark the image in slot 1 as pending");
+		hb_context.code_status = HAWKBIT_DOWNLOAD_ERROR;
+		goto cleanup;
+	}
+
+	/* If everything is successful */
+	hb_context.code_status = HAWKBIT_UPDATE_INSTALLED;
+	(void)hawkbit_device_acid_update(hb_context.json_action_id);
+
+	hb_context.dl.http_content_size = 0;
 
 cleanup:
 	cleanup_connection();
