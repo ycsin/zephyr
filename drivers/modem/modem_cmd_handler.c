@@ -491,7 +491,15 @@ int modem_cmd_send_ext(struct modem_iface *iface,
 
 	data = (struct modem_cmd_handler_data *)(handler->cmd_handler_data);
 	if (!(flags & MODEM_NO_TX_LOCK)) {
-		k_sem_take(&data->sem_tx_lock, K_FOREVER);
+		if (data->use_mutex) {
+			ret = k_mutex_lock(&data->mutex_tx_lock, K_FOREVER);
+		} else {
+			ret = k_sem_take(&data->sem_tx_lock, K_FOREVER);
+		}
+
+		if (ret) {
+			__ASSERT(0, "Failed to lock tx: %d", ret);
+		}
 	}
 
 	if (!(flags & MODEM_NO_SET_CMDS)) {
@@ -540,7 +548,11 @@ int modem_cmd_send_ext(struct modem_iface *iface,
 
 unlock_tx_lock:
 	if (!(flags & MODEM_NO_TX_LOCK)) {
-		k_sem_give(&data->sem_tx_lock);
+		if (data->use_mutex) {
+			(void)k_mutex_unlock(&data->mutex_tx_lock);
+		} else {
+			k_sem_give(&data->sem_tx_lock);
+		}
 	}
 
 	return ret;
@@ -623,6 +635,11 @@ int modem_cmd_handler_tx_lock(struct modem_cmd_handler *handler,
 	struct modem_cmd_handler_data *data;
 	data = (struct modem_cmd_handler_data *)(handler->cmd_handler_data);
 
+	if (data->use_mutex) {
+		__ASSERT(0, "Using mutex");
+		return -EACCES;
+	}
+
 	return k_sem_take(&data->sem_tx_lock, timeout);
 }
 
@@ -631,7 +648,11 @@ void modem_cmd_handler_tx_unlock(struct modem_cmd_handler *handler)
 	struct modem_cmd_handler_data *data;
 	data = (struct modem_cmd_handler_data *)(handler->cmd_handler_data);
 
-	k_sem_give(&data->sem_tx_lock);
+	if (data->use_mutex) {
+		__ASSERT(0, "Using mutex");
+	} else {
+		k_sem_give(&data->sem_tx_lock);
+	}
 }
 
 int modem_cmd_handler_init(struct modem_cmd_handler *handler,
@@ -654,7 +675,11 @@ int modem_cmd_handler_init(struct modem_cmd_handler *handler,
 	handler->cmd_handler_data = data;
 	handler->process = cmd_handler_process;
 
-	k_sem_init(&data->sem_tx_lock, 1, 1);
+	if (data->use_mutex) {
+		k_mutex_init(&data->mutex_tx_lock);
+	} else {
+		k_sem_init(&data->sem_tx_lock, 1, 1);
+	}
 	k_sem_init(&data->sem_parse_lock, 1, 1);
 
 	return 0;

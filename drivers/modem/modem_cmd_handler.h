@@ -116,6 +116,8 @@ struct modem_cmd_handler_data {
 	k_timeout_t alloc_timeout;
 
 	/* locks */
+	bool use_mutex;
+	struct k_mutex mutex_tx_lock;
 	struct k_sem sem_tx_lock;
 	struct k_sem sem_parse_lock;
 };
