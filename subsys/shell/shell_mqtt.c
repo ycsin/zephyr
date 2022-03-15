@@ -473,12 +473,10 @@ static void sh_mqtt_publish_handler(struct k_work *work)
 
 static void cancel_dworks_and_cleanup(void)
 {
-	struct k_work_sync ws;
-
-	(void)k_work_cancel_delayable_sync(&sh_mqtt->connect_dwork, &ws);
-	(void)k_work_cancel_delayable_sync(&sh_mqtt->subscribe_dwork, &ws);
-	(void)k_work_cancel_delayable_sync(&sh_mqtt->process_dwork, &ws);
-	(void)k_work_cancel_delayable_sync(&sh_mqtt->publish_dwork, &ws);
+	(void)k_work_cancel_delayable(&sh_mqtt->connect_dwork);
+	(void)k_work_cancel_delayable(&sh_mqtt->subscribe_dwork);
+	(void)k_work_cancel_delayable(&sh_mqtt->process_dwork);
+	(void)k_work_cancel_delayable(&sh_mqtt->publish_dwork);
 	sh_mqtt_close_and_cleanup();
 }
 
