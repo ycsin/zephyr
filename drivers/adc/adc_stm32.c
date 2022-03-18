@@ -746,8 +746,6 @@ static void adc_stm32_set_common_path(const struct device *dev, uint32_t PathInt
 	ADC_TypeDef *adc = (ADC_TypeDef *)config->base;
 	(void) adc; /* Avoid 'unused variable' warning for some families */
 
-	/* Do not remove existing paths */
-	PathInternal |= LL_ADC_GetCommonPathInternalCh(__LL_ADC_COMMON_INSTANCE(adc));
 	LL_ADC_SetCommonPathInternalCh(__LL_ADC_COMMON_INSTANCE(adc), PathInternal);
 }
 
