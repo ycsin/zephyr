@@ -35,7 +35,6 @@ if MODEM_GSM_QUECTELL_GNSS_QLOC
 
 config MODEM_GSM_QUECTELL_GNSS_QLOC_TOK
 	string "QuecLocator token"
-	default "hHP0F4GoA604u3zn"
 	help
 	  QuecLocator token.
 
