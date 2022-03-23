@@ -1864,6 +1864,34 @@ unlock:
 	gsm_ppp_unlock(gsm);
 }
 
+char *gsm_ppp_get_imei(const struct device *dev)
+{
+	struct gsm_modem *gsm = dev->data;
+
+	return gsm->context.data_imei;
+}
+
+char *gsm_ppp_get_revision(const struct device *dev)
+{
+	struct gsm_modem *gsm = dev->data;
+
+	return gsm->context.data_revision;
+}
+
+char *gsm_ppp_get_manufacturer(const struct device *dev)
+{
+	struct gsm_modem *gsm = dev->data;
+
+	return gsm->context.data_manufacturer;
+}
+
+char *gsm_ppp_get_model(const struct device *dev)
+{
+	struct gsm_modem *gsm = dev->data;
+
+	return gsm->context.data_model;
+}
+
 void gsm_ppp_start(const struct device *dev)
 {
 	struct gsm_modem *gsm = dev->data;
@@ -2002,7 +2030,6 @@ static int gsm_init(const struct device *dev)
 		return r;
 	}
 
-#if IS_ENABLED(CONFIG_MODEM_GSM_INFO)
 	/* modem information storage */
 	gsm->context.data_manufacturer = gsm->minfo.mdm_manufacturer;
 	gsm->context.data_model = gsm->minfo.mdm_model;
@@ -2013,7 +2040,6 @@ static int gsm_init(const struct device *dev)
 	gsm->context.data_iccid = gsm->minfo.mdm_iccid;
 #endif	/* CONFIG_MODEM_SIM_NUMBERS */
 	gsm->context.data_rssi = &gsm->minfo.mdm_rssi;
-#endif	/* CONFIG_MODEM_SHELL */
 
 	gsm->context.is_automatic_oper = false;
 

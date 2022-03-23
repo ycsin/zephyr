@@ -75,4 +75,32 @@ const struct gsm_ppp_modem_info *gsm_ppp_modem_info(const struct device *dev);
  */
 int32_t gsm_ppp_get_local_time(const struct device *dev, struct tm *tm, int32_t *offset);
 
+/**
+ * @brief Get the modem's IMEI
+ *
+ * @retval Pointer to the buffer holding the IMEI
+ */
+char *gsm_ppp_get_imei(const struct device *dev);
+
+/**
+ * @brief Get the modem's firmware revision
+ *
+ * @retval Pointer to the buffer holding the firmware revision
+ */
+char *gsm_ppp_get_revision(const struct device *dev);
+
+/**
+ * @brief Get the modem's manufacturer
+ *
+ * @retval Pointer to the buffer holding the manufacturer
+ */
+char *gsm_ppp_get_manufacturer(const struct device *dev);
+
+/**
+ * @brief Get the modem's model
+ *
+ * @retval Pointer to the buffer holding the model
+ */
+char *gsm_ppp_get_model(const struct device *dev);
+
 #endif /* ZEPHYR_INCLUDE_DRIVERS_MODEM_GSM_PPP_H_ */
