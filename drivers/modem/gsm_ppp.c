@@ -505,7 +505,7 @@ static int gsm_query_cellinfo(struct gsm_modem *gsm)
  */
 MODEM_CMD_DEFINE(on_cmd_atcmdinfo_rssi_cesq)
 {
-	int rsrp, rscp, rxlev, error = 0;
+	int rsrp, rscp, rxlev;
 
 	rsrp = ATOI(argv[5], 0, "rsrp");
 	rscp = ATOI(argv[2], 0, "rscp");
@@ -521,7 +521,6 @@ MODEM_CMD_DEFINE(on_cmd_atcmdinfo_rssi_cesq)
 		gsm.minfo.mdm_rssi = -110 + (rxlev - 1);
 		LOG_INF("RSSI: %d", gsm.minfo.mdm_rssi);
 	} else {
-		error = -EINVAL;
 		gsm.minfo.mdm_rssi = GSM_RSSI_INVALID;
 		LOG_INF("RSRP/RSCP/RSSI not known");
 	}
@@ -532,8 +531,6 @@ MODEM_CMD_DEFINE(on_cmd_atcmdinfo_rssi_cesq)
 /* Handler: +CSQ: <signal_power>[0],<qual>[1] */
 MODEM_CMD_DEFINE(on_cmd_atcmdinfo_rssi_csq)
 {
-	int error = -EINVAL;
-
 	/* Expected response is "+CSQ: <signal_power>,<qual>" */
 	if (argc) {
 		int rssi = atoi(argv[0]);
@@ -546,8 +543,6 @@ MODEM_CMD_DEFINE(on_cmd_atcmdinfo_rssi_csq)
 
 		gsm.minfo.mdm_rssi = rssi;
 		LOG_INF("RSSI: %d", rssi);
-
-		error = 0;
 	}
 
 	return 0;
