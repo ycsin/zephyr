@@ -60,7 +60,10 @@ static int stm32_temp_sample_fetch(const struct device *dev, enum sensor_channel
 	k_mutex_lock(&data->mutex, K_FOREVER);
 
 	rc = adc_channel_setup(data->adc, &data->adc_cfg);
-	LOG_DBG("Setup AIN%u got %d", data->adc_cfg.channel_id, rc);
+	if (rc) {
+		LOG_DBG("Setup AIN%u got %d", data->adc_cfg.channel_id, rc);
+		return rc;
+	}
 
 	rc = adc_read(data->adc, sp);
 	if (rc == 0) {
