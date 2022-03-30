@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 G-Technologies Sdn. Bhd.
+ * Copyright (c) 2021-2022 G-Technologies Sdn. Bhd.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -73,5 +73,18 @@ enum sensor_attribute_kx022 {
  */
 int kx022_restore_default_trigger_setup(const struct device *dev,
 					const struct sensor_trigger *trig);
+
+#ifdef CONFIG_KX022_DIAGNOSTIC_MODE
+/**
+ * @brief Read the register value of KX022
+ *
+ * @param dev Pointer to the sensor device
+ * @param reg Address of register to read
+ * @param val Pointer to store the read value
+ *
+ * @return 0 if successful, negative errno code if failure.
+ */
+int kx022_read_register_value(const struct device *dev, uint8_t reg, uint8_t *val);
+#endif /* CONFIG_KX022_DIAGNOSTIC_MODE */
 
 #endif /* ZEPHYR_INCLUDE_DRIVERS_SENSOR_SHT4X_H_ */

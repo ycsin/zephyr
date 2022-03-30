@@ -1,6 +1,6 @@
 /* Kionix KX022 3-axis accelerometer driver
  *
- * Copyright (c) 2021 G-Technologies Sdn. Bhd.
+ * Copyright (c) 2021-2022 G-Technologies Sdn. Bhd.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -16,7 +16,7 @@ static void kx022_gpio_callback(const struct device *dev, struct gpio_callback *
 #if defined(CONFIG_KX022_TRIGGER_OWN_THREAD)
 	k_sem_give(&data->trig_sem);
 #elif defined(CONFIG_KX022_TRIGGER_GLOBAL_THREAD)
-	k_work_submit(&data->work);
+	(void)k_work_submit(&data->work);
 #endif
 }
 
@@ -44,8 +44,7 @@ static void kx022_handle_int(const struct device *dev)
 	uint8_t status, clr;
 	int ret;
 
-	ret = data->hw_tf->read_reg(dev, KX022_REG_INS2, &status);
-	if (ret < 0) {
+	if (data->hw_tf->read_reg(dev, KX022_REG_INS2, &status)) {
 		return;
 	}
 
@@ -58,8 +57,8 @@ static void kx022_handle_int(const struct device *dev)
 	}
 
 	ret = data->hw_tf->read_reg(dev, KX022_REG_INT_REL, &clr);
-	if (ret < 0) {
-		LOG_ERR("Failed clear int report flag");
+	if (ret) {
+		LOG_DBG("%s: Failed clear int report flag: %d", dev->name, ret);
 	}
 }
 
@@ -67,7 +66,7 @@ static void kx022_handle_int(const struct device *dev)
 static void kx022_thread(struct kx022_data *data)
 {
 	while (1) {
-		k_sem_take(&data->trig_sem, K_FOREVER);
+		(void)k_sem_take(&data->trig_sem, K_FOREVER);
 		kx022_handle_int(data->dev);
 	}
 }
@@ -96,29 +95,25 @@ int kx022_trigger_init(const struct device *dev)
 
 	/* setup data ready gpio interrupt */
 
-
-	if(!device_is_ready(cfg->gpio_int.port))
-	{
-		if(cfg->gpio_int.port){
-			LOG_ERR("%s: device %s is not ready", dev->name,
-						cfg->gpio_int.port->name);
+	if (!device_is_ready(cfg->gpio_int.port)) {
+		if (cfg->gpio_int.port) {
+			LOG_DBG("%s: device %s is not ready", dev->name, cfg->gpio_int.port->name);
 			return -ENODEV;
 		}
 	}
 
-	ret = gpio_pin_configure_dt(&cfg->gpio_int,GPIO_INPUT);
-	if (ret <0) {
-		LOG_ERR("Could not configure gpio");
-		return -EINVAL;
+	ret = gpio_pin_configure_dt(&cfg->gpio_int, GPIO_INPUT);
+	if (ret) {
+		LOG_DBG("%s: Failed to configure gpio %s: %d", dev->name, "pin", ret);
+		return ret;
 	}
 
-	gpio_init_callback(&data->gpio_cb,
-			   kx022_gpio_callback,
-			   BIT(cfg->gpio_int.pin));
+	gpio_init_callback(&data->gpio_cb, kx022_gpio_callback, BIT(cfg->gpio_int.pin));
 
-	if (gpio_add_callback(cfg->gpio_int.port, &data->gpio_cb) < 0) {
-		LOG_ERR("Could not set gpio callback.");
-		return -EIO;
+	ret = gpio_add_callback(cfg->gpio_int.port, &data->gpio_cb);
+	if (ret) {
+		LOG_DBG("%s: Failed to configure gpio %s: %d", dev->name, "callback", ret);
+		return ret;
 	}
 
 	/* Enable kx022 physical int 1 */
@@ -127,9 +122,9 @@ int kx022_trigger_init(const struct device *dev)
 	val |= (cfg->int_pin_1_response << KX022_INC1_IEL1_SHIFT);
 
 	ret = data->hw_tf->write_reg(dev, KX022_REG_INC1, val);
-	if (ret  < 0) {
-		LOG_ERR("Failed set physical int 1");
-		return -EIO;
+	if (ret) {
+		LOG_DBG("%s: Failed to write %s: %d", dev->name, "physical int 1", ret);
+		return ret;
 	}
 
 	data->dev = dev;
@@ -142,14 +137,12 @@ int kx022_trigger_init(const struct device *dev)
 #elif defined(CONFIG_KX022_TRIGGER_GLOBAL_THREAD)
 	data->work.handler = kx022_work_cb;
 #endif
-	ret = gpio_pin_interrupt_configure_dt(&cfg->gpio_int,
-					       GPIO_INT_DISABLE);
-	if (ret < 0) {
-		LOG_ERR("Failed INT_DISABLE");
-		return -EINVAL;
+	ret = gpio_pin_interrupt_configure_dt(&cfg->gpio_int, GPIO_INT_DISABLE);
+	if (ret) {
+		LOG_DBG("%s: Failed to configure gpio %s: %d", dev->name, "interrupt-DISABLE", ret);
 	}
 
-	return 0;
+	return ret;
 }
 
 int kx022_motion_setup(const struct device *dev, sensor_trigger_handler_t handler)
@@ -158,115 +151,123 @@ int kx022_motion_setup(const struct device *dev, sensor_trigger_handler_t handle
 	const struct kx022_config *cfg = dev->config;
 	int ret;
 
+	if (handler == NULL) {
+		LOG_WRN("%s: no handler", dev->name);
+	}
+
 	data->motion_handler = handler;
 
-	if (kx022_mode(dev, KX022_STANDY_MODE) < 0) {
-		return -EIO;
+	ret = kx022_standby_mode(dev);
+	if (ret) {
+		return ret;
 	}
 
 	/* Enable motion detection */
-	ret = data->hw_tf->update_reg(dev, KX022_REG_CNTL1, KX022_MASK_CNTL1_WUFE, KX022_CNTL1_WUFE);
-	if (ret < 0) {
-		LOG_ERR("Failed set motion detect");
-		return -EIO;
+	ret = data->hw_tf->update_reg(dev, KX022_REG_CNTL1, KX022_MASK_CNTL1_WUFE,
+				      KX022_CNTL1_WUFE);
+	if (ret) {
+		LOG_DBG("%s: Failed to %s: %d motion detect", dev->name, "physical int 1", ret);
+		goto exit;
 	}
 
 	ret = data->hw_tf->update_reg(dev, KX022_REG_CNTL3, KX022_MASK_CNTL3_OWUF, cfg->motion_odr);
-	if (ret < 0) {
-		LOG_ERR("Failed set motion odr");
-		return -EIO;
+	if (ret) {
+		LOG_DBG("%s: Failed to update %s: %d", dev->name, "motion odr", ret);
+		goto exit;
 	}
 
 	ret = data->hw_tf->write_reg(dev, KX022_REG_INC2, KX022_DEFAULT_INC2);
-	if (ret< 0) {
-		LOG_ERR("Failed set motion axis");
-		return -EIO;
+	if (ret) {
+		LOG_DBG("%s: Failed to write %s: %d", dev->name, "motion axis", ret);
+		goto exit;
 	}
 
 	ret = data->hw_tf->write_reg(dev, KX022_REG_WUFC, cfg->motion_detection_timer);
-	if (ret < 0) {
-		LOG_ERR("Failed set motion delay");
-		return -EIO;
+	if (ret) {
+		LOG_DBG("%s: Failed to write %s: %d", dev->name, "motion delay", ret);
+		goto exit;
 	}
 
 	ret = data->hw_tf->write_reg(dev, KX022_REG_ATH, cfg->motion_threshold);
-	if (ret < 0) {
-		LOG_ERR("Failed set motion ath");
-		return -EIO;
+	if (ret) {
+		LOG_DBG("%s: Failed to write %s: %d", dev->name, "motion ath", ret);
+		goto exit;
 	}
 
 	ret = data->hw_tf->update_reg(dev, KX022_REG_INC4, KX022_MASK_INC4_WUFI1,
-				    KX022_INC4_WUFI1_SET) ;
-	if (ret < 0) {
-		LOG_ERR("Failed set motion int1");
-		return -EIO;
+				      KX022_INC4_WUFI1_SET);
+	if (ret) {
+		LOG_DBG("%s: Failed to update %s: %d", dev->name, "motion int1", ret);
 	}
 
-	kx022_mode(dev, KX022_OPERATING_MODE);
-
-	return 0;
+exit:
+	(void)kx022_operating_mode(dev);
+	return ret;
 }
 
-int kx022_tilt_setup(const struct device *dev, sensor_trigger_handler_t handler)
+static int kx022_tilt_setup(const struct device *dev, sensor_trigger_handler_t handler)
 {
 	struct kx022_data *data = dev->data;
 	const struct kx022_config *cfg = dev->config;
 	int ret;
 
+	if (handler == NULL) {
+		LOG_WRN("%s: no handler", dev->name);
+	}
+
 	data->tilt_handler = handler;
 
-	if (kx022_mode(dev, KX022_STANDY_MODE) < 0) {
+	if (kx022_standby_mode(dev) < 0) {
 		return -EIO;
 	}
 
 	ret = data->hw_tf->update_reg(dev, KX022_REG_CNTL1, KX022_MASK_CNTL1_TPE,
-				    KX022_CNTL1_TPE_EN);
+				      KX022_CNTL1_TPE_EN);
 	if (ret < 0) {
-		LOG_ERR("Failed set tilt");
-		return -EIO;
+		LOG_DBG("%s: Failed to update %s: %d", dev->name, "tilt", ret);
+		goto exit;
 	}
 
 	ret = data->hw_tf->write_reg(dev, KX022_REG_CNTL2, KX022_CNTL_TILT_ALL_EN);
 	if (ret < 0) {
-		LOG_ERR("Failed set tilt axis");
-		return -EIO;
+		LOG_DBG("%s: Failed to write %s: %d", dev->name, "tilt axis", ret);
+		goto exit;
 	}
 
-	ret =  data->hw_tf->update_reg(dev, KX022_REG_CNTL3, KX022_MASK_CNTL3_OTP,
-				    (cfg->tilt_odr << KX022_CNTL3_OTP_SHIFT));
-	if ( ret < 0) {
-		LOG_ERR("Failed set tilt odr");
-		return -EIO;
+	ret = data->hw_tf->update_reg(dev, KX022_REG_CNTL3, KX022_MASK_CNTL3_OTP,
+				      (cfg->tilt_odr << KX022_CNTL3_OTP_SHIFT));
+	if (ret < 0) {
+		LOG_DBG("%s: Failed to update %s: %d", dev->name, "tilt odr", ret);
+		goto exit;
 	}
 
 	ret = data->hw_tf->write_reg(dev, KX022_REG_TILT_TIMER, cfg->tilt_timer);
 	if (ret < 0) {
-		LOG_ERR("Failed set tilt timer");
-		return -EIO;
+		LOG_DBG("%s: Failed to write %s: %d", dev->name, "tilt timer", ret);
+		goto exit;
 	}
 
 	ret = data->hw_tf->write_reg(dev, KX022_REG_TILT_ANGLE_LL, cfg->tilt_angle_ll);
-	if (ret  < 0) {
-		LOG_ERR("Failed set tilt angle ll");
-		return -EIO;
+	if (ret < 0) {
+		LOG_DBG("%s: Failed to write %s: %d", dev->name, "tilt angle ll", ret);
+		goto exit;
 	}
 
 	ret = data->hw_tf->write_reg(dev, KX022_REG_TILT_ANGLE_HL, cfg->tilt_angle_hl);
 	if (ret < 0) {
-		LOG_ERR("Failed set tilt angle hl");
-		return -EIO;
+		LOG_DBG("%s: Failed to write %s: %d", dev->name, "tilt angle hl", ret);
+		goto exit;
 	}
 
 	ret = data->hw_tf->update_reg(dev, KX022_REG_INC4, KX022_MASK_INC6_TPI2,
-				    KX022_INC4_TPI1_SET);
+				      KX022_INC4_TPI1_SET);
 	if (ret < 0) {
-		LOG_ERR("Failed set tilt int1");
-		return -EIO;
+		LOG_DBG("%s: Failed to update %s: %d", dev->name, "tilt int1", ret);
 	}
 
-	kx022_mode(dev, KX022_OPERATING_MODE);
-
-	return 0;
+exit:
+	(void)kx022_operating_mode(dev);
+	return ret;
 }
 
 int kx022_trigger_set(const struct device *dev, const struct sensor_trigger *trig,
@@ -277,7 +278,11 @@ int kx022_trigger_set(const struct device *dev, const struct sensor_trigger *tri
 	const struct kx022_config *cfg = dev->config;
 	uint8_t buf[6];
 
-	switch ((enum sensor_trigger_type_kx022)trig->type) {
+	if (handler == NULL) {
+		LOG_WRN("%s: no handler", dev->name);
+	}
+
+	switch ((int)trig->type) {
 	case SENSOR_TRIG_KX022_MOTION:
 		ret = kx022_motion_setup(dev, handler);
 		break;
@@ -294,117 +299,97 @@ int kx022_trigger_set(const struct device *dev, const struct sensor_trigger *tri
 		return ret;
 	}
 
-	__ASSERT_NO_MSG(trig->type == SENSOR_TRIG_DELTA);
-
-	// if (gpio_pin_interrupt_configure(data->gpio, cfg->irq_pin, GPIO_INT_DISABLE)) {
-	if (gpio_pin_interrupt_configure_dt(&cfg->gpio_int, GPIO_INT_DISABLE)) {
-		LOG_ERR("Failed INT_DISABLE");
+	ret = gpio_pin_interrupt_configure_dt(&cfg->gpio_int, GPIO_INT_DISABLE);
+	if (ret) {
+		LOG_DBG("%s: Failed to configure gpio %s: %d", dev->name, "interrupt-DISABLE", ret);
 		return -EINVAL;
-	}
-
-	if (handler == NULL) {
-		LOG_WRN("kx022: no handler");
 	}
 
 	/* re-trigger lost interrupt */
 	ret = data->hw_tf->read_data(dev, KX022_REG_XOUT_L, buf, sizeof(buf));
-
 	if (ret < 0) {
-		LOG_ERR("status reading error");
+		LOG_DBG("%s: Failed to read %s: %d", dev->name, "status", ret);
 		return -EIO;
 	}
 
-	if (gpio_pin_interrupt_configure_dt(&cfg->gpio_int, GPIO_INT_EDGE_TO_ACTIVE)) {
-		LOG_ERR("Failed INT_EDGE_TO_ACTIVE");
+	ret = gpio_pin_interrupt_configure_dt(&cfg->gpio_int, GPIO_INT_EDGE_TO_ACTIVE);
+	if (ret) {
+		LOG_DBG("%s: Failed to configure gpio %s: %d", dev->name,
+			"interrupt-EDGE_TO_ACTIVE", ret);
 		return -EINVAL;
 	}
 
 	return 0;
 }
 
-int kx022_restore_default_motion_setup(const struct device *dev)
+static int kx022_restore_default_motion_setup(const struct device *dev)
 {
 	struct kx022_data *data = dev->data;
 	int ret;
 
-	if (kx022_mode(dev, KX022_STANDY_MODE) < 0) {
+	if (kx022_standby_mode(dev) < 0) {
 		return -EIO;
 	}
 
 	/* reset motion detect function*/
 	ret = data->hw_tf->update_reg(dev, KX022_REG_CNTL1, KX022_MASK_CNTL1_WUFE,
-				    KX022_CNTL1_WUFE_RESET);
-
-	if  (ret < 0) {
-		LOG_ERR("Failed to disable motion detect");
-		return -EIO;
+				      KX022_CNTL1_WUFE_RESET);
+	if (ret < 0) {
+		LOG_DBG("%s: Failed to disable motion detect", dev->name);
+		goto exit;
 	}
 
 	/* reset motion detect int 1 report */
 	ret = data->hw_tf->update_reg(dev, KX022_REG_INC4, KX022_MASK_INC4_WUFI1,
-				    KX022_INC4_WUFI1_RESET);
-
+				      KX022_INC4_WUFI1_RESET);
 	if (ret < 0) {
-		LOG_DBG("Failed to set KX022 int1 report");
-		return -EIO;
+		LOG_DBG("%s: Failed to set KX022 int1 report", dev->name);
+		goto exit;
 	}
 
-	kx022_mode(dev, KX022_OPERATING_MODE);
-
-	return 0;
+exit:
+	(void)kx022_operating_mode(dev);
+	return ret;
 }
 
-int kx022_restore_default_tilt_setup(const struct device *dev)
+static int kx022_restore_default_tilt_setup(const struct device *dev)
 {
 	struct kx022_data *data = dev->data;
 	int ret;
-	if (kx022_mode(dev, KX022_STANDY_MODE) < 0) {
+
+	if (kx022_standby_mode(dev) < 0) {
 		return -EIO;
 	}
 
 	/* reset the tilt function */
 	ret = data->hw_tf->update_reg(dev, KX022_REG_CNTL1, KX022_MASK_CNTL1_TPE,
-				    KX022_CNTL1_TPE_RESET);
-
-	if (data->hw_tf->update_reg(dev, KX022_REG_CNTL1, KX022_MASK_CNTL1_TPE,
-				    KX022_CNTL1_TPE_RESET) < 0) {
-		LOG_ERR("Failed to disable tilt");
-		return -EIO;
+				      KX022_CNTL1_TPE_RESET);
+	if (ret < 0) {
+		LOG_DBG("%s: Failed to %s", dev->name, "disable tilt");
+		goto exit;
 	}
 
 	/* reset tilt int 1 report */
 	ret = data->hw_tf->update_reg(dev, KX022_REG_INC4, KX022_MASK_INC4_TPI1,
-				    KX022_INC4_TPI1_RESET);
+				      KX022_INC4_TPI1_RESET);
 	if (ret < 0) {
-		LOG_DBG("Failed to set KX022 tilt int1 report");
-		return -EIO;
+		LOG_DBG("%s: Failed to %s", dev->name, "set tilt int1 report");
+		goto exit;
 	}
 
-	kx022_mode(dev, KX022_OPERATING_MODE);
-
-	return 0;
+exit:
+	(void)kx022_operating_mode(dev);
+	return ret;
 }
 
 int kx022_restore_default_trigger_setup(const struct device *dev, const struct sensor_trigger *trig)
 {
-	int ret;
-
-	switch ((enum sensor_trigger_type_kx022)trig->type) {
+	switch ((int)trig->type) {
 	case SENSOR_TRIG_KX022_TILT:
-		ret = kx022_restore_default_tilt_setup(dev);
-		break;
-
+		return kx022_restore_default_tilt_setup(dev);
 	case SENSOR_TRIG_KX022_MOTION:
-		ret = kx022_restore_default_motion_setup(dev);
-		break;
-
+		return kx022_restore_default_motion_setup(dev);
 	default:
 		return -ENOTSUP;
 	}
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	return 0;
 }

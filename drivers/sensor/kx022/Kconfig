@@ -1,5 +1,5 @@
 # Kionix KX022 3-axis accelerometer driver
-# Copyright(c) 2021 G-Technologies Sdn. Bhd.
+# Copyright(c) 2021-2022 G-Technologies Sdn. Bhd.
 # SPDX-License-Identifier: Apache-2.0
 
 menuconfig KX022

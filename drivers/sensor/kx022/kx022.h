@@ -1,6 +1,6 @@
 /* Kionix KX022 3-axis accelerometer driver
  *
- * Copyright (c) 2021 G-Technologies Sdn. Bhd.
+ * Copyright (c) 2021-2022 G-Technologies Sdn. Bhd.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -8,6 +8,7 @@
 #ifndef ZEPHYR_DRIVERS_SENSOR_KX022_KX022_H_
 #define ZEPHYR_DRIVERS_SENSOR_KX022_KX022_H_
 
+#include <zephyr.h>
 #include <device.h>
 #include <drivers/gpio.h>
 #include <drivers/i2c.h>
@@ -345,9 +346,6 @@ struct kx022_config {
 	uint8_t tilt_angle_ll;
 	uint8_t tilt_angle_hl;
 #ifdef CONFIG_KX022_TRIGGER
-	// const char *irq_port;
-	// gpio_pin_t irq_pin;
-	// gpio_dt_flags_t irq_flags;
 	struct gpio_dt_spec gpio_int;
 	uint8_t int_pin;
 #endif
@@ -396,14 +394,13 @@ struct kx022_data {
 };
 
 int kx022_i2c_init(const struct device *dev);
+int kx022_operating_mode(const struct device *dev);
+int kx022_standby_mode(const struct device *dev);
 
 #ifdef CONFIG_KX022_TRIGGER
 int kx022_trigger_set(const struct device *dev, const struct sensor_trigger *trig,
 		      sensor_trigger_handler_t handler);
-
 int kx022_trigger_init(const struct device *dev);
-int kx022_mode(const struct device *dev, bool mode);
-
-#endif
+#endif /* CONFIG_KX022_TRIGGER */
 
 #endif /* ZEPHYR_DRIVERS_SENSOR_KX022_KX022_H_ */

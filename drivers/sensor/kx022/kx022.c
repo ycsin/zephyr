@@ -1,6 +1,6 @@
 /* Kionix KX022 3-axis accelerometer driver
  *
- * Copyright (c) 2021 G-Technologies Sdn. Bhd.
+ * Copyright (c) 2021-2022 G-Technologies Sdn. Bhd.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -9,6 +9,10 @@
 
 #include "kx022.h"
 
+#if DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT) == 0
+#error "KX022 driver enabled without any devices"
+#endif
+
 LOG_MODULE_REGISTER(KX022, CONFIG_SENSOR_LOG_LEVEL);
 
 /************************************************************
@@ -16,7 +20,7 @@ LOG_MODULE_REGISTER(KX022, CONFIG_SENSOR_LOG_LEVEL);
  * input: 0 - standby
  *        1 - operating
  * **********************************************************/
-int kx022_mode(const struct device *dev, bool mode)
+static int kx022_mode(const struct device *dev, bool mode)
 {
 	struct kx022_data *data = dev->data;
 	uint8_t chip_id;
@@ -24,33 +28,41 @@ int kx022_mode(const struct device *dev, bool mode)
 	int ret;
 
 	if (mode == KX022_STANDY_MODE) {
-
 		ret = data->hw_tf->read_reg(dev, KX022_REG_WHO_AM_I, &chip_id);
-		if (ret < 0) {
-			LOG_DBG("Failed reading chip id");
-			return -EIO;
+		if (ret) {
+			LOG_DBG("%s: Failed to read %s: %d", dev->name, "chip id", ret);
+			return ret;
 		}
 
 		if (chip_id != KX022_VAL_WHO_AM_I) {
-			LOG_DBG("Invalid chip id 0x%x", chip_id);
+			LOG_DBG("%s: Invalid chip id 0x%x", dev->name, chip_id);
 			return -EIO;
 		}
 
 		ret = data->hw_tf->update_reg(dev, KX022_REG_CNTL1, KX022_MASK_CNTL1_PC1, val);
-		if (ret < 0) {
-			LOG_DBG("Failed to set KX022 standby");
-			return -EIO;
+		if (ret) {
+			LOG_DBG("%s: Failed to update %s: %d", dev->name, "standby", ret);
 		}
-	} else
-	{
-		ret = data->hw_tf->update_reg(dev, KX022_REG_CNTL1, KX022_MASK_CNTL1_PC1, val);
-			if (ret < 0) {
-				LOG_DBG("Failed to set KX022 operating mode");
-				return -EIO;
-			}
+
+		return ret;
 	}
 
-	return 0;
+	ret = data->hw_tf->update_reg(dev, KX022_REG_CNTL1, KX022_MASK_CNTL1_PC1, val);
+	if (ret) {
+		LOG_DBG("%s: Failed to update %s: %d", dev->name, "operating mode", ret);
+	}
+
+	return ret;
+}
+
+int kx022_operating_mode(const struct device *dev)
+{
+	return kx022_mode(dev, KX022_OPERATING_MODE);
+}
+
+int kx022_standby_mode(const struct device *dev)
+{
+	return kx022_mode(dev, KX022_STANDY_MODE);
 }
 
 #ifdef CONFIG_KX022_ODR_RUNTIME
@@ -63,14 +75,12 @@ static int kx022_accel_odr_set(const struct device *dev, uint16_t freq)
 		return -EINVAL;
 	}
 
-	ret = data->hw_tf->update_reg(dev, KX022_REG_ODCNTL, KX022_MASK_ODCNTL_OSA,
-				      (uint8_t)freq);
-	if (ret < 0) {
-		LOG_DBG("Failed to set kx022 %s","odr");
-		return -EIO;
+	ret = data->hw_tf->update_reg(dev, KX022_REG_ODCNTL, KX022_MASK_ODCNTL_OSA, (uint8_t)freq);
+	if (ret) {
+		LOG_DBG("%s: Failed to update %s: %d", dev->name, "ODR", ret);
 	}
 
-	return 0;
+	return ret;
 }
 #endif /* defined(KX022_ODR_RUNTIME) */
 
@@ -85,10 +95,10 @@ static int kx022_accel_range_set(const struct device *dev, int32_t range)
 	}
 
 	ret = data->hw_tf->update_reg(dev, KX022_REG_CNTL1, KX022_MASK_CNTL1_GSEL,
-				    ((uint8_t)range << KX022_CNTL1_GSEL_SHIFT));
-	if (ret < 0) {
-		LOG_DBG("Failed to set kx022 %s","full-scale");
-		return -EIO;
+				      ((uint8_t)range << KX022_CNTL1_GSEL_SHIFT));
+	if (ret) {
+		LOG_DBG("%s: Failed to update %s: %d", dev->name, "full-scale range", ret);
+		return ret;
 	}
 
 	if (range == KX022_FS_2G) {
@@ -112,13 +122,12 @@ static int kx022_accel_res_set(const struct device *dev, uint16_t res)
 	}
 
 	ret = data->hw_tf->update_reg(dev, KX022_REG_CNTL1, KX022_MASK_CNTL1_RES,
-				    ((uint8_t)res << KX022_CNTL1_RES_SHIFT));
-	if (ret < 0) {
-		LOG_DBG("Failed to set KX022 %s","res");
-		return -EIO;
+				      ((uint8_t)res << KX022_CNTL1_RES_SHIFT));
+	if (ret) {
+		LOG_DBG("%s: Failed to update %s: %d", dev->name, "RES", ret);
 	}
 
-	return 0;
+	return ret;
 }
 #endif /* KX022_RES_RUNTIME */
 
@@ -133,12 +142,11 @@ static int kx022_accel_motion_detection_timer_set(const struct device *dev, uint
 	}
 
 	ret = data->hw_tf->write_reg(dev, KX022_REG_WUFC, (uint8_t)delay);
-	if (ret < 0) {
-		LOG_DBG("Failed to set KX022 %s","wufc");
-		return -EIO;
+	if (ret) {
+		LOG_DBG("%s: Failed to write %s: %d", dev->name, "WUFC", ret);
 	}
 
-	return 0;
+	return ret;
 }
 #endif /* KX022_MOTION_DETECTION_TIMER_RUNTIME */
 
@@ -153,12 +161,11 @@ static int kx022_accel_tilt_timer_set(const struct device *dev, uint16_t delay)
 	}
 
 	ret = data->hw_tf->write_reg(dev, KX022_REG_TILT_TIMER, (uint8_t)delay);
-	if (ret < 0) {
-		LOG_DBG("Failed to set KX022 %s","tilt timer");
-		return -EIO;
+	if (ret) {
+		LOG_DBG("%s: Failed to write %s: %d", dev->name, "tilt timer", ret);
 	}
 
-	return 0;
+	return ret;
 }
 #endif /* KX022_TILT_TIMER_RUNTIME */
 
@@ -173,12 +180,11 @@ static int kx022_accel_tilt_angle_set(const struct device *dev, uint16_t angle)
 	}
 
 	ret = data->hw_tf->write_reg(dev, KX022_REG_TILT_ANGLE_LL, (uint8_t)angle);
-	if ( < 0) {
-		LOG_DBG("Failed to set KX022 %s", "tilt angle ll");
-		return -EIO;
+	if (ret) {
+		LOG_DBG("%s: Failed to write %s: %d", dev->name, "tilt angle ll", ret);
 	}
 
-	return 0;
+	return ret;
 }
 #endif /* CONFIG_KX022_TILT_ANGLE_LL_RUNTIME */
 
@@ -192,65 +198,56 @@ static int kx022_accel_motion_detect_threshold_set(const struct device *dev, uin
 		return -EINVAL;
 	}
 
-	ret = data->hw_tf->write_reg(dev, KX022_REG_ATH, (uint8_t)ath)
-	if (ret < 0) {
-		LOG_DBG("Failed to set KX022 %s","ath");
-		return -EIO;
+	ret = data->hw_tf->write_reg(dev, KX022_REG_ATH, (uint8_t)ath) if (ret)
+	{
+		LOG_DBG("%s: Failed to write %s: %d", dev->name, "ATH", ret);
 	}
 
-	return 0;
+	return ret;
 }
 #endif /* CONFIG_KX022_MOTION_DETECT_THRESHOLD_RUNTIME */
 
 static int kx022_accel_config(const struct device *dev, enum sensor_channel chan,
 			      enum sensor_attribute attr, const struct sensor_value *val)
 {
-	if (attr < SENSOR_ATTR_PRIV_START) {
-		switch (attr) {
+	switch ((int)attr) {
 #ifdef CONFIG_KX022_FS_RUNTIME
-		case SENSOR_ATTR_FULL_SCALE:
-			return kx022_accel_range_set(dev, val->val1);
+	case SENSOR_ATTR_FULL_SCALE:
+		return kx022_accel_range_set(dev, val->val1);
 #endif /* CONFIG_KX022_FS_RUNTIME */
 
-		default:
-			LOG_DBG("Accel attribute not supported.");
-			return -ENOTSUP;
-		}
-	} else {
-		switch ((enum sensor_attribute_kx022)attr) {
 #ifdef CONFIG_KX022_ODR_RUNTIME
-		case SENSOR_ATTR_KX022_ODR:
-			return kx022_accel_odr_set(dev, val->val1);
+	case SENSOR_ATTR_KX022_ODR:
+		return kx022_accel_odr_set(dev, val->val1);
 #endif /* CONFIG_KX022_ODR_RUNTIME */
 
 #ifdef CONFIG_KX022_RES_RUNTIME
-		case SENSOR_ATTR_KX022_RESOLUTION:
-			return kx022_accel_res_set(dev, val->val1);
+	case SENSOR_ATTR_KX022_RESOLUTION:
+		return kx022_accel_res_set(dev, val->val1);
 #endif /* CONFIG_KX022_RES_RUNTIME */
 
 #ifdef CONFIG_KX022_MOTION_DETECTION_TIMER_RUNTIME
-		case SENSOR_ATTR_KX022_MOTION_DETECTION_TIMER:
-			return kx022_accel_motion_detection_timer_set(dev, val->val1);
+	case SENSOR_ATTR_KX022_MOTION_DETECTION_TIMER:
+		return kx022_accel_motion_detection_timer_set(dev, val->val1);
 #endif /* CONFIG_KX022_MOTION_DETECTION_TIMER_RUNTIME */
 
 #ifdef CONFIG_KX022_MOTION_DETECT_THRESHOLD_RUNTIME
-		case SENSOR_ATTR_KX022_MOTION_DETECT_THRESHOLD:
-			return kx022_accel_motion_detect_threshold_set(dev, val->val1);
+	case SENSOR_ATTR_KX022_MOTION_DETECT_THRESHOLD:
+		return kx022_accel_motion_detect_threshold_set(dev, val->val1);
 #endif /* CONFIG_KX022_MOTION_DETECT_THRESHOLD_RUNTIME */
 
 #ifdef CONFIG_KX022_TILT_TIMER_RUNTIME
-		case SENSOR_ATTR_KX022_TILT_TIMER:
-			return kx022_accel_tilt_timer_set(dev, val->val1);
+	case SENSOR_ATTR_KX022_TILT_TIMER:
+		return kx022_accel_tilt_timer_set(dev, val->val1);
 #endif /* CONFIG_KX022_TILT_TIMER_RUNTIME */
 
 #ifdef CONFIG_KX022_TILT_ANGLE_LL_RUNTIME
-		case SENSOR_ATTR_KX022_TILT_ANGLE_LL:
-			return kx022_accel_tilt_angle_set(dev, val->val1);
+	case SENSOR_ATTR_KX022_TILT_ANGLE_LL:
+		return kx022_accel_tilt_angle_set(dev, val->val1);
 #endif /* CONFIG_KX022_TILT_ANGLE_LL_RUNTIME */
-		default:
-			LOG_DBG("Accel attribute not supported.");
-			return -ENOTSUP;
-		}
+	default:
+		LOG_DBG("attribute %d not supported.", attr);
+		return -ENOTSUP;
 	}
 
 	return 0;
@@ -261,39 +258,36 @@ static int kx022_attr_set(const struct device *dev, enum sensor_channel chan,
 {
 	int ret;
 
-	if (kx022_mode(dev, KX022_STANDY_MODE) < 0) {
-		return -EIO;
+	ret = kx022_standby_mode(dev);
+	if (ret) {
+		return ret;
 	}
 
-	switch ((enum sensor_channel_kx022)chan) {
+	switch ((int)chan) {
 	case SENSOR_CHAN_KX022_CFG:
 		ret = kx022_accel_config(dev, chan, attr, val);
 		break;
 	default:
-		LOG_WRN("Attr_set not supported on this channel.");
+		LOG_WRN("%d channel not supported.", chan);
 		ret = -ENOTSUP;
 	}
 
-	kx022_mode(dev, KX022_OPERATING_MODE);
-
+	(void)kx022_operating_mode(dev);
 	return ret;
 }
 
-/* khshi dignostic mode */
 #ifdef CONFIG_KX022_DIAGNOSTIC_MODE
-int kx022_read_register_value(const struct device *dev, enum sensor_register_kx022 reg,
-			      uint8_t *val)
+int kx022_read_register_value(const struct device *dev, uint8_t reg, uint8_t *val)
 {
 	struct kx022_data *data = dev->data;
 	int ret;
 
 	ret = data->hw_tf->read_reg(dev, reg, &(*val));
-	if (ret < 0) {
-		LOG_DBG("Failed to read register %X", reg);
-		return -EIO;
+	if (ret) {
+		LOG_DBG("%s: Failed to read register 0x%X: %d", dev->name, reg, ret);
 	}
 
-	return 0;
+	return ret;
 }
 #endif /*CONFIG_KX022_DIAGNOSTIC_MODE*/
 
@@ -305,9 +299,9 @@ static int kx022_sample_fetch_accel(const struct device *dev, uint8_t reg_addr)
 	int ret;
 
 	ret = data->hw_tf->read_data(dev, reg_addr, buf, sizeof(buf));
-	if (ret < 0) {
-		LOG_DBG("Failed to read sample");
-		return -EIO;
+	if (ret) {
+		LOG_DBG("%s: Failed to read %s: %d", dev->name, "sample", ret);
+		return ret;
 	}
 
 	val = (int16_t)((uint16_t)(buf[0]) | ((uint16_t)(buf[1]) << 8));
@@ -323,7 +317,7 @@ static int kx022_sample_fetch_accel(const struct device *dev, uint8_t reg_addr)
 		data->sample_z = val;
 		break;
 	default:
-		LOG_ERR("Invalid register address");
+		LOG_DBG("%s: Invalid register address", dev->name);
 		return -EIO;
 	}
 
@@ -341,10 +335,11 @@ static int kx022_sample_fetch_accel_xyz(const struct device *dev)
 	int ret;
 
 	ret = data->hw_tf->read_data(dev, KX022_REG_XOUT_L, buf, sizeof(buf));
-	if (ret < 0) {
-		LOG_DBG("Failed to read sample");
-		return -EIO;
+	if (ret) {
+		LOG_DBG("%s: Failed to read %s: %d", dev->name, "sample", ret);
+		return ret;
 	}
+
 	data->sample_x = (int16_t)sys_get_le16(&buf[0]);
 	data->sample_y = (int16_t)sys_get_le16(&buf[2]);
 	data->sample_z = (int16_t)sys_get_le16(&buf[4]);
@@ -355,55 +350,64 @@ static int kx022_sample_fetch_accel_xyz(const struct device *dev)
 static int kx022_tilt_pos(const struct device *dev)
 {
 	struct kx022_data *data = dev->data;
+	int ret;
 
-	data->hw_tf->read_reg(dev, KX022_REG_TSCP, &data->sample_tscp);
-	data->hw_tf->read_reg(dev, KX022_REG_TSPP, &data->sample_tspp);
+	ret = data->hw_tf->read_reg(dev, KX022_REG_TSCP, &data->sample_tscp);
+	if (ret) {
+		return ret;
+	}
 
-	return 0;
+	return data->hw_tf->read_reg(dev, KX022_REG_TSPP, &data->sample_tspp);
 }
 
 static int kx022_motion_direction(const struct device *dev)
 {
 	struct kx022_data *data = dev->data;
 
-	data->hw_tf->read_reg(dev, KX022_REG_INS3, &data->sample_motion_dir);
-
-	return 0;
+	return data->hw_tf->read_reg(dev, KX022_REG_INS3, &data->sample_motion_dir);
 }
 
 static int kx022_sample_fetch(const struct device *dev, enum sensor_channel chan)
 {
-	// if (chan < SENSOR_CHAN_PRIV_START) {
-		switch ((int)chan)
-		{
-			case SENSOR_CHAN_ACCEL_X:
-				kx022_sample_fetch_accel_x(dev);
-				break;
-			case SENSOR_CHAN_ACCEL_Y:
-				kx022_sample_fetch_accel_y(dev);
-				break;
-			case SENSOR_CHAN_ACCEL_Z:
-				kx022_sample_fetch_accel_z(dev);
-				break;
-			case SENSOR_CHAN_ACCEL_XYZ:
-				kx022_sample_fetch_accel_xyz(dev);
-				break;
-			case SENSOR_CHAN_ALL:
-				kx022_sample_fetch_accel_xyz(dev);
-				kx022_tilt_pos(dev);
-				kx022_motion_direction(dev);
-				break;
-			case SENSOR_CHAN_KX022_MOTION:
-				kx022_motion_direction(dev);
-				break;
-			case SENSOR_CHAN_KX022_TILT:
-				kx022_tilt_pos(dev);
-				break;
-			default:
-				return -ENOTSUP;
+	int ret = 0;
+
+	switch ((int)chan) {
+	case SENSOR_CHAN_ACCEL_X:
+		ret = kx022_sample_fetch_accel_x(dev);
+		break;
+	case SENSOR_CHAN_ACCEL_Y:
+		ret = kx022_sample_fetch_accel_y(dev);
+		break;
+	case SENSOR_CHAN_ACCEL_Z:
+		ret = kx022_sample_fetch_accel_z(dev);
+		break;
+	case SENSOR_CHAN_ACCEL_XYZ:
+		ret = kx022_sample_fetch_accel_xyz(dev);
+		break;
+	case SENSOR_CHAN_ALL:
+		ret = kx022_sample_fetch_accel_xyz(dev);
+		if (ret) {
+			return ret;
 		}
 
-	return 0;
+		ret = kx022_tilt_pos(dev);
+		if (ret) {
+			return ret;
+		}
+
+		ret = kx022_motion_direction(dev);
+		break;
+	case SENSOR_CHAN_KX022_MOTION:
+		ret = kx022_motion_direction(dev);
+		break;
+	case SENSOR_CHAN_KX022_TILT:
+		ret = kx022_tilt_pos(dev);
+		break;
+	default:
+		return -ENOTSUP;
+	}
+
+	return ret;
 }
 
 static inline void kx022_convert(struct sensor_value *val, int raw_val, float gain)
@@ -428,46 +432,38 @@ static inline void kx022_motion_dir_get(struct sensor_value *val, int raw_val)
 static inline int kx022_get_channel(enum sensor_channel chan, struct sensor_value *val,
 				    struct kx022_data *data, float gain)
 {
-	if (chan < SENSOR_CHAN_PRIV_START) {
-		switch (chan) {
-		case SENSOR_CHAN_ACCEL_X:
-			kx022_convert(val, data->sample_x, gain);
-			break;
-		case SENSOR_CHAN_ACCEL_Y:
-			kx022_convert(val, data->sample_y, gain);
-			break;
-		case SENSOR_CHAN_ACCEL_Z:
-			kx022_convert(val, data->sample_z, gain);
-			break;
-		case SENSOR_CHAN_ACCEL_XYZ:
-			kx022_convert(val, data->sample_x, gain);
-			kx022_convert(val + 1, data->sample_y, gain);
-			kx022_convert(val + 2, data->sample_z, gain);
-			break;
-		case SENSOR_CHAN_ALL:
-			kx022_convert(val, data->sample_x, gain);
-			kx022_convert(val + 1, data->sample_y, gain);
-			kx022_convert(val + 2, data->sample_z, gain);
-			kx022_tilt_pos_get(val + 3, data->sample_tspp);
-			kx022_tilt_pos_get(val + 4, data->sample_tscp);
-			kx022_motion_dir_get(val + 5, data->sample_motion_dir);
-			break;
-
-		default:
-			return -ENOTSUP;
-		}
-	} else {
-		switch ((enum sensor_channel_kx022)chan) {
-		case SENSOR_CHAN_KX022_MOTION:
-			kx022_motion_dir_get(val, data->sample_motion_dir);
-			break;
-		case SENSOR_CHAN_KX022_TILT:
-			kx022_tilt_pos_get(val, data->sample_tspp);
-			kx022_tilt_pos_get(val + 1, data->sample_tscp);
-			break;
-		default:
-			return -ENOTSUP;
-		}
+	switch ((int)chan) {
+	case SENSOR_CHAN_ACCEL_X:
+		kx022_convert(val, data->sample_x, gain);
+		break;
+	case SENSOR_CHAN_ACCEL_Y:
+		kx022_convert(val, data->sample_y, gain);
+		break;
+	case SENSOR_CHAN_ACCEL_Z:
+		kx022_convert(val, data->sample_z, gain);
+		break;
+	case SENSOR_CHAN_ACCEL_XYZ:
+		kx022_convert(val, data->sample_x, gain);
+		kx022_convert(val + 1, data->sample_y, gain);
+		kx022_convert(val + 2, data->sample_z, gain);
+		break;
+	case SENSOR_CHAN_ALL:
+		kx022_convert(val, data->sample_x, gain);
+		kx022_convert(val + 1, data->sample_y, gain);
+		kx022_convert(val + 2, data->sample_z, gain);
+		kx022_tilt_pos_get(val + 3, data->sample_tspp);
+		kx022_tilt_pos_get(val + 4, data->sample_tscp);
+		kx022_motion_dir_get(val + 5, data->sample_motion_dir);
+		break;
+	case SENSOR_CHAN_KX022_TILT:
+		kx022_tilt_pos_get(val, data->sample_tspp);
+		kx022_tilt_pos_get(val + 1, data->sample_tscp);
+		break;
+	case SENSOR_CHAN_KX022_MOTION:
+		kx022_motion_dir_get(val, data->sample_motion_dir);
+		break;
+	default:
+		return -ENOTSUP;
 	}
 
 	return 0;
@@ -498,37 +494,37 @@ static int kx022_init(const struct device *dev)
 	uint8_t val;
 	int ret;
 
-	if (cfg->bus_init(dev) < 0) {
-		return -EINVAL;
+	ret = cfg->bus_init(dev);
+	if (ret) {
+		return ret;
 	}
 
 	ret = data->hw_tf->read_reg(dev, KX022_REG_WHO_AM_I, &chip_id);
-	if (ret < 0) {
-		LOG_DBG("Failed reading chip id");
-		return -EIO;
+	if (ret) {
+		LOG_DBG("%s: Failed to read %s: %d", dev->name, "chip id", ret);
+		return ret;
 	}
 
 	if (chip_id != KX022_VAL_WHO_AM_I) {
-		LOG_DBG("Invalid chip id 0x%x", chip_id);
+		LOG_DBG("%s: Invalid chip id 0x%x", dev->name, chip_id);
 		return -EIO;
 	}
-
 
 	/* s/w reset the sensor */
 	ret = data->hw_tf->update_reg(dev, KX022_REG_CNTL2, KX022_MASK_CNTL2_SRST,
-				    KX022_MASK_CNTL2_SRST);
-	if (ret < 0) {
-		LOG_DBG("s/w reset fail");
-		return -EIO;
+				      KX022_MASK_CNTL2_SRST);
+	if (ret) {
+		LOG_DBG("%s: s/w reset fail: %d", dev->name, ret);
+		return ret;
 	}
 
 	/* Arbitrary delay for the device to be ready after reset */
-	k_msleep(KX022_RESET_DELAY);
+	(void)k_msleep(KX022_RESET_DELAY);
 
 	ret = data->hw_tf->read_reg(dev, KX022_REG_WHO_AM_I, &chip_id);
-	if (ret < 0) {
-		LOG_DBG("Failed reading chip id");
-		return -EIO;
+	if (ret) {
+		LOG_DBG("%s: Failed to read %s: %d", dev->name, "chip id", ret);
+		return ret;
 	}
 
 	/* Make sure the KX022 is stopped before we configure */
@@ -536,28 +532,31 @@ static int kx022_init(const struct device *dev)
 	      (cfg->full_scale << KX022_CNTL1_GSEL_SHIFT);
 
 	ret = data->hw_tf->write_reg(dev, KX022_REG_CNTL1, val);
-	if (ret < 0) {
-		LOG_DBG("Failed CNTL1");
-		return -EIO;
+	if (ret) {
+		LOG_DBG("%s: Failed to write %s: %d", dev->name, "CNTL1", ret);
+		return ret;
 	}
 
 	/* Set KX022 default odr */
-	ret = data->hw_tf->update_reg(dev, KX022_REG_ODCNTL, KX022_MASK_ODCNTL_OSA,
-	 			      cfg->odr);
-	if (ret < 0) {
-		LOG_DBG("Failed setting %s","odr");
-		return -EIO;
+	ret = data->hw_tf->update_reg(dev, KX022_REG_ODCNTL, KX022_MASK_ODCNTL_OSA, cfg->odr);
+	if (ret) {
+		LOG_DBG("%s: Failed to update %s: %d", dev->name, "ODR", ret);
+		return ret;
 	}
 
 #ifdef CONFIG_KX022_TRIGGER
-	if (kx022_trigger_init(dev) < 0) {
-		LOG_ERR("Failed to initialize triggers.");
-		return -EIO;
+	ret = kx022_trigger_init(dev);
+	if (ret) {
+		LOG_DBG("%s: Failed to initialize triggers: %d", dev->name, ret);
+		return ret;
 	}
-#endif
+#endif /* CONFIG_KX022_TRIGGER */
 
 	/* Set Kx022 to Operating Mode */
-	kx022_mode(dev, KX022_OPERATING_MODE);
+	ret = kx022_operating_mode(dev);
+	if (ret) {
+		return ret;
+	}
 
 	if (cfg->full_scale == KX022_FS_2G) {
 		data->gain = GAIN_XL;
@@ -568,19 +567,14 @@ static int kx022_init(const struct device *dev)
 	}
 
 	/* After setting, need some delay, otherwise first polling data is wrong */;
-	k_msleep(KX022_INIT_DELAY);
+	(void)k_msleep(KX022_INIT_DELAY);
 
 	return 0;
 }
 
-#if DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT) == 0
-#warning "LIS2DW12 driver enabled without any devices"
-#endif
-
 #ifdef CONFIG_KX022_TRIGGER
-#define KX022_CFG_IRQ(inst)                                             \
-	.gpio_int = GPIO_DT_SPEC_INST_GET(inst, int_gpios),		\
-	.int_pin = DT_INST_PROP(inst, int_pin),
+#define KX022_CFG_IRQ(inst)                                                                        \
+	.gpio_int = GPIO_DT_SPEC_INST_GET(inst, int_gpios), .int_pin = DT_INST_PROP(inst, int_pin),
 #else
 #define KX022_CFG_IRQ(inst)
 #endif /* CONFIG_KX022_TRIGGER */

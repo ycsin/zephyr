@@ -1,20 +1,15 @@
 /* Kionix KX022 3-axis accelerometer driver
  *
- * Copyright (c) 2021 G-Technologies Sdn. Bhd.
+ * Copyright (c) 2021-2022 G-Technologies Sdn. Bhd.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#define DT_DRV_COMPAT kionix_kx022
-
-#include <logging/log.h>
-
 #include "kx022.h"
 
+#define DT_DRV_COMPAT kionix_kx022
+
 #if DT_ANY_INST_ON_BUS_STATUS_OKAY(i2c)
-
-LOG_MODULE_DECLARE(KX022, CONFIG_SENSOR_LOG_LEVEL);
-
 static int kx022_i2c_read_data(const struct device *dev, uint8_t reg_addr, uint8_t *value,
 			       uint8_t len)
 {

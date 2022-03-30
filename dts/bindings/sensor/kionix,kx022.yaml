@@ -1,4 +1,4 @@
-# Copyright (c) 2021 G-Technologies Sdn. Bhd.
+# Copyright (c) 2021-2022 G-Technologies Sdn. Bhd.
 # SPDX-License-Identifier: Apache-2.0
 
 description: KX022 16-Bit digital I2C Accelerometer sensor
@@ -200,7 +200,7 @@ properties:
       default: 12
       description: |
         The Tilt Angle High Limit value is calculated by using the formula below
-        Angle(count) = sin θ*32.
+        Angle(count) = sin(θ) * 32.
         (values range from 0x0 to 0xFF)
         default is 22°
 
@@ -210,7 +210,7 @@ properties:
       default: 42
       description: |
         The Tilt Angle High Limit value is calculated by using the formula below
-        Angle(count) = sin θ*32.
+        Angle(count) = sin(θ) * 32.
         (values range from 0x0 to 0xFF)
         default is null
 
