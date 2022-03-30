@@ -72,7 +72,7 @@ static int stm32_temp_sample_fetch(const struct device *dev, enum sensor_channel
 
 	k_mutex_unlock(&data->mutex);
 
-	return 0;
+	return rc;
 }
 
 static int stm32_temp_channel_get(const struct device *dev, enum sensor_channel chan,
