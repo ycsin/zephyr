@@ -1,0 +1,44 @@
+# Copyright (c) 2021 Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig SPI_FLASH_EN25
+	bool "EN25 family flash driver"
+	select FLASH_HAS_DRIVER_ENABLED
+	depends on SPI
+	depends on FLASH
+	help
+	  This driver can handle several instances of EN25 family chips that
+	  are enabled by specifying devicetree nodes with the "compatible"
+	  property set to "atmel,at45" and other required properties like
+	  JEDEC ID, chip capacity, block and page size etc. configured
+	  accordingly.
+
+	  The driver is only capable of using "power of 2" binary page sizes
+	  in those chips and at initialization configures them to work in
+	  that mode (unless it is already done).
+
+if SPI_FLASH_EN25
+
+config SPI_FLASH_EN25_INIT_PRIORITY
+	int "Driver initialization priority"
+	default 80
+	help
+	  Device driver initialization priority.
+	  SPI driver needs to be initialized before this one.
+
+config SPI_FLASH_EN25_READY_TIMEOUT
+	int "Max duration to wait for ready status of en25 in milliseconds"
+	default 10000
+	help
+	  For some operations the driver must wait for en25 to become ready.
+	  This config specifies the maximum duration the driver will wait.
+
+config SPI_FLASH_EN25_JEDEC_CHECK_AT_INIT
+	bool "Check JEDEC id during initialization"
+	default n
+	help
+	  If true, JEDEC ID will be checked during initialization, and init will
+	  fail if the ID does not match.
+	  If false, the check is skipped.
+
+endif # SPI_FLASH_EN25
