@@ -53,6 +53,10 @@ static void cmd_run(const struct shell *shell, size_t argc, char **argv)
 		shell_fprintf(shell, SHELL_INFO, "Networking Error\n");
 		break;
 
+	case HAWKBIT_FLASH_ERROR:
+		shell_fprintf(shell, SHELL_INFO, "Flash Error\n");
+		break;
+
 	case HAWKBIT_METADATA_ERROR:
 		shell_fprintf(shell, SHELL_INFO, "Metadata Error\n");
 		break;

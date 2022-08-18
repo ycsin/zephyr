@@ -1140,7 +1140,10 @@ enum hawkbit_response hawkbit_probe(void)
 
 	snprintk(hb_context.url_buffer, hb_context.url_buffer_size, "%s", download_http);
 
-	flash_img_init(&hb_context.flash_ctx);
+	if (flash_img_init(&hb_context.flash_ctx) != 0) {
+		hb_context.code_status = HAWKBIT_FLASH_ERROR;
+		goto cleanup;
+	}
 
 	if (!send_request(HTTP_GET, HAWKBIT_DOWNLOAD, HAWKBIT_STATUS_FINISHED_NONE,
 			  HAWKBIT_STATUS_EXEC_NONE)) {
@@ -1172,7 +1175,7 @@ enum hawkbit_response hawkbit_probe(void)
 	/* Request mcuboot to upgrade */
 	if (boot_request_upgrade(BOOT_UPGRADE_TEST) != 0) {
 		LOG_ERR("Failed to %s", "mark the image in slot 1 as pending");
-		hb_context.code_status = HAWKBIT_DOWNLOAD_ERROR;
+		hb_context.code_status = HAWKBIT_FLASH_ERROR;
 		goto cleanup;
 	}
 
@@ -1229,6 +1232,10 @@ static void autohandler(struct k_work *work)
 
 	case HAWKBIT_METADATA_ERROR:
 		LOG_INF("%s error", "Metadata");
+		break;
+
+	case HAWKBIT_FLASH_ERROR:
+		LOG_INF("%s error", "Flash");
 		break;
 
 	case HAWKBIT_PROBE_IN_PROGRESS:
