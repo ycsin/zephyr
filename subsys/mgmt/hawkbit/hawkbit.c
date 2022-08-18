@@ -1033,6 +1033,10 @@ enum hawkbit_response hawkbit_probe(void)
 
 	if (hawkbit_results.base._links.cancelAction.href != NULL) {
 		ret = hawkbit_find_cancelAction_base(&hawkbit_results.base, cancel_base);
+		if (ret < 0) {
+			hb_context.code_status = HAWKBIT_METADATA_ERROR;
+			goto cleanup;
+		}
 		memset(hb_context.url_buffer, 0, sizeof(hb_context.url_buffer));
 		hb_context.dl.http_content_size = 0;
 		hb_context.url_buffer_size = URL_BUFFER_SIZE;
