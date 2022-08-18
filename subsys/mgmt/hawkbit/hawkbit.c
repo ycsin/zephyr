@@ -362,7 +362,7 @@ static void hawkbit_update_sleep(struct hawkbit_ctl_res *hawkbit_res)
 		LOG_ERR("Invalid poll sleep: %s", sleep);
 	} else {
 		sleep_time = hawkbit_time2sec(sleep);
-		if (sleep_time > 0 && poll_sleep != (MSEC_PER_SEC * sleep_time)) {
+		if ((sleep_time > 0) && (poll_sleep != (MSEC_PER_SEC * sleep_time))) {
 			LOG_DBG("New poll sleep %d seconds", sleep_time);
 			poll_sleep = sleep_time * MSEC_PER_SEC;
 		}
@@ -379,7 +379,7 @@ static int hawkbit_find_cancelAction_base(struct hawkbit_ctl_res *res, char *can
 	char *helper, *endptr;
 
 	href = res->_links.cancelAction.href;
-	if (!href) {
+	if (href == NULL) {
 		*cancel_base = '\0';
 		return 0;
 	}
@@ -387,7 +387,7 @@ static int hawkbit_find_cancelAction_base(struct hawkbit_ctl_res *res, char *can
 	LOG_DBG("_links.%s.href=%s", "cancelAction", href);
 
 	helper = strstr(href, "cancelAction/");
-	if (!helper) {
+	if (helper == NULL) {
 		/* A badly formatted cancel base is a server error */
 		LOG_ERR("Missing cancelBase/ in href %s", href);
 		return -EINVAL;
@@ -404,12 +404,12 @@ static int hawkbit_find_cancelAction_base(struct hawkbit_ctl_res *res, char *can
 	strncpy(cancel_base, helper, CANCEL_BASE_SIZE);
 
 	helper = strtok(helper, "/");
-	if (helper == 0) {
+	if (helper == NULL) {
 		return -EINVAL;
 	}
 
 	helper = strtok(NULL, "/");
-	if (helper == 0) {
+	if (helper == NULL) {
 		return -EINVAL;
 	}
 
@@ -433,7 +433,7 @@ static int hawkbit_find_deployment_base(struct hawkbit_ctl_res *res, char *deplo
 	size_t len;
 
 	href = res->_links.deploymentBase.href;
-	if (!href) {
+	if (href == NULL) {
 		*deployment_base = '\0';
 		return 0;
 	}
@@ -441,14 +441,14 @@ static int hawkbit_find_deployment_base(struct hawkbit_ctl_res *res, char *deplo
 	LOG_DBG("_links.%s.href=%s", "deploymentBase", href);
 
 	helper = strstr(href, "deploymentBase/");
-	if (!helper) {
+	if (helper == NULL) {
 		/* A badly formatted deployment base is a server error */
 		LOG_ERR("Missing deploymentBase/ in href %s", href);
 		return -EINVAL;
 	}
 
 	len = strlen(helper);
-	if (len > DEPLOYMENT_BASE_SIZE - 1) {
+	if (len > (DEPLOYMENT_BASE_SIZE - 1)) {
 		/* Lack of memory is an application error */
 		LOG_ERR("deploymentBase %s is too big (len %zu, max %zu)", helper, len,
 			DEPLOYMENT_BASE_SIZE - 1);
@@ -489,7 +489,7 @@ static int hawkbit_parse_deployment(struct hawkbit_dep_res *res, int32_t *json_a
 	}
 
 	chunk = &res->deployment.chunks[0];
-	if (strcmp("bApp", chunk->part)) {
+	if (strcmp("bApp", chunk->part) != 0) {
 		LOG_ERR("Only part 'bApp' is supported; got %s", chunk->part);
 		return -EINVAL;
 	}
@@ -518,13 +518,13 @@ static int hawkbit_parse_deployment(struct hawkbit_dep_res *res, int32_t *json_a
 	 * tenant on the same hawkbit server.
 	 */
 	href = artifact->_links.download_http.href;
-	if (!href) {
+	if (href == NULL) {
 		LOG_ERR("Missing expected download-http href");
 		return -EINVAL;
 	}
 
 	helper = strstr(href, "/DEFAULT/controller/v1");
-	if (!helper) {
+	if (helper == NULL) {
 		LOG_ERR("Unexpected download-http href format: %s", helper);
 		return -EINVAL;
 	}
@@ -533,8 +533,8 @@ static int hawkbit_parse_deployment(struct hawkbit_dep_res *res, int32_t *json_a
 	if (len == 0) {
 		LOG_ERR("Empty download-http");
 		return -EINVAL;
-	} else if (len > DOWNLOAD_HTTP_SIZE - 1) {
 		LOG_ERR("download-http %s is too big (len: %zu, max: %zu)", helper, len,
+	} else if (len > (DOWNLOAD_HTTP_SIZE - 1)) {
 			DOWNLOAD_HTTP_SIZE - 1);
 		return -ENOMEM;
 	}
@@ -581,8 +581,8 @@ int hawkbit_init(void)
 
 	fs.offset = STORAGE_OFFSET;
 	rc = flash_get_page_info_by_offs(fs.flash_device, fs.offset, &info);
-	if (rc) {
 		LOG_ERR("Unable to get storage page info: %d", rc);
+	if (rc != 0) {
 		return -EIO;
 	}
 
@@ -590,8 +590,8 @@ int hawkbit_init(void)
 	fs.sector_count = 3U;
 
 	rc = nvs_mount(&fs);
-	if (rc) {
 		LOG_ERR("Storage flash mount failed: %d", rc);
+	if (rc != 0) {
 		return rc;
 	}
 
@@ -609,8 +609,8 @@ int hawkbit_init(void)
 
 		LOG_DBG("Marked image as OK");
 		ret = boot_erase_img_bank(FLASH_AREA_ID(SLOT1_LABEL));
-		if (ret) {
 			LOG_ERR("Failed to erase second slot: %d", ret);
+		if (ret < 0) {
 			return ret;
 		}
 	}
@@ -625,7 +625,7 @@ static int enum_for_http_req_string(char *userdata)
 	int i = 0;
 	char *name = http_request[i].http_req_str;
 
-	while (name) {
+	while (name != NULL) {
 		if (strcmp(name, userdata) == 0) {
 			return http_request[i].n;
 		}
@@ -651,7 +651,7 @@ static void response_cb(struct http_response *rsp, enum http_final_call final_da
 			hb_context.dl.http_content_size = rsp->content_length;
 		}
 
-		if (rsp->body_found) {
+		if (rsp->body_found > 0) {
 			body_data = rsp->body_frag_start;
 			body_len = rsp->body_frag_len;
 
@@ -788,9 +788,9 @@ static bool send_request(enum http_method method, enum hawkbit_http_request type
 	struct hawkbit_cfg cfg;
 	struct hawkbit_close close;
 	struct hawkbit_dep_fbk feedback;
-	char acid[11];
-	const char *fini = hawkbit_status_finished(finished);
-	const char *exec = hawkbit_status_execution(execution);
+	char acid[11] = { 0 };
+	const char *finished_str = hawkbit_status_finished(finished);
+	const char *execution_str = hawkbit_status_execution(execution);
 	char device_id[DEVICE_ID_HEX_MAX_SIZE] = { 0 };
 #ifndef CONFIG_HAWKBIT_DDI_NO_SECURITY
 	static const char *const headers[] = {
@@ -840,14 +840,14 @@ static bool send_request(enum http_method method, enum hawkbit_http_request type
 		cfg.data.hwRevision = "3";
 		cfg.id = "";
 		cfg.time = "";
-		cfg.status.execution = exec;
-		cfg.status.result.finished = fini;
+		cfg.status.execution = execution_str;
+		cfg.status.result.finished = finished_str;
 
 		ret = json_obj_encode_buf(json_cfg_descr, ARRAY_SIZE(json_cfg_descr), &cfg,
 					  hb_context.status_buffer,
 					  hb_context.status_buffer_size - 1);
-		if (ret) {
 			LOG_ERR("Can't encode the JSON script (HAWKBIT_CONFIG_DEVICE): %d", ret);
+		if (ret != 0) {
 			return false;
 		}
 
@@ -870,14 +870,14 @@ static bool send_request(enum http_method method, enum hawkbit_http_request type
 		snprintk(acid, sizeof(acid), "%d", hb_context.action_id);
 		close.id = acid;
 		close.time = "";
-		close.status.execution = exec;
-		close.status.result.finished = fini;
+		close.status.execution = execution_str;
+		close.status.result.finished = finished_str;
 
 		ret = json_obj_encode_buf(json_close_descr, ARRAY_SIZE(json_close_descr), &close,
 					  hb_context.status_buffer,
 					  hb_context.status_buffer_size - 1);
-		if (ret) {
 			LOG_ERR("Can't encode the JSON script (HAWKBIT_CLOSE): %d", ret);
+		if (ret != 0) {
 			return false;
 		}
 
@@ -907,24 +907,24 @@ static bool send_request(enum http_method method, enum hawkbit_http_request type
 		break;
 
 	case HAWKBIT_REPORT:
-		if (!fini || !exec) {
+		if ((finished_str == NULL) || (execution_str == NULL)) {
 			return -EINVAL;
 		}
 
-		LOG_INF("Reporting deployment feedback %s (%s) for action %d", fini, exec,
-			hb_context.json_action_id);
+		LOG_INF("Reporting deployment feedback %s (%s) for action %d", finished_str,
+			execution_str, hb_context.json_action_id);
 		/* Build JSON */
 		memset(&feedback, 0, sizeof(feedback));
 		snprintk(acid, sizeof(acid), "%d", hb_context.json_action_id);
 		feedback.id = acid;
-		feedback.status.result.finished = fini;
-		feedback.status.execution = exec;
+		feedback.status.result.finished = finished_str;
+		feedback.status.execution = execution_str;
 
 		ret = json_obj_encode_buf(json_dep_fbk_descr, ARRAY_SIZE(json_dep_fbk_descr),
 					  &feedback, hb_context.status_buffer,
 					  hb_context.status_buffer_size - 1);
-		if (ret) {
 			LOG_ERR("Can't encode the JSON script (HAWKBIT_REPORT): %d", ret);
+		if (ret != 0) {
 			return ret;
 		}
 
@@ -1019,14 +1019,14 @@ enum hawkbit_response hawkbit_probe(void)
 		goto cleanup;
 	}
 
-	if (hawkbit_results.base.config.polling.sleep) {
+	if (hawkbit_results.base.config.polling.sleep != NULL) {
 		/* Update the sleep time. */
 		hawkbit_update_sleep(&hawkbit_results.base);
 		LOG_DBG("config.polling.sleep=%s", hawkbit_results.base.config.polling.sleep);
 	}
 
 
-	if (hawkbit_results.base._links.cancelAction.href) {
+	if (hawkbit_results.base._links.cancelAction.href != NULL) {
 		ret = hawkbit_find_cancelAction_base(&hawkbit_results.base, cancel_base);
 		memset(hb_context.url_buffer, 0, sizeof(hb_context.url_buffer));
 		hb_context.dl.http_content_size = 0;
@@ -1046,7 +1046,7 @@ enum hawkbit_response hawkbit_probe(void)
 		goto cleanup;
 	}
 
-	if (hawkbit_results.base._links.configData.href) {
+	if (hawkbit_results.base._links.configData.href != NULL) {
 		LOG_DBG("_links.%s.href=%s", "configData",
 			hawkbit_results.base._links.configData.href);
 		memset(hb_context.url_buffer, 0, sizeof(hb_context.url_buffer));
@@ -1107,7 +1107,7 @@ enum hawkbit_response hawkbit_probe(void)
 
 	nvs_read(&fs, ADDRESS_ID, &action_id, sizeof(action_id));
 
-	if (action_id == (int32_t)hb_context.json_action_id) {
+	if (action_id == hb_context.json_action_id) {
 		LOG_INF("Preventing repeated attempt to install %d", hb_context.json_action_id);
 		hb_context.dl.http_content_size = 0;
 		memset(hb_context.url_buffer, 0, sizeof(hb_context.url_buffer));
@@ -1137,12 +1137,9 @@ enum hawkbit_response hawkbit_probe(void)
 
 	flash_img_init(&hb_context.flash_ctx);
 
-	ret = (int)send_request(HTTP_GET, HAWKBIT_DOWNLOAD,
-			  HAWKBIT_STATUS_FINISHED_NONE,
-			  HAWKBIT_STATUS_EXEC_NONE);
-
-	if (!ret) {
-		LOG_ERR("Send request failed (HAWKBIT_DOWNLOAD): %d", ret);
+	if (!send_request(HTTP_GET, HAWKBIT_DOWNLOAD, HAWKBIT_STATUS_FINISHED_NONE,
+			  HAWKBIT_STATUS_EXEC_NONE)) {
+		LOG_ERR("Send request failed (HAWKBIT_DOWNLOAD)");
 		hb_context.code_status = HAWKBIT_NETWORKING_ERROR;
 		goto cleanup;
 	}
@@ -1161,15 +1158,15 @@ enum hawkbit_response hawkbit_probe(void)
 	/* Verify the hash of the stored firmware */
 	fic.match = hb_context.dl.file_hash;
 	fic.clen = hb_context.dl.downloaded_size;
-	if (flash_img_check(&hb_context.flash_ctx, &fic, FLASH_AREA_ID(SLOT1_LABEL))) {
 		LOG_ERR("Firmware - flash validation has failed");
+	if (flash_img_check(&hb_context.flash_ctx, &fic, FLASH_AREA_ID(SLOT1_LABEL)) != 0) {
 		hb_context.code_status = HAWKBIT_DOWNLOAD_ERROR;
 		goto cleanup;
 	}
 
 	/* Request mcuboot to upgrade */
-	if (boot_request_upgrade(BOOT_UPGRADE_TEST)) {
 		LOG_ERR("Failed to mark the image in slot 1 as pending");
+	if (boot_request_upgrade(BOOT_UPGRADE_TEST) != 0) {
 		hb_context.code_status = HAWKBIT_DOWNLOAD_ERROR;
 		goto cleanup;
 	}
