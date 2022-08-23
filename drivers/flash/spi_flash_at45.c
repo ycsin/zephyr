@@ -15,11 +15,11 @@ LOG_MODULE_REGISTER(spi_flash_at45, CONFIG_FLASH_LOG_LEVEL);
 
 /* AT45 commands used by this driver: */
 /* - Continuous Array Read (Low Power Mode) */
-#define CMD_READ		0x01
+#define CMD_READ		0x0B
 /* - Main Memory Byte/Page Program through Buffer 1 without Built-In Erase */
 #define CMD_WRITE		0x02
 /* - Read-Modify-Write */
-#define CMD_MODIFY		0x58
+#define CMD_MODIFY		0x82
 /* - Manufacturer and Device ID Read */
 #define CMD_READ_ID		0x9F
 /* - Status Register Read */
@@ -268,6 +268,7 @@ static int spi_flash_at45_read(const struct device *dev, off_t offset,
 		(offset >> 16) & 0xFF,
 		(offset >> 8)  & 0xFF,
 		(offset >> 0)  & 0xFF,
+		0xFF,	// 1 dummy byte as per datasheet
 	};
 	const struct spi_buf tx_buf[] = {
 		{
@@ -305,6 +306,12 @@ static int perform_write(const struct device *dev, off_t offset,
 			 const void *data, size_t len)
 {
 	int err;
+	uint8_t const buf1_to_main[] = {
+		0x53,	// Read the flash content to buffer 1
+		(offset >> 16) & 0xFF,
+		(offset >> 8)  & 0xFF,
+		(offset >> 0)  & 0xFF,
+	};
 	uint8_t const op_and_addr[] = {
 		IS_ENABLED(CONFIG_SPI_FLASH_AT45_USE_READ_MODIFY_WRITE)
 			? CMD_MODIFY
@@ -312,6 +319,12 @@ static int perform_write(const struct device *dev, off_t offset,
 		(offset >> 16) & 0xFF,
 		(offset >> 8)  & 0xFF,
 		(offset >> 0)  & 0xFF,
+	};
+	const struct spi_buf tx_buf0[] = {
+		{
+			.buf = (void *)&buf1_to_main,
+			.len = sizeof(buf1_to_main),
+		},
 	};
 	const struct spi_buf tx_buf[] = {
 		{
@@ -323,6 +336,23 @@ static int perform_write(const struct device *dev, off_t offset,
 			.len = len,
 		}
 	};
+
+	LOG_WRN("Write %d bytes", len);
+
+#if IS_ENABLED(CONFIG_SPI_FLASH_AT45_USE_READ_MODIFY_WRITE)
+	DEF_BUF_SET(tx_buf_set0, tx_buf0);
+	err = spi_write(get_dev_data(dev)->spi,
+			&get_dev_config(dev)->spi_cfg,
+			&tx_buf_set0);
+	if (err != 0) {
+		LOG_ERR("SPI transaction failed with code: %d/%u",
+			err, __LINE__);
+		return -EIO;
+	} else {
+		err = wait_until_ready(dev);
+	}
+#endif
+
 	DEF_BUF_SET(tx_buf_set, tx_buf);
 
 	err = spi_write(get_dev_data(dev)->spi,
