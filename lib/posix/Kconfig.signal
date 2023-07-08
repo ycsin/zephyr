@@ -15,4 +15,11 @@ config POSIX_SIGNAL_NSIG
 	help
 	  Define the maximum number of signal.
 
+config POSIX_SIGNAL_STRING_FULL
+	bool "Use full string for the strsignal API"
+	help
+	  Use full string for the strsignal API.
+	  Will use more than 450 bytes of ROM for strings, about
+	  200+ bytes more than the default implementation.
+
 endif

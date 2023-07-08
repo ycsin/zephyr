@@ -3,7 +3,10 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+#include "posix/strsignal_table.h"
+
 #include <errno.h>
+#include <stdio.h>
 
 #include <zephyr/posix/signal.h>
 
@@ -68,4 +71,26 @@ int sigismember(const sigset_t *set, int signo)
 	}
 
 	return 1 & (set->sig[SIGNO_WORD_IDX(signo)] >> SIGNO_WORD_BIT(signo));
+}
+
+char *strsignal(int signum)
+{
+	static char other_sigstr[sizeof("RT signal xx")];
+
+	if (!signo_valid(signum)) {
+		return "Invalid signal";
+	}
+
+	if (signo_is_rt(signum)) {
+		snprintf(other_sigstr, sizeof(other_sigstr), "RT signal %d", signum - SIGRTMIN);
+		return other_sigstr;
+	}
+
+	if (strsignal_list[signum] != NULL) {
+		return (char *)strsignal_list[signum];
+	}
+
+	snprintf(other_sigstr, sizeof(other_sigstr), "Signal %d", signum);
+
+	return other_sigstr;
 }
