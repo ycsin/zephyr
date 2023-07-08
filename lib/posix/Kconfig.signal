@@ -1,0 +1,18 @@
+# Copyright (c) 2023 Meta
+#
+# SPDX-License-Identifier: Apache-2.0
+
+config POSIX_SIGNAL
+	bool "Support for POSIX signal APIs"
+	default y if POSIX_API
+	help
+	  Enable support for POSIX signal APIs.
+
+if POSIX_SIGNAL
+config POSIX_SIGNAL_NSIG
+	int "Maximum number of signal"
+	default 63
+	help
+	  Define the maximum number of signal.
+
+endif
