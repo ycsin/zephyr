@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "posix_internal.h"
 #include "signal_internal.h"
 
 #include <errno.h>
@@ -224,4 +225,110 @@ ZTEST(posix_apis, test_signal_strsignal)
 	zassert_mem_equal(strsignal(SIGHUP), "SIGHUP", sizeof("SIGHUP"));
 	zassert_mem_equal(strsignal(SIGSYS), "SIGSYS", sizeof("SIGSYS"));
 #endif
+}
+
+static void *sigpending_test_fn(void *arg)
+{
+	sigset_t set = (sigset_t){0};
+	sigset_t target = (sigset_t){0};
+	struct posix_thread *t;
+	struct sig_pending sig[4];
+
+	ARG_UNUSED(arg);
+
+	/* Keep the signal lower than 32 to work for both 32 & 64 bit */
+	t = (struct posix_thread *)CONTAINER_OF(k_current_get(), struct posix_thread, thread);
+	for (int i = 0; i < ARRAY_SIZE(sig); i++) {
+		sig[i].info.si_signo = SIGTERM + i;
+		WRITE_BIT(target.sig[0], (SIGTERM + i), 1);
+		sys_slist_append((&t->sigpending_list), &sig[i].node);
+	}
+
+	zassert_ok(sigpending(&set));
+	zassert_equal(set.sig[0], target.sig[0], "%lx", set.sig[0]);
+
+	return NULL;
+}
+
+#define STACK_SIZE K_THREAD_STACK_LEN(1024)
+static K_THREAD_STACK_ARRAY_DEFINE(thread_stack, 1, STACK_SIZE);
+ZTEST(posix_apis, test_signal_pending)
+{
+	void *retval;
+	static pthread_t pthread;
+	static pthread_attr_t pthread_attr;
+	const struct sched_param param = {
+		.sched_priority = sched_get_priority_max(SCHED_FIFO),
+	};
+
+	zassert_ok(pthread_attr_init(&pthread_attr));
+	zassert_ok(pthread_attr_setstack(&pthread_attr, thread_stack, STACK_SIZE));
+	zassert_ok(pthread_attr_setschedpolicy(&pthread_attr, SCHED_FIFO));
+	zassert_ok(pthread_attr_setschedparam(&pthread_attr, &param));
+	zassert_ok(pthread_create(&pthread, &pthread_attr, sigpending_test_fn, NULL));
+	zassert_ok(pthread_join(pthread, &retval));
+}
+
+static void *sigprocmask_test_fn(void *arg)
+{
+	sigset_t set = (sigset_t){0};
+	sigset_t oset = (sigset_t){0};
+	sigset_t last_set = (sigset_t){0};
+	// sigset_t target_oset = (sigset_t){0};
+	struct posix_thread *t;
+
+	t = (struct posix_thread *)CONTAINER_OF(k_current_get(), struct posix_thread, thread);
+	zassert_equal(t->sigprocmask.sig[0], (sigset_t){0}.sig[0], "should initialize to empty");
+
+	set.sig[0] = BIT(SIGTERM);
+	zassert_equal(sigprocmask(42, &set, &oset), -1, "should fail as `how` is out of range");
+	zassert_equal(errno, EINVAL);
+	zassert_equal(t->sigprocmask.sig[0], (sigset_t){0}.sig[0],
+		      "should not modify mask if failed");
+
+	zassert_ok(sigprocmask(SIG_SETMASK, &set, &oset));
+	zassert_equal(t->sigprocmask.sig[0], set.sig[0]);
+	zassert_equal(oset.sig[0], (sigset_t){0}.sig[0]);
+
+	// query
+	zassert_ok(sigprocmask(SIG_BLOCK, NULL, &oset));
+	zassert_equal(oset.sig[0], t->sigprocmask.sig[0]);
+
+	last_set.sig[0] = t->sigprocmask.sig[0];
+	set.sig[0] = BIT(SIGABRT);
+	zassert_ok(sigprocmask(SIG_SETMASK, &set, &oset));
+	zassert_equal(t->sigprocmask.sig[0], set.sig[0]);
+	zassert_equal(oset.sig[0], last_set.sig[0]);
+
+	// set.sig[0] = 0;
+	// WRITE_BIT(set.sig[0], SIGABRT, 1);
+	// zassert_ok(sigprocmask(SIG_SETMASK, &set, &oset));
+	// target_set.sig[0] = 0;
+	// WRITE_BIT(target_set.sig[0], SIGABRT, 1);
+	// zassert_equal(t->sigprocmask.sig[0], target_set.sig[0]);
+	// zassert_equal(oset.sig[0], target_oset.sig[0]);
+
+	// zassert_ok(sigprocmask(42, &set));
+	// zassert_equal(set.sig[0], target.sig[0], "%lx", set.sig[0]);
+
+	// WRITE_BIT(set.sig[0], SIGTERM, 1);
+
+	return NULL;
+}
+
+ZTEST(posix_apis, test_signal_procmask)
+{
+	void *retval;
+	static pthread_t pthread;
+	static pthread_attr_t pthread_attr;
+	const struct sched_param param = {
+		.sched_priority = sched_get_priority_max(SCHED_FIFO),
+	};
+
+	zassert_ok(pthread_attr_init(&pthread_attr));
+	zassert_ok(pthread_attr_setstack(&pthread_attr, thread_stack, STACK_SIZE));
+	zassert_ok(pthread_attr_setschedpolicy(&pthread_attr, SCHED_FIFO));
+	zassert_ok(pthread_attr_setschedparam(&pthread_attr, &param));
+	zassert_ok(pthread_create(&pthread, &pthread_attr, sigprocmask_test_fn, NULL));
+	zassert_ok(pthread_join(pthread, &retval));
 }

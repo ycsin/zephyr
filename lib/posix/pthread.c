@@ -14,6 +14,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/atomic.h>
 #include <zephyr/posix/pthread.h>
+#include <zephyr/posix/signal.h>
 #include <zephyr/sys/slist.h>
 
 #define PTHREAD_INIT_FLAGS	PTHREAD_CANCEL_ENABLE
@@ -332,6 +333,9 @@ int pthread_create(pthread_t *th, const pthread_attr_t *_attr, void *(*threadrou
 		}
 		t->cancel_pending = false;
 		sys_slist_init(&t->key_list);
+		sys_slist_init(&t->sigpending_list);
+		sys_slist_init(&t->sigaction_list);
+		sigemptyset(&t->sigprocmask);
 	}
 	k_spin_unlock(&pthread_pool_lock, key);
 

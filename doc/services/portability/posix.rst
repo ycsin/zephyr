@@ -382,7 +382,7 @@ required for error and event handling.
     sigfillset(),yes
     sigismember(),yes
     signal(),
-    sigpending(),
+    sigpending(),yes
     sigprocmask(),
     igsuspend(),
     sigwait(),

@@ -56,12 +56,50 @@ typedef struct {
 	unsigned long sig[DIV_ROUND_UP(_NSIG, BITS_PER_LONG)];
 } sigset_t;
 
+typedef struct siginfo {
+	uint8_t si_signo;
+	/* Not implemented yet */
+	/* uint8_t si_code; */
+	/* uint8_t si_errno; */
+	/* pid_t si_pid; */
+	/* uid_t si_uid; */
+	/* void *si_addr; */
+	/* int si_status; */
+	/* long si_band; */
+	/* union sigval si_value; */
+
+} siginfo_t;
+
+struct sigaction {
+	union {
+		void (*sa_handler)(int);
+		void (*sa_sigaction)(int, siginfo_t *, void *);
+	} sa_fn;
+	sigset_t sa_mask;
+	int sa_flags;
+};
+
+#define SA_NOCLDSTOP BIT(0)
+#define SA_ONSTACK   BIT(1)
+#define SA_RESETHAND BIT(2)
+#define SA_RESTART   BIT(3)
+#define SA_SIGINFO   BIT(4)
+#define SA_NOCLDWAIT BIT(5)
+#define SA_NODEFER   BIT(6)
+
+#define SIG_BLOCK   1
+#define SIG_UNBLOCK 2
+#define SIG_SETMASK 3
+
 char *strsignal(int signum);
 int sigemptyset(sigset_t *set);
 int sigfillset(sigset_t *set);
 int sigaddset(sigset_t *set, int signo);
 int sigdelset(sigset_t *set, int signo);
 int sigismember(const sigset_t *set, int signo);
+int sigpending(sigset_t *set);
+int sigaction(int sig, const struct sigaction *act, struct sigaction *oact);
+int sigprocmask(int how, const sigset_t *ZRESTRICT set, sigset_t *ZRESTRICT oset);
 #endif /* CONFIG_POSIX_SIGNAL */
 
 #ifndef SIGEV_NONE

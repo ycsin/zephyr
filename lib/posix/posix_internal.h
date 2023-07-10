@@ -42,6 +42,15 @@ struct posix_thread {
 
 	/* Queue ID (internal-only) */
 	uint8_t qid;
+
+	/* Signals that are blocked */
+	sigset_t sigprocmask;
+
+	/* List of pending signals */
+	sys_slist_t sigpending_list;
+
+	/* List of actions for signals */
+	sys_slist_t sigaction_list;
 };
 
 typedef struct pthread_key_obj {
