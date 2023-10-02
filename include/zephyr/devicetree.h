@@ -2410,6 +2410,78 @@
 #define DT_IRQ(node_id, cell) DT_IRQ_BY_IDX(node_id, 0, cell)
 
 /**
+ * @cond INTERNAL_HIDDEN
+ */
+
+/* DT helper macro to get interrupt-parent node  */
+#define Z_DT_PARENT_INTC(node_id) DT_PROP(node_id, interrupt_parent)
+/* DT helper macro to get the node's interrupt grandparent node  */
+#define Z_DT_GPARENT_INTC(node_id) Z_DT_PARENT_INTC(Z_DT_PARENT_INTC(node_id))
+/* DT helper macro to check if a node is an interrupt controller */
+#define Z_DT_IS_INTC(node_id) DT_NODE_HAS_PROP(node_id, interrupt_controller)
+/* DT helper macro to check if the node has a parent interrupt controller */
+#define Z_DT_HAS_PARENT_INTC(node_id)                                                              \
+	/* node has `interrupt-parent`? */                                                         \
+	IF_ENABLED(DT_NODE_HAS_PROP(node_id, interrupt_parent),                                    \
+		   /* `interrupt-parent` node is an interrupt controller? */                       \
+		   (IF_ENABLED(Z_DT_IS_INTC(Z_DT_PARENT_INTC(node_id)),                            \
+				/* `interrupt-parent` node has interrupt cell(s) ? 1 : 0 */        \
+			       (COND_CODE_0(DT_NUM_IRQS(Z_DT_PARENT_INTC(node_id)), (0), (1))))))
+/* DT helper macro to check if the node has a grandparent interrupt controller */
+#define Z_DT_HAS_GPARENT_INTC(node_id)                                                             \
+	IF_ENABLED(Z_DT_HAS_PARENT_INTC(node_id), (Z_DT_HAS_PARENT_INTC(Z_DT_PARENT_INTC(node_id))))
+
+/**
+ * DT helper macro to get the as-seen interrupt number in devicetree,
+ * or ARM GIC IRQ encoded output from `gen_defines.py`
+ */
+#define Z_DT_IRQN_BY_IDX(node_id, idx) DT_IRQ_BY_IDX(node_id, idx, irq)
+
+/* DT helper macro to get the node's parent intc's (only) irq number */
+#define Z_DT_PARENT_INTC_IRQN(node_id) DT_IRQ(Z_DT_PARENT_INTC(node_id), irq)
+/* DT helper macro to get the node's grandparent intc's (only) irq number */
+#define Z_DT_GPARENT_INTC_IRQN(node_id) DT_IRQ(Z_DT_GPARENT_INTC(node_id), irq)
+
+/* Helper macro to convert interrupt number to level 2 */
+/* TODO: should this and the following be placed in `irq.h`, and include that? */
+#define Z_IRQ_TO_L2(irq) ((irq + 1) << CONFIG_1ST_LEVEL_INTERRUPT_BITS)
+/* Helper macro to convert interrupt number to level 3 */
+#define Z_IRQ_TO_L3(irq)                                                                           \
+	((irq + 1) << (CONFIG_1ST_LEVEL_INTERRUPT_BITS + CONFIG_2ND_LEVEL_INTERRUPT_BITS))
+
+/* DT helper macro to encode a node's IRQN to level 2 according to the multi-level scheme */
+#define Z_DT_IRQN_L2(node_id, idx)                                                                 \
+	(Z_IRQ_TO_L2(Z_DT_IRQN_BY_IDX(node_id, idx)) | Z_DT_PARENT_INTC_IRQN(node_id))
+/* DT helper macro to encode a node's IRQN to level 3 according to the multi-level scheme */
+#define Z_DT_IRQN_L3(node_id, idx)                                                                 \
+	(Z_IRQ_TO_L3(Z_DT_IRQN_BY_IDX(node_id, idx)) |                                             \
+	 Z_IRQ_TO_L2(Z_DT_PARENT_INTC_IRQN(node_id)) | Z_DT_GPARENT_INTC_IRQN(node_id))
+/**
+ * DT helper macro to encode a node's interrupt number according to the Zephyr's multi-level scheme
+ * See doc/kernel/services/interrupts.rst for details
+ */
+#define Z_DT_MULTI_LEVEL_IRQN(node_id, idx)                                                        \
+	COND_CODE_1(Z_DT_HAS_GPARENT_INTC(node_id), (Z_DT_IRQN_L3(node_id, idx)),                  \
+		    (COND_CODE_1(Z_DT_HAS_PARENT_INTC(node_id), (Z_DT_IRQN_L2(node_id, idx)),      \
+				 (Z_DT_IRQN_BY_IDX(node_id, idx)))))
+
+/**
+ * INTERNAL_HIDDEN @endcond
+ */
+
+/**
+ * @brief Get the node's Zephyr interrupt number at index
+ * If @kconfig{CONFIG_MULTI_LEVEL_INTERRUPTS} is enabled, the interrupt number at index will be
+ * multi-level encoded
+ * @param node_id node identifier
+ * @param idx logical index into the interrupt specifier array
+ * @return the Zephyr interrupt number
+ */
+#define DT_IRQN_BY_IDX(node_id, idx)                                                               \
+	COND_CODE_1(IS_ENABLED(CONFIG_MULTI_LEVEL_INTERRUPTS),                                     \
+		    (Z_DT_MULTI_LEVEL_IRQN(node_id, idx)), (Z_DT_IRQN_BY_IDX(node_id, idx)))
+
+/**
  * @brief Get a node's (only) irq number
  *
  * Equivalent to DT_IRQ(node_id, irq). This is provided as a convenience
@@ -2419,7 +2491,7 @@
  * @param node_id node identifier
  * @return the interrupt number for the node's only interrupt
  */
-#define DT_IRQN(node_id) DT_IRQ(node_id, irq)
+#define DT_IRQN(node_id) DT_IRQN_BY_IDX(node_id, 0)
 
 /**
  * @}
@@ -3825,7 +3897,15 @@
  * @param inst instance number
  * @return the interrupt number for the node's only interrupt
  */
-#define DT_INST_IRQN(inst) DT_INST_IRQ(inst, irq)
+#define DT_INST_IRQN(inst) DT_IRQN(DT_DRV_INST(inst))
+
+/**
+ * @brief Get a `DT_DRV_COMPAT`'s irq number at index
+ * @param inst instance number
+ * @param idx logical index into the interrupt specifier array
+ * @return the interrupt number for the node's idx-th interrupt
+ */
+#define DT_INST_IRQN_BY_IDX(inst, idx) DT_IRQN_BY_IDX(DT_DRV_INST(inst), idx)
 
 /**
  * @brief Get a `DT_DRV_COMPAT`'s bus node identifier
