@@ -2410,6 +2410,29 @@
 #define DT_IRQ(node_id, cell) DT_IRQ_BY_IDX(node_id, 0, cell)
 
 /**
+ * @brief Get a node's (only) irq priority
+ *
+ * Equivalent to DT_IRQ(node_id, priority). This is provided as a convenience
+ * for the common case where a node generates exactly one interrupt,
+ * and the IRQ priority is in a cell named `priority`.
+ *
+ * @param node_id node identifier
+ * @return the interrupt priority for the node's only interrupt
+ */
+#define DT_IRQP(node_id) DT_IRQ(node_id, priority)
+
+/**
+ * @brief Get a node's irq priority at index
+ *
+ * Equivalent to DT_IRQ_BY_IDX(node_id, idx, priority).
+ *
+ * @param node_id node identifier
+ * @param idx node identifier
+ * @return the interrupt priority for the node's interrupt by the index
+ */
+#define DT_IRQP_BY_IDX(node_id, idx) DT_IRQ_BY_IDX(node_id, idx, priority)
+
+/**
  * @brief Get a node's (only) irq number
  *
  * Equivalent to DT_IRQ(node_id, irq). This is provided as a convenience
@@ -3826,6 +3849,13 @@
  * @return the interrupt number for the node's only interrupt
  */
 #define DT_INST_IRQN(inst) DT_INST_IRQ(inst, irq)
+
+/**
+ * @brief Get a `DT_DRV_COMPAT`'s (only) irq priority
+ * @param inst instance number
+ * @return the interrupt priority for the node's only interrupt
+ */
+#define DT_INST_IRQP(inst) DT_IRQP(DT_DRV_INST(inst))
 
 /**
  * @brief Get a `DT_DRV_COMPAT`'s bus node identifier
