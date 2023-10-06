@@ -476,6 +476,10 @@ def write_interrupts(node):
                     f"{path_id}_IRQ_NAME_{str2ident(irq.name)}_VAL_{name}"
                 name_vals.append((name_macro, f"DT_{idx_macro}"))
                 name_vals.append((name_macro + "_EXISTS", 1))
+        if irq.name:
+            name_macro = \
+                f"{path_id}_IRQ_NAME_{str2ident(irq.name)}_IDX"
+            name_vals.append((name_macro, i))
 
     for macro, val in idx_vals:
         out_dt_define(macro, val)

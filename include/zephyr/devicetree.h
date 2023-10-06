@@ -2298,6 +2298,14 @@
 #define DT_NUM_IRQS(node_id) DT_CAT(node_id, _IRQ_NUM)
 
 /**
+ * @brief Get the index of the named interrupt of a node
+ * @param node_id node identifier
+ * @param name lowercase-and-underscores interrupt specifier name
+ * @return the index of the named interrupt
+ */
+#define DT_IRQ_IDX_BY_NAME(node_id, name) DT_CAT4(node_id, _IRQ_NAME_, name, _IDX)
+
+/**
  * @brief Is @p idx a valid interrupt index?
  *
  * If this returns 1, then DT_IRQ_BY_IDX(node_id, idx) is valid.
