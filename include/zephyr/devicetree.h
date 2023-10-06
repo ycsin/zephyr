@@ -2468,7 +2468,7 @@
  * DT helper macro to encode a node's interrupt number according to the Zephyr's multi-level scheme
  * See doc/kernel/services/interrupts.rst for details
  */
-#define Z_DT_MULTI_LEVEL_IRQN(node_id, idx)                                                        \
+#define Z_DT_MULTI_LEVEL_IRQN_BY_IDX(node_id, idx)                                                 \
 	COND_CODE_1(Z_DT_HAS_GPARENT_INTC(node_id), (Z_DT_IRQN_L3(node_id, idx)),                  \
 		    (COND_CODE_1(Z_DT_HAS_PARENT_INTC(node_id), (Z_DT_IRQN_L2(node_id, idx)),      \
 				 (Z_DT_IRQN_BY_IDX(node_id, idx)))))
@@ -2487,7 +2487,7 @@
  */
 #define DT_IRQN_BY_IDX(node_id, idx)                                                               \
 	COND_CODE_1(IS_ENABLED(CONFIG_MULTI_LEVEL_INTERRUPTS),                                     \
-		    (Z_DT_MULTI_LEVEL_IRQN(node_id, idx)), (Z_DT_IRQN_BY_IDX(node_id, idx)))
+		    (Z_DT_MULTI_LEVEL_IRQN_BY_IDX(node_id, idx)), (Z_DT_IRQN_BY_IDX(node_id, idx)))
 
 /**
  * @brief Get a node's (only) irq number
@@ -3906,6 +3906,23 @@
  * @return the interrupt number for the node's only interrupt
  */
 #define DT_INST_IRQN(inst) DT_IRQN(DT_DRV_INST(inst))
+
+/**
+ * @brief Get a `DT_DRV_COMPAT` irq number by name
+ * @param inst instance number
+ * @param name lowercase-and-underscores interrupt specifier name
+ * @return the interrupt number given by the name
+ */
+#define DT_INST_IRQN_BY_NAME(inst, name)                                                           \
+	DT_IRQN_BY_IDX(DT_DRV_INST(inst), DT_IRQ_IDX_BY_NAME(DT_DRV_INST(inst), name))
+
+/**
+ * @brief Get a node's irq number by name
+ * @param inst node identifier
+ * @param name lowercase-and-underscores interrupt specifier name
+ * @return the interrupt number given by the name
+ */
+#define DT_IRQN_BY_NAME(node_id, name) DT_IRQN_BY_IDX(node_id, DT_IRQ_IDX_BY_NAME(node_id, name))
 
 /**
  * @brief Get a `DT_DRV_COMPAT`'s irq number at index
