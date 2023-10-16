@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <version.h>
-
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/uart.h>
@@ -14,6 +12,7 @@
 #include <zephyr/shell/shell.h>
 #include <zephyr/shell/shell_backend.h>
 #include <zephyr/shell/shell_uart.h>
+#include <zephyr/version.h>
 #include <zephyr/ztest.h>
 
 #define EMUL_UART_NODE(i)         DT_NODELABEL(euart##i)

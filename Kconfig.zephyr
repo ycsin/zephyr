@@ -934,3 +934,18 @@ config BOOTLOADER_BOSSA_ADAFRUIT_UF2
 endchoice
 
 endmenu
+
+menu "Compatibility"
+
+config LEGACY_GENERATED_INCLUDE_PATH
+	bool "Legacy include path for generated headers"
+	default y
+	help
+	  Allow applications and libraries to use the Zephyr legacy include
+	  path for the generated headers which does not use the zephyr/ prefix.
+	  For example, the preferred way to include the version header is to use
+	  <zephyr/version.h>, but enabling CONFIG_LEGACY_GENERATED_INCLUDE_PATH will
+	  allow developers to use <version.h> instead. This (without the zephyr/ prefix)
+	  is deprecated and should be avoided. Eventually, it will not be supported.
+
+endmenu

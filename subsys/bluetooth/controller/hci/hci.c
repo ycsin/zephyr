@@ -8,7 +8,6 @@
 #include <stddef.h>
 #include <string.h>
 
-#include <version.h>
 #include <errno.h>
 
 #include <zephyr/sys/util.h>
@@ -20,6 +19,7 @@
 #include <zephyr/bluetooth/hci_types.h>
 #include <zephyr/bluetooth/hci_vs.h>
 #include <zephyr/bluetooth/buf.h>
+#include <zephyr/version.h>
 
 #include "../host/hci_ecc.h"
 

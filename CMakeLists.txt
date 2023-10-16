@@ -109,6 +109,10 @@ add_library(zephyr_interface INTERFACE)
 # flags that come with zephyr_interface.
 zephyr_library_named(zephyr)
 
+if(CONFIG_LEGACY_GENERATED_INCLUDE_PATH)
+  zephyr_include_directories(${PROJECT_BINARY_DIR}/include/generated/zephyr)
+endif()
+
 zephyr_include_directories(
   include
   ${PROJECT_BINARY_DIR}/include/generated
@@ -514,9 +518,9 @@ if(ZEPHYR_GIT_INDEX)
 endif()
 
 add_custom_command(
-  OUTPUT ${PROJECT_BINARY_DIR}/include/generated/version.h
+  OUTPUT ${PROJECT_BINARY_DIR}/include/generated/zephyr/version.h
   COMMAND ${CMAKE_COMMAND} -DZEPHYR_BASE=${ZEPHYR_BASE}
-    -DOUT_FILE=${PROJECT_BINARY_DIR}/include/generated/version.h
+    -DOUT_FILE=${PROJECT_BINARY_DIR}/include/generated/zephyr/version.h
     -DVERSION_TYPE=KERNEL
     -DVERSION_FILE=${ZEPHYR_BASE}/VERSION
     -DKERNEL_VERSION_CUSTOMIZATION="$<TARGET_PROPERTY:version_h,KERNEL_VERSION_CUSTOMIZATION>"
@@ -525,7 +529,7 @@ add_custom_command(
   DEPENDS ${ZEPHYR_BASE}/VERSION ${git_dependency}
   COMMAND_EXPAND_LISTS
 )
-add_custom_target(version_h DEPENDS ${PROJECT_BINARY_DIR}/include/generated/version.h)
+add_custom_target(version_h DEPENDS ${PROJECT_BINARY_DIR}/include/generated/zephyr/version.h)
 
 if(EXISTS ${APPLICATION_SOURCE_DIR}/VERSION)
   add_custom_command(
@@ -1869,7 +1873,7 @@ if(log_dict_db_output)
     ${ZEPHYR_BASE}/scripts/logging/dictionary/database_gen.py
     ${KERNEL_ELF_NAME}
     ${log_dict_db_output}
-    --build-header ${PROJECT_BINARY_DIR}/include/generated/version.h
+    --build-header ${PROJECT_BINARY_DIR}/include/generated/zephyr/version.h
     )
   list(APPEND
     post_build_byproducts
