@@ -7,7 +7,7 @@
 #include <zephyr/kernel.h>
 #include <xtensa-asm2-context.h>
 #include <zephyr/debug/gdbstub.h>
-#include <offsets.h>
+#include <zephyr/offsets.h>
 
 /*
  * Address Mappings From ESP32 Technical Reference Manual Version 4.5

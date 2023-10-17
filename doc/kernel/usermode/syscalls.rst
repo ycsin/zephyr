@@ -143,7 +143,7 @@ C and header files by the :ref:`gen_syscalls.py` script, all of which can be fou
 the project out directory under ``include/generated/``:
 
 * The system call is added to the enumerated type of system call IDs,
-  which is expressed in ``include/generated/syscall_list.h``. It is the name
+  which is expressed in ``include/generated/zephyr/syscall_list.h``. It is the name
   of the API in uppercase, prefixed with ``K_SYSCALL_``.
 
 * An entry for the system call is created in the dispatch table

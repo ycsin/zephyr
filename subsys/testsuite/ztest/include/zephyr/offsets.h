@@ -6,7 +6,7 @@
 
 /*
  * This file is a fake replacement for
- * $build_dir/zephyr/include/generated/offsets.h
+ * $build_dir/zephyr/include/generated/zephyr/offsets.h
  *
  * The unittest infrastructure does not know how to generate
  * offsets.h, so until this is supported we fake it with this

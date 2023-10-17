@@ -91,7 +91,7 @@ def parse_args():
         '--output',
         dest='output',
         required=True,
-        help='output file (e.g. build/zephyr/misc/generated/libc/minimal/strerror_table.h)')
+        help='output file (e.g. build/zephyr/misc/generated/zephyr/libc/minimal/strerror_table.h)')
 
     args = parser.parse_args()
 

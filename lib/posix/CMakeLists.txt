@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
-set(GEN_DIR ${ZEPHYR_BINARY_DIR}/include/generated)
+set(GEN_DIR ${ZEPHYR_BINARY_DIR}/include/generated/zephyr)
 
 zephyr_syscall_header(
   ${ZEPHYR_BASE}/include/zephyr/posix/time.h

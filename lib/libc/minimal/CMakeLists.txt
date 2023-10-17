@@ -4,7 +4,7 @@ zephyr_system_include_directories(include)
 
 zephyr_library()
 
-set(GEN_DIR ${ZEPHYR_BINARY_DIR}/include/generated)
+set(GEN_DIR ${ZEPHYR_BINARY_DIR}/include/generated/zephyr)
 set(STRERROR_TABLE_H ${GEN_DIR}/libc/minimal/strerror_table.h)
 
 zephyr_library_compile_options($<TARGET_PROPERTY:compiler,no_builtin>)

@@ -113,7 +113,7 @@ def parse_args():
     parser.add_argument("--object", required=True,
                         help="Points to kobject_prebuilt_hash.c.obj")
     parser.add_argument("--outdir", required=True,
-                        help="Output directory (<build_dir>/include/generated)")
+                        help="Output directory (<build_dir>/include/generated/zephyr)")
     parser.add_argument("--datapct", required=True,
                         help="Multiplier to the size of reserved space for DATA region")
     parser.add_argument("--rodata", required=True,

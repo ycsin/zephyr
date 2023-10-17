@@ -7,7 +7,7 @@
 #include <string.h>
 #include <zephyr/debug/coredump.h>
 #include <xtensa-asm2.h>
-#include <offsets.h>
+#include <zephyr/offsets.h>
 
 #define ARCH_HDR_VER			1
 #define XTENSA_BLOCK_HDR_VER		2

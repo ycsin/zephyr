@@ -9,9 +9,9 @@
 #include <zephyr/ztest.h>
 #include <zephyr/kernel.h>
 #include <zephyr/settings/settings.h>
+#include <zephyr/mcuboot_version.h>
 #include <bootutil/boot_status.h>
 #include <bootutil/image.h>
-#include <mcuboot_version.h>
 
 #define FLASH_SECTOR_SIZE 1024
 #define FLASH_SECTOR_SIZE_KB 4
