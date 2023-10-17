@@ -730,7 +730,7 @@ add_custom_target(${SYSCALL_LIST_H_TARGET} DEPENDS ${syscall_list_h} ${picolibc_
 set_property(TARGET ${SYSCALL_LIST_H_TARGET}
              APPEND PROPERTY
              ADDITIONAL_CLEAN_FILES
-             ${CMAKE_CURRENT_BINARY_DIR}/include/generated/syscalls
+             ${CMAKE_CURRENT_BINARY_DIR}/include/generated/zephyr/syscalls
 )
 
 add_custom_target(${PARSE_SYSCALLS_TARGET}
@@ -750,18 +750,29 @@ if(CONFIG_TIMEOUT_64BIT)
   set(SYSCALL_SPLIT_TIMEOUT_ARG --split-type k_timeout_t --split-type k_ticks_t)
 endif()
 
+# percepio/TraceRecorder/kernelports/Zephyr/scripts/tz_parse_syscalls.py hardcodes the path
+# to the `syscall_list.h`, make a copy of the generated file so that percepio is able to build
+if(CONFIG_LEGACY_GENERATED_INCLUDE_PATH)
+  set(LEGACY_SYSCALL_LIST_H_ARGS
+    ${CMAKE_COMMAND} -E copy
+    ${syscall_list_h}
+    ${CMAKE_CURRENT_BINARY_DIR}/include/generated/syscall_list.h)
+endif()
+
 add_custom_command(OUTPUT include/generated/syscall_dispatch.c ${syscall_list_h}
-  # Also, some files are written to include/generated/syscalls/
+  # Also, some files are written to include/generated/zephyr/syscalls/
   COMMAND
   ${PYTHON_EXECUTABLE}
   ${ZEPHYR_BASE}/scripts/build/gen_syscalls.py
   --json-file        ${syscalls_json}                     # Read this file
-  --base-output      include/generated/syscalls           # Write to this dir
+  --base-output      include/generated/zephyr/syscalls    # Write to this dir
   --syscall-dispatch include/generated/syscall_dispatch.c # Write this file
   --syscall-list     ${syscall_list_h}
   $<$<BOOL:${CONFIG_USERSPACE}>:--gen-mrsh-files>
   ${SYSCALL_LONG_REGISTERS_ARG}
   ${SYSCALL_SPLIT_TIMEOUT_ARG}
+  COMMAND
+  ${LEGACY_SYSCALL_LIST_H_ARGS}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   DEPENDS ${PARSE_SYSCALLS_TARGET}
   )

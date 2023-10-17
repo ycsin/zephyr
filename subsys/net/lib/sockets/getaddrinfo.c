@@ -311,7 +311,7 @@ out:
 
 	return ret;
 }
-#include <syscalls/z_zsock_getaddrinfo_internal_mrsh.c>
+#include <zephyr/syscalls/z_zsock_getaddrinfo_internal_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
 #endif /* defined(CONFIG_DNS_RESOLVER) */

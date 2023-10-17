@@ -72,7 +72,7 @@ __syscall atomic_val_t atomic_nand(atomic_t *target, atomic_val_t value);
 #endif
 
 #ifdef CONFIG_ATOMIC_OPERATIONS_C
-#include <syscalls/atomic_c.h>
+#include <zephyr/syscalls/atomic_c.h>
 #endif
 
 #endif /* ZEPHYR_INCLUDE_SYS_ATOMIC_C_H_ */

@@ -114,7 +114,7 @@ void *z_vrfy_zsock_get_context_object(int sock)
 	return z_impl_zsock_get_context_object(sock);
 }
 
-#include <syscalls/zsock_get_context_object_mrsh.c>
+#include <zephyr/syscalls/zsock_get_context_object_mrsh.c>
 #endif
 
 static void zsock_received_cb(struct net_context *ctx,
@@ -253,7 +253,7 @@ static inline int z_vrfy_zsock_socket(int family, int type, int proto)
 	 */
 	return z_impl_zsock_socket(family, type, proto);
 }
-#include <syscalls/zsock_socket_mrsh.c>
+#include <zephyr/syscalls/zsock_socket_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
 int zsock_close_ctx(struct net_context *ctx)
@@ -312,7 +312,7 @@ static inline int z_vrfy_zsock_close(int sock)
 {
 	return z_impl_zsock_close(sock);
 }
-#include <syscalls/zsock_close_mrsh.c>
+#include <zephyr/syscalls/zsock_close_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
 int z_impl_zsock_shutdown(int sock, int how)
@@ -349,7 +349,7 @@ static inline int z_vrfy_zsock_shutdown(int sock, int how)
 {
 	return z_impl_zsock_shutdown(sock, how);
 }
-#include <syscalls/zsock_shutdown_mrsh.c>
+#include <zephyr/syscalls/zsock_shutdown_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
 static void zsock_accepted_cb(struct net_context *new_ctx,
@@ -491,7 +491,7 @@ static inline int z_vrfy_zsock_bind(int sock, const struct sockaddr *addr,
 	return z_impl_zsock_bind(sock, (struct sockaddr *)&dest_addr_copy,
 				addrlen);
 }
-#include <syscalls/zsock_bind_mrsh.c>
+#include <zephyr/syscalls/zsock_bind_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
 static void zsock_connected_cb(struct net_context *ctx, int status, void *user_data)
@@ -570,7 +570,7 @@ int z_vrfy_zsock_connect(int sock, const struct sockaddr *addr,
 	return z_impl_zsock_connect(sock, (struct sockaddr *)&dest_addr_copy,
 				   addrlen);
 }
-#include <syscalls/zsock_connect_mrsh.c>
+#include <zephyr/syscalls/zsock_connect_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
 int zsock_listen_ctx(struct net_context *ctx, int backlog)
@@ -591,7 +591,7 @@ static inline int z_vrfy_zsock_listen(int sock, int backlog)
 {
 	return z_impl_zsock_listen(sock, backlog);
 }
-#include <syscalls/zsock_listen_mrsh.c>
+#include <zephyr/syscalls/zsock_listen_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
 int zsock_accept_ctx(struct net_context *parent, struct sockaddr *addr,
@@ -708,7 +708,7 @@ static inline int z_vrfy_zsock_accept(int sock, struct sockaddr *addr,
 
 	return ret;
 }
-#include <syscalls/zsock_accept_mrsh.c>
+#include <zephyr/syscalls/zsock_accept_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
 #define WAIT_BUFS_INITIAL_MS 10
@@ -876,7 +876,7 @@ ssize_t z_vrfy_zsock_sendto(int sock, const void *buf, size_t len, int flags,
 			dest_addr ? (struct sockaddr *)&dest_addr_copy : NULL,
 			addrlen);
 }
-#include <syscalls/zsock_sendto_mrsh.c>
+#include <zephyr/syscalls/zsock_sendto_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
 size_t msghdr_non_empty_iov_count(const struct msghdr *msg)
@@ -1028,7 +1028,7 @@ fail:
 
 	return -1;
 }
-#include <syscalls/zsock_sendmsg_mrsh.c>
+#include <zephyr/syscalls/zsock_sendmsg_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
 static int sock_get_pkt_src_addr(struct net_pkt *pkt,
@@ -1737,7 +1737,7 @@ ssize_t z_vrfy_zsock_recvfrom(int sock, void *buf, size_t max_len, int flags,
 
 	return ret;
 }
-#include <syscalls/zsock_recvfrom_mrsh.c>
+#include <zephyr/syscalls/zsock_recvfrom_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
 ssize_t zsock_recvmsg_ctx(struct net_context *ctx, struct msghdr *msg,
@@ -1982,7 +1982,7 @@ static inline int z_vrfy_zsock_fcntl(int sock, int cmd, int flags)
 {
 	return z_impl_zsock_fcntl(sock, cmd, flags);
 }
-#include <syscalls/zsock_fcntl_mrsh.c>
+#include <zephyr/syscalls/zsock_fcntl_mrsh.c>
 #endif
 
 int z_impl_zsock_ioctl(int sock, unsigned long request, va_list args)
@@ -2033,7 +2033,7 @@ static inline int z_vrfy_zsock_ioctl(int sock, unsigned long request, va_list ar
 
 	return z_impl_zsock_ioctl(sock, request, args);
 }
-#include <syscalls/zsock_ioctl_mrsh.c>
+#include <zephyr/syscalls/zsock_ioctl_mrsh.c>
 #endif
 
 static int zsock_poll_prepare_ctx(struct net_context *ctx,
@@ -2333,7 +2333,7 @@ static inline int z_vrfy_zsock_poll(struct zsock_pollfd *fds,
 
 	return ret;
 }
-#include <syscalls/zsock_poll_mrsh.c>
+#include <zephyr/syscalls/zsock_poll_mrsh.c>
 #endif
 
 int z_impl_zsock_inet_pton(sa_family_t family, const char *src, void *dst)
@@ -2372,7 +2372,7 @@ static inline int z_vrfy_zsock_inet_pton(sa_family_t family,
 
 	return ret;
 }
-#include <syscalls/zsock_inet_pton_mrsh.c>
+#include <zephyr/syscalls/zsock_inet_pton_mrsh.c>
 #endif
 
 static enum tcp_conn_option get_tcp_option(int optname)
@@ -2691,7 +2691,7 @@ int z_vrfy_zsock_getsockopt(int sock, int level, int optname,
 
 	return ret;
 }
-#include <syscalls/zsock_getsockopt_mrsh.c>
+#include <zephyr/syscalls/zsock_getsockopt_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
 static int ipv4_multicast_group(struct net_context *ctx, const void *optval,
@@ -3280,7 +3280,7 @@ int z_vrfy_zsock_setsockopt(int sock, int level, int optname,
 
 	return ret;
 }
-#include <syscalls/zsock_setsockopt_mrsh.c>
+#include <zephyr/syscalls/zsock_setsockopt_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
 int zsock_getpeername_ctx(struct net_context *ctx, struct sockaddr *addr,
@@ -3364,7 +3364,7 @@ static inline int z_vrfy_zsock_getpeername(int sock, struct sockaddr *addr,
 
 	return ret;
 }
-#include <syscalls/zsock_getpeername_mrsh.c>
+#include <zephyr/syscalls/zsock_getpeername_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
 int zsock_getsockname_ctx(struct net_context *ctx, struct sockaddr *addr,
@@ -3443,7 +3443,7 @@ static inline int z_vrfy_zsock_getsockname(int sock, struct sockaddr *addr,
 
 	return ret;
 }
-#include <syscalls/zsock_getsockname_mrsh.c>
+#include <zephyr/syscalls/zsock_getsockname_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
 static ssize_t sock_read_vmeth(void *obj, void *buffer, size_t count)

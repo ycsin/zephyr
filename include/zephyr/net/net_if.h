@@ -3102,7 +3102,7 @@ struct net_if_api {
 }
 #endif
 
-#include <syscalls/net_if.h>
+#include <zephyr/syscalls/net_if.h>
 
 /**
  * @}

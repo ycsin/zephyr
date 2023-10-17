@@ -447,7 +447,7 @@ def main():
         if mrsh and to_emit:
             syscall = typename_split(match_group[0])[1]
             mrsh_defs[syscall] = mrsh
-            mrsh_includes[syscall] = "#include <syscalls/%s>" % fn
+            mrsh_includes[syscall] = "#include <zephyr/syscalls/%s>" % fn
 
     with open(args.syscall_dispatch, "w") as fp:
         table_entries.append("[K_SYSCALL_BAD] = handler_bad_syscall")

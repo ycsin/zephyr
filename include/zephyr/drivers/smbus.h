@@ -1090,6 +1090,6 @@ static inline int z_impl_smbus_block_pcall(const struct device *dev,
  * @}
  */
 
-#include <syscalls/smbus.h>
+#include <zephyr/syscalls/smbus.h>
 
 #endif /* ZEPHYR_INCLUDE_DRIVERS_SMBUS_H_ */

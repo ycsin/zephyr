@@ -525,5 +525,5 @@ static inline int espi_saf_remove_callback(const struct device *dev,
 /**
  * @}
  */
-#include <syscalls/espi_saf.h>
+#include <zephyr/syscalls/espi_saf.h>
 #endif /* ZEPHYR_INCLUDE_ESPI_SAF_H_ */

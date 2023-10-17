@@ -1824,6 +1824,6 @@ static inline int z_impl_gpio_get_pending_int(const struct device *dev)
 }
 #endif
 
-#include <syscalls/gpio.h>
+#include <zephyr/syscalls/gpio.h>
 
 #endif /* ZEPHYR_INCLUDE_DRIVERS_GPIO_H_ */

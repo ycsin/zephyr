@@ -1648,7 +1648,7 @@ const char *net_family2str(sa_family_t family);
 }
 #endif
 
-#include <syscalls/net_ip.h>
+#include <zephyr/syscalls/net_ip.h>
 
 /**
  * @}

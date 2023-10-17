@@ -83,5 +83,5 @@ __syscall int sys_csrand_get(void *dst, size_t len);
  * @}
  */
 
-#include <syscalls/random.h>
+#include <zephyr/syscalls/random.h>
 #endif /* ZEPHYR_INCLUDE_RANDOM_RANDOM_H_ */

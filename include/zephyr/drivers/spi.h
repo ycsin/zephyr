@@ -1327,6 +1327,6 @@ static inline int spi_release_dt(const struct spi_dt_spec *spec)
  * @}
  */
 
-#include <syscalls/spi.h>
+#include <zephyr/syscalls/spi.h>
 
 #endif /* ZEPHYR_INCLUDE_DRIVERS_SPI_H_ */

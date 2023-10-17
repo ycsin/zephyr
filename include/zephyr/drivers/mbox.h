@@ -407,6 +407,6 @@ static inline uint32_t z_impl_mbox_max_channels_get(const struct device *dev)
  * @}
  */
 
-#include <syscalls/mbox.h>
+#include <zephyr/syscalls/mbox.h>
 
 #endif /* ZEPHYR_INCLUDE_DRIVERS_MBOX_H_ */

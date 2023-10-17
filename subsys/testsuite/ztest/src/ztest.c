@@ -186,10 +186,10 @@ void z_impl_z_test_1cpu_stop(void)
 
 #ifdef CONFIG_USERSPACE
 void z_vrfy_z_test_1cpu_start(void) { z_impl_z_test_1cpu_start(); }
-#include <syscalls/z_test_1cpu_start_mrsh.c>
+#include <zephyr/syscalls/z_test_1cpu_start_mrsh.c>
 
 void z_vrfy_z_test_1cpu_stop(void) { z_impl_z_test_1cpu_stop(); }
-#include <syscalls/z_test_1cpu_stop_mrsh.c>
+#include <zephyr/syscalls/z_test_1cpu_stop_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 #endif
 

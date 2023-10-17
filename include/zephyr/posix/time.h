@@ -104,7 +104,7 @@ int clock_nanosleep(clockid_t clock_id, int flags,
 #endif
 
 #if !(defined(CONFIG_ARCH_POSIX) && defined(CONFIG_EXTERNAL_LIBC))
-#include <syscalls/time.h>
+#include <zephyr/syscalls/time.h>
 #endif /* CONFIG_ARCH_POSIX */
 
 #else /* ZEPHYR_INCLUDE_POSIX_TIME_H_ */

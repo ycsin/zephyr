@@ -87,7 +87,7 @@ bottom of ``include/sensor.h``:
 
 .. code-block:: c
 
-    #include <syscalls/sensor.h>
+    #include <zephyr/syscalls/sensor.h>
 
 C prototype functions must be declared in one of the directories
 listed in the CMake variable ``SYSCALL_INCLUDE_DIRS``. This list
@@ -172,7 +172,7 @@ The body of the API is created in the generated system header. Using the
 example of :c:func:`k_sem_init()`, this API is declared in
 ``include/kernel.h``. At the bottom of ``include/kernel.h`` is::
 
-    #include <syscalls/kernel.h>
+    #include <zephyr/syscalls/kernel.h>
 
 Inside this header is the body of :c:func:`k_sem_init()`::
 
@@ -360,7 +360,7 @@ For example:
         K_OOPS(K_SYSCALL_OBJ(sem, K_OBJ_SEM));
         return z_impl_k_sem_take(sem, timeout);
     }
-    #include <syscalls/k_sem_take_mrsh.c>
+    #include <zephyr/syscalls/k_sem_take_mrsh.c>
 
 
 Verification Memory Access Policies

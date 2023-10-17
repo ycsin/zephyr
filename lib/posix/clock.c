@@ -71,7 +71,7 @@ int z_vrfy_clock_gettime(clockid_t clock_id, struct timespec *ts)
 	K_OOPS(K_SYSCALL_MEMORY_WRITE(ts, sizeof(*ts)));
 	return z_impl_clock_gettime(clock_id, ts);
 }
-#include <syscalls/clock_gettime_mrsh.c>
+#include <zephyr/syscalls/clock_gettime_mrsh.c>
 #endif
 
 /**

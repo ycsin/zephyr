@@ -448,7 +448,7 @@ static ALWAYS_INLINE void sys_cache_flush(void *addr, size_t size)
 }
 #endif
 
-#include <syscalls/cache.h>
+#include <zephyr/syscalls/cache.h>
 #ifdef __cplusplus
 }
 #endif

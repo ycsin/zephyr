@@ -1035,6 +1035,6 @@ DT_FOREACH_STATUS_OKAY_NODE(Z_MAYBE_DEVICE_DECLARE_INTERNAL)
 }
 #endif
 
-#include <syscalls/device.h>
+#include <zephyr/syscalls/device.h>
 
 #endif /* ZEPHYR_INCLUDE_DEVICE_H_ */

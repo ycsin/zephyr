@@ -232,6 +232,6 @@ static inline int z_impl_phy_write(const struct device *dev, uint16_t reg_addr,
  * @}
  */
 
-#include <syscalls/phy.h>
+#include <zephyr/syscalls/phy.h>
 
 #endif /* ZEPHYR_INCLUDE_DRIVERS_PHY_H_ */
