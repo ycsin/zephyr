@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 choice
-	prompt "Renode RISCV32 system implementation"
-	depends on SOC_SERIES_RISCV32_RENODE
+	prompt "Renode RISCV32 Virtual system implementation"
+	depends on SOC_SERIES_RISCV32_VIRTUAL_RENODE
 
-config SOC_RISCV32_RENODE
-	bool "Renode RISCV32 system implementation"
+config SOC_RISCV32_VIRTUAL_RENODE
+	bool "Renode RISCV32 Virtual system implementation"
 	select ATOMIC_OPERATIONS_BUILTIN
 	select INCLUDE_RESET_VECTOR
 	select RISCV_ISA_RV32I
