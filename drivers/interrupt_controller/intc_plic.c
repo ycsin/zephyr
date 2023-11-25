@@ -34,7 +34,9 @@
  */
 #define PLIC_REG_PRIO_OFFSET 0x0
 #define PLIC_REG_IRQ_EN_OFFSET 0x2000
+#define PLIC_REG_IRQ_EN_SIZE 0x80
 #define PLIC_REG_REGS_OFFSET 0x200000
+#define PLIC_REG_REGS_SIZE 0x1000
 #define PLIC_REG_REGS_THRES_PRIORITY_OFFSET 0
 #define PLIC_REG_REGS_CLAIM_COMPLETE_OFFSET sizeof(uint32_t)
 /*
@@ -62,6 +64,7 @@ struct plic_config {
 	mem_addr_t trig;
 	uint32_t max_prio;
 	uint32_t num_irqs;
+	uint32_t num_contexts;
 	riscv_plic_irq_config_func_t irq_config_func;
 };
 
@@ -151,11 +154,13 @@ static void plic_irq_enable_set_state(uint32_t irq, bool enable)
 	uint32_t en_value;
 	uint32_t key;
 
-	key = irq_lock();
-	en_value = sys_read32(en_addr);
-	WRITE_BIT(en_value, local_irq & PLIC_REG_MASK, enable);
-	sys_write32(en_value, en_addr);
-	irq_unlock(key);
+	for (uint32_t ctx = 0; ctx < config->num_contexts; ctx++) {
+		key = irq_lock();
+		en_value = sys_read32(en_addr + (ctx * PLIC_REG_IRQ_EN_SIZE));
+		WRITE_BIT(en_value, local_irq & PLIC_REG_MASK, enable);
+		sys_write32(en_value, en_addr + (ctx * PLIC_REG_IRQ_EN_SIZE));
+		irq_unlock(key);
+	}
 }
 
 /**
@@ -336,9 +341,12 @@ static int plic_init(const struct device *dev)
 	mem_addr_t prio_addr = config->prio;
 	mem_addr_t thres_prio_addr = get_threshold_priority_addr(dev);
 
-	/* Ensure that all interrupts are disabled initially */
-	for (uint32_t i = 0; i < get_plic_enabled_size(dev); i++) {
-		sys_write32(0U, en_addr + (i * sizeof(uint32_t)));
+	for (uint32_t ctx = 0; ctx < config->num_contexts; ctx++) {
+		/* Ensure that all interrupts are disabled initially */
+		for (uint32_t i = 0; i < get_plic_enabled_size(dev); i++) {
+			sys_write32(0U, en_addr + (ctx * PLIC_REG_IRQ_EN_SIZE) +
+						(i * sizeof(uint32_t)));
+		}
 	}
 
 	/* Set priority of each interrupt line to 0 initially */
@@ -346,8 +354,10 @@ static int plic_init(const struct device *dev)
 		sys_write32(0U, prio_addr + (i * sizeof(uint32_t)));
 	}
 
-	/* Set threshold priority to 0 */
-	sys_write32(0U, thres_prio_addr);
+	for (uint32_t ctx = 0; ctx < config->num_contexts; ctx++) {
+		/* Set threshold priority to 0 */
+		sys_write32(0U, thres_prio_addr + (ctx * PLIC_REG_REGS_SIZE));
+	}
 
 	/* Configure IRQ for PLIC driver */
 	config->irq_config_func();
@@ -497,6 +507,7 @@ SHELL_CMD_ARG_REGISTER(plic, &plic_cmds, "PLIC shell commands",
 		.trig = PLIC_BASE_ADDR(n) + PLIC_REG_TRIG_TYPE_OFFSET,                             \
 		.max_prio = DT_INST_PROP(n, riscv_max_priority),                                   \
 		.num_irqs = DT_INST_PROP(n, riscv_ndev),                                           \
+		.num_contexts = DT_NUM_IRQS(DT_DRV_INST(n)),                                       \
 		.irq_config_func = plic_irq_config_func_##n,                                       \
 	};                                                                                         \
 	PLIC_INTC_IRQ_FUNC_DEFINE(n)
