@@ -53,6 +53,10 @@ static ALWAYS_INLINE void arch_kernel_init(void)
 #ifdef CONFIG_RISCV_PMP
 	z_riscv_pmp_init();
 #endif
+#ifdef CONFIG_RISCV_SOC_HAS_CUSTOM_PER_CORE_INIT
+	void z_soc_per_core_init(void);
+	z_soc_per_core_init();
+#endif
 }
 
 static ALWAYS_INLINE void

@@ -28,6 +28,10 @@ extern void __start(void);
 void soc_interrupt_init(void);
 #endif
 
+#ifdef CONFIG_RISCV_SOC_HAS_CUSTOM_PER_CORE_INIT
+void z_soc_per_core_init(void);
+#endif
+
 void arch_cpu_start(int cpu_num, k_thread_stack_t *stack, int sz,
 		    arch_cpustart_t fn, void *arg)
 {
@@ -74,6 +78,9 @@ void arch_secondary_cpu_init(int hartid)
 #endif
 #ifdef CONFIG_SMP
 	irq_enable(RISCV_IRQ_MSOFT);
+#endif
+#ifdef CONFIG_RISCV_SOC_HAS_CUSTOM_PER_CORE_INIT
+	z_soc_per_core_init();
 #endif
 	riscv_cpu_init[cpu_num].fn(riscv_cpu_init[cpu_num].arg);
 }
