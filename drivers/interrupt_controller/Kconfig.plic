@@ -13,6 +13,13 @@ config PLIC
 
 if PLIC
 
+config PLIC_AFFINITY
+	bool "PLIC CPU affinity function"
+	depends on SMP
+	help
+	  Enable affinity function for the driver.
+	  Caution: This can use quite a bit of RAM (PLICs * IRQs * sizeof(uint32_t)).
+
 config PLIC_SHELL
 	bool "PLIC shell commands"
 	depends on SHELL

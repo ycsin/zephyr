@@ -73,7 +73,13 @@ struct plic_stats {
 };
 
 struct plic_data {
+#ifdef CONFIG_PLIC_SHELL
 	struct plic_stats stats;
+#endif /* CONFIG_PLIC_SHELL */
+
+#ifdef CONFIG_PLIC_AFFINITY
+	uint32_t *irq_cpumask;
+#endif /* CONFIG_PLIC_AFFINITY */
 };
 
 static uint32_t save_irq;
@@ -149,6 +155,7 @@ static void plic_irq_enable_set_state(uint32_t irq, bool enable)
 {
 	const struct device *dev = get_plic_dev_from_irq(irq);
 	const struct plic_config *config = dev->config;
+	__maybe_unused const struct plic_data *data = dev->data;
 	const uint32_t local_irq = irq_from_level_2(irq);
 	mem_addr_t en_addr = config->irq_en + local_irq_to_reg_offset(local_irq);
 	uint32_t en_value;
@@ -157,11 +164,34 @@ static void plic_irq_enable_set_state(uint32_t irq, bool enable)
 	for (uint32_t ctx = 0; ctx < config->num_contexts; ctx++) {
 		key = irq_lock();
 		en_value = sys_read32(en_addr + (ctx * PLIC_REG_IRQ_EN_SIZE));
+#ifdef CONFIG_PLIC_AFFINITY
+		if (enable) {
+			enable = !!(data->irq_cpumask[local_irq] & BIT(ctx));
+		}
+#endif /* CONFIG_PLIC_AFFINITY */
 		WRITE_BIT(en_value, local_irq & PLIC_REG_MASK, enable);
 		sys_write32(en_value, en_addr + (ctx * PLIC_REG_IRQ_EN_SIZE));
 		irq_unlock(key);
 	}
 }
+
+#ifdef CONFIG_PLIC_AFFINITY
+void riscv_plic_set_irq_affinity(uint32_t irq, uint32_t cpumask)
+{
+	const struct device *dev = get_plic_dev_from_irq(irq);
+	struct plic_data *data = dev->data;
+	const uint32_t local_irq = irq_from_level_2(irq);
+	uint32_t key;
+
+	key = irq_lock();
+	data->irq_cpumask[local_irq] = cpumask;
+	irq_unlock(key);
+
+	if (riscv_plic_irq_is_enabled(irq)) {
+		riscv_plic_irq_enable(irq);
+	}
+}
+#endif /* CONFIG_PLIC_AFFINITY */
 
 /**
  * @brief Enable a riscv PLIC-specific interrupt line
@@ -337,9 +367,15 @@ static void plic_irq_handler(const struct device *dev)
 static int plic_init(const struct device *dev)
 {
 	const struct plic_config *config = dev->config;
+	__maybe_unused struct plic_data *data = dev->data;
 	mem_addr_t en_addr = config->irq_en;
 	mem_addr_t prio_addr = config->prio;
 	mem_addr_t thres_prio_addr = get_threshold_priority_addr(dev);
+
+#ifdef CONFIG_PLIC_AFFINITY
+	memset(data->irq_cpumask, 0xff,
+	       sizeof(MIN(config->num_irqs, CONFIG_MAX_IRQ_PER_AGGREGATOR) * sizeof(uint32_t)));
+#endif /* CONFIG_PLIC_AFFINITY */
 
 	for (uint32_t ctx = 0; ctx < config->num_contexts; ctx++) {
 		/* Ensure that all interrupts are disabled initially */
@@ -475,19 +511,35 @@ SHELL_CMD_ARG_REGISTER(plic, &plic_cmds, "PLIC shell commands",
 	static uint16_t local_irq_count_##n[MIN(DT_INST_PROP(n, riscv_ndev),                       \
 					      CONFIG_MAX_IRQ_PER_AGGREGATOR)];
 
+#define PLIC_INTC_STATS_INIT(n)                                                                    \
+	.stats = {                                                                                 \
+		.irq_count = local_irq_count_##n,                                                  \
+	},
+#else
+#define PLIC_INTC_IRQ_COUNT_BUF_DEFINE(...)
+#define PLIC_INTC_STATS_INIT(...)
+#endif /* CONFIG_PLIC_SHELL */
+
+#ifdef CONFIG_PLIC_AFFINITY
+#define PLIC_INTC_IRQ_CPU_MASK_BUF_DEFINE(n)                                                       \
+	static uint32_t                                                                            \
+		cpumask_buf_##n[MIN(DT_INST_PROP(n, riscv_ndev), CONFIG_MAX_IRQ_PER_AGGREGATOR)];
+
+#define PLIC_INTC_IRQ_CPU_MASK_INIT(n) .irq_cpumask = cpumask_buf_##n,
+#else
+#define PLIC_INTC_IRQ_CPU_MASK_BUF_DEFINE(...)
+#define PLIC_INTC_IRQ_CPU_MASK_INIT(...)
+#endif /* CONFIG_PLIC_AFFINITY */
+
 #define PLIC_INTC_DATA_INIT(n)                                                                     \
 	PLIC_INTC_IRQ_COUNT_BUF_DEFINE(n);                                                         \
+	PLIC_INTC_IRQ_CPU_MASK_BUF_DEFINE(n);                                                      \
 	static struct plic_data plic_data_##n = {                                                  \
-		.stats = {                                                                         \
-			.irq_count = local_irq_count_##n,                                          \
-		},                                                                                 \
+		PLIC_INTC_STATS_INIT(n)                                                            \
+		PLIC_INTC_IRQ_CPU_MASK_INIT(n)                                                     \
 	};
-
+PLIC_INTC_IRQ_CPU_MASK_BUF_DEFINE(0)
 #define PLIC_INTC_DATA(n) &plic_data_##n
-#else
-#define PLIC_INTC_DATA_INIT(...)
-#define PLIC_INTC_DATA(n) (NULL)
-#endif
 
 #define PLIC_INTC_IRQ_FUNC_DECLARE(n) static void plic_irq_config_func_##n(void)
 

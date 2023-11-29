@@ -58,4 +58,12 @@ unsigned int riscv_plic_get_irq(void);
  */
 const struct device *riscv_plic_get_dev(void);
 
+/**
+ * @brief Set IRQ affinity
+ *
+ * @param irq Multi-level encoded interrupt ID
+ * @param cpumask CPU bit mask
+ */
+void riscv_plic_set_irq_affinity(uint32_t irq, uint32_t cpumask);
+
 #endif /* ZEPHYR_INCLUDE_DRIVERS_RISCV_PLIC_H_ */
