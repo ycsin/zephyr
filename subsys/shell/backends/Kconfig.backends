@@ -13,12 +13,14 @@ if SHELL_BACKENDS
 
 # Workaround for not being able to have commas in macro arguments
 DT_CHOSEN_Z_SHELL_UART := zephyr,shell-uart
+DT_CHOSEN_Z_SHELL_UARTS := zephyr,shell-uarts
 
 config SHELL_BACKEND_SERIAL
 	bool "Serial backend"
 	# Serial (UART) requires interrupts and the RTT backend cannot be used from an ISR context.
 	default n if SHELL_BACKEND_RTT
 	default "$(dt_chosen_enabled,$(DT_CHOSEN_Z_SHELL_UART))"
+	default "$(dt_chosen_enabled,$(DT_CHOSEN_Z_SHELL_UARTS))"
 	select SERIAL
 	select RING_BUFFER
 	help

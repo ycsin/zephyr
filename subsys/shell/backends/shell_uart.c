@@ -57,6 +57,8 @@ struct shell_uart_int_driven {
 	struct shell_uart_common common;
 	struct ring_buf tx_ringbuf;
 	struct ring_buf rx_ringbuf;
+	uint8_t *tx_buf;
+	uint8_t *rx_buf;
 	struct k_timer dtr_timer;
 	atomic_t tx_busy;
 };
@@ -66,21 +68,15 @@ struct shell_uart_async {
 	struct k_sem tx_sem;
 	struct uart_async_rx async_rx;
 	atomic_t pending_rx_req;
+	uint8_t *rx_data;
 };
 
 struct shell_uart_polling {
 	struct shell_uart_common common;
 	struct ring_buf rx_ringbuf;
+	uint8_t *rx_buf;
 	struct k_timer rx_timer;
 };
-
-static uint8_t __noinit async_rx_data[ASYNC_RX_BUF_SIZE];
-static uint8_t __noinit rx_ringbuf_data[CONFIG_SHELL_BACKEND_SERIAL_RX_RING_BUFFER_SIZE];
-static uint8_t __noinit tx_ringbuf_data[CONFIG_SHELL_BACKEND_SERIAL_TX_RING_BUFFER_SIZE];
-
-static struct shell_uart_int_driven shell_uart_i;
-static struct shell_uart_async shell_uart_a;
-static struct shell_uart_polling shell_uart_p;
 
 #ifdef CONFIG_MCUMGR_TRANSPORT_SHELL
 NET_BUF_POOL_DEFINE(smp_shell_rx_pool, CONFIG_MCUMGR_TRANSPORT_SHELL_RX_BUF_COUNT,
@@ -272,9 +268,9 @@ static void irq_init(struct shell_uart_int_driven *sh_uart)
 	const struct device *dev = sh_uart->common.dev;
 
 	ring_buf_init(&sh_uart->rx_ringbuf, CONFIG_SHELL_BACKEND_SERIAL_RX_RING_BUFFER_SIZE,
-		      rx_ringbuf_data);
+		      sh_uart->rx_buf);
 	ring_buf_init(&sh_uart->tx_ringbuf, CONFIG_SHELL_BACKEND_SERIAL_TX_RING_BUFFER_SIZE,
-		      tx_ringbuf_data);
+		      sh_uart->tx_buf);
 	sh_uart->tx_busy = 0;
 	uart_irq_callback_user_data_set(dev, uart_callback, (void *)sh_uart);
 	uart_irq_rx_enable(dev);
@@ -292,14 +288,16 @@ static int rx_enable(const struct device *dev, uint8_t *buf, size_t len)
 
 static void async_init(struct shell_uart_async *sh_uart)
 {
-	static const struct uart_async_rx_config async_rx_config = {
-		.buffer = async_rx_data,
-		.length = sizeof(async_rx_data),
-		.buf_cnt = CONFIG_SHELL_BACKEND_SERIAL_ASYNC_RX_BUFFER_COUNT
-	};
+	static struct uart_async_rx_config async_rx_config;
 	const struct device *dev = sh_uart->common.dev;
 	struct uart_async_rx *async_rx = &sh_uart->async_rx;
 	int err;
+
+	async_rx_config = (struct uart_async_rx_config){
+		.buffer = sh_uart->rx_data,
+		.length = ASYNC_RX_BUF_SIZE,
+		.buf_cnt = CONFIG_SHELL_BACKEND_SERIAL_ASYNC_RX_BUFFER_COUNT,
+	};
 
 	k_sem_init(&sh_uart->tx_sem, 0, 1);
 
@@ -339,7 +337,7 @@ static void polling_init(struct shell_uart_polling *sh_uart)
 	k_timer_start(&sh_uart->rx_timer, RX_POLL_PERIOD, RX_POLL_PERIOD);
 
 	ring_buf_init(&sh_uart->rx_ringbuf, CONFIG_SHELL_BACKEND_SERIAL_RX_RING_BUFFER_SIZE,
-		      rx_ringbuf_data);
+		      sh_uart->rx_buf);
 }
 
 static int init(const struct shell_transport *transport,
@@ -575,17 +573,71 @@ const struct shell_transport_api shell_uart_transport_api = {
 #endif /* CONFIG_MCUMGR_TRANSPORT_SHELL */
 };
 
-struct shell_transport shell_transport_uart = {
-	.api = &shell_uart_transport_api,
-	.ctx = IS_ENABLED(CONFIG_SHELL_BACKEND_SERIAL_API_POLLING) ? (void *)&shell_uart_p :
-		(IS_ENABLED(CONFIG_SHELL_BACKEND_SERIAL_API_ASYNC) ? (void *)&shell_uart_a :
-		 (void *)&shell_uart_i)
-};
+#define SHELL_UART_ASYNC_RX_DECLARE(n) static uint8_t __noinit async_rx_data##n[ASYNC_RX_BUF_SIZE];
+#define SHELL_UART_RX_RB_DATA_DECLARE(n)                                                           \
+	static uint8_t __noinit                                                                    \
+		rx_ringbuf_data##n[CONFIG_SHELL_BACKEND_SERIAL_RX_RING_BUFFER_SIZE];
+#define SHELL_UART_TX_RB_DATA_DECLARE(n)                                                           \
+	static uint8_t __noinit                                                                    \
+		tx_ringbuf_data##n[CONFIG_SHELL_BACKEND_SERIAL_TX_RING_BUFFER_SIZE];
 
-SHELL_DEFINE(shell_uart, CONFIG_SHELL_PROMPT_UART, &shell_transport_uart,
-	     CONFIG_SHELL_BACKEND_SERIAL_LOG_MESSAGE_QUEUE_SIZE,
-	     CONFIG_SHELL_BACKEND_SERIAL_LOG_MESSAGE_QUEUE_TIMEOUT,
-	     SHELL_FLAG_OLF_CRLF);
+#define SHELL_UART_POLL_INIT(n)                                                                    \
+	SHELL_UART_RX_RB_DATA_DECLARE(n);                                                          \
+	static struct shell_uart_polling shell_uart_buf##n = {                                     \
+		.rx_buf = rx_ringbuf_data##n,                                                      \
+	};
+
+#define SHELL_UART_IRQ_INIT(n)                                                                     \
+	SHELL_UART_RX_RB_DATA_DECLARE(n);                                                          \
+	SHELL_UART_TX_RB_DATA_DECLARE(n);                                                          \
+	static struct shell_uart_int_driven shell_uart_buf##n = {                                  \
+		.rx_buf = rx_ringbuf_data##n,                                                      \
+		.tx_buf = tx_ringbuf_data##n,                                                      \
+	};
+
+#define SHELL_UART_ASYNC_INIT(n)                                                                   \
+	SHELL_UART_ASYNC_RX_DECLARE(n);                                                            \
+	static struct shell_uart_async shell_uart_buf##n = {                                       \
+		.rx_data = async_rx_data##n,                                                       \
+	};
+
+#define SHELL_UART_TRANSPORT_INIT(n)                                                               \
+	struct shell_transport shell_transport_uart##n = {                                         \
+		.api = &shell_uart_transport_api,                                                  \
+		.ctx = (void *)&shell_uart_buf##n,                                                 \
+	};
+
+#define SBU_SHELL_DEFINE(n)                                                                        \
+	SHELL_DEFINE(shell_uart##n,                                                                \
+		     COND_CODE_0(IS_EMPTY(n), (STRINGIFY(n) "-"), ()) CONFIG_SHELL_PROMPT_UART,    \
+				 &shell_transport_uart##n,                                         \
+				 CONFIG_SHELL_BACKEND_SERIAL_LOG_MESSAGE_QUEUE_SIZE,               \
+				 CONFIG_SHELL_BACKEND_SERIAL_LOG_MESSAGE_QUEUE_TIMEOUT,            \
+				 SHELL_FLAG_OLF_CRLF);
+
+#ifdef CONFIG_SHELL_BACKEND_SERIAL_API_POLLING
+#define SBU_DEFINE(node_id, ...)                                                                   \
+	SHELL_UART_POLL_INIT(__VA_ARGS__);                                                         \
+	SHELL_UART_TRANSPORT_INIT(__VA_ARGS__);                                                    \
+	SBU_SHELL_DEFINE(__VA_ARGS__);
+#elif defined(CONFIG_SHELL_BACKEND_SERIAL_API_ASYNC)
+#define SBU_DEFINE(node_id, ...)                                                                   \
+	SHELL_UART_ASYNC_INIT(__VA_ARGS__);                                                        \
+	SHELL_UART_TRANSPORT_INIT(__VA_ARGS__);                                                    \
+	SBU_SHELL_DEFINE(__VA_ARGS__);
+#else
+#define SBU_DEFINE(node_id, ...)                                                                   \
+	SHELL_UART_IRQ_INIT(__VA_ARGS__);                                                          \
+	SHELL_UART_TRANSPORT_INIT(__VA_ARGS__);                                                    \
+	SBU_SHELL_DEFINE(__VA_ARGS__);
+#endif
+
+#if DT_HAS_CHOSEN(zephyr_shell_uarts)
+#define SBU_PHA_FN(node_id, prop, idx) SBU_DEFINE(DT_PHANDLE_BY_IDX(node_id, prop, idx), COND_CODE_0(idx, (), (idx)))
+DT_FOREACH_PROP_ELEM_SEP(DT_CHOSEN(zephyr_shell_uarts), uarts, SBU_PHA_FN, ());
+#else
+SBU_DEFINE(DT_CHOSEN(zephyr_shell_uart))
+#endif
 
 #ifdef CONFIG_MCUMGR_TRANSPORT_SHELL
 struct smp_shell_data *shell_uart_smp_shell_data_get_ptr(void)
@@ -596,9 +648,8 @@ struct smp_shell_data *shell_uart_smp_shell_data_get_ptr(void)
 }
 #endif
 
-static int enable_shell_uart(void)
+static int enable_shell_uart(const struct device *dev, const struct shell *sh)
 {
-	const struct device *const dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_shell_uart));
 	bool log_backend = CONFIG_SHELL_BACKEND_SERIAL_LOG_LEVEL > 0;
 	uint32_t level =
 		(CONFIG_SHELL_BACKEND_SERIAL_LOG_LEVEL > LOG_LEVEL_DBG) ?
@@ -614,12 +665,29 @@ static int enable_shell_uart(void)
 		smp_shell_init();
 	}
 
-	shell_init(&shell_uart, dev, cfg_flags, log_backend, level);
+	shell_init(sh, dev, cfg_flags, log_backend, level);
 
 	return 0;
 }
 
-SYS_INIT(enable_shell_uart, POST_KERNEL,
+#define SHELL_UART_INIT_FN(node_id, ...)                                                           \
+	enable_shell_uart(DEVICE_DT_GET(node_id), &shell_uart##__VA_ARGS__);
+
+#define SHELL_UART_INIT(node_id, prop, idx)                                                        \
+	COND_CODE_0(idx, (SHELL_UART_INIT_FN(DT_PHANDLE_BY_IDX(node_id, prop, idx))),              \
+		    (SHELL_UART_INIT_FN(DT_PHANDLE_BY_IDX(node_id, prop, idx), idx)))
+
+static int shell_uart_init(void)
+{
+#if DT_HAS_CHOSEN(zephyr_shell_uarts)
+	DT_FOREACH_PROP_ELEM_SEP(DT_CHOSEN(zephyr_shell_uarts), uarts, SHELL_UART_INIT, ());
+#else
+	enable_shell_uart(DEVICE_DT_GET(DT_CHOSEN(zephyr_shell_uart)), &shell_uart);
+#endif
+	return 0;
+}
+
+SYS_INIT(shell_uart_init, POST_KERNEL,
 	 CONFIG_SHELL_BACKEND_SERIAL_INIT_PRIORITY);
 
 const struct shell *shell_backend_uart_get_ptr(void)

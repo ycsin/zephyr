@@ -1,0 +1,16 @@
+# Copyright (c) 2023 Meta
+# SPDX-License-Identifier: Apache-2.0
+
+description: Shell UART Backend
+
+compatible: "zephyr,shell-uart"
+
+include: [base.yaml]
+
+properties:
+
+  uarts:
+    type: phandles
+    required: true
+    description: |
+      UART devices to be used by the UART shell backend.
