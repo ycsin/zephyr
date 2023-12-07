@@ -26,6 +26,33 @@ Build System
 * The deprecated ``prj_<board>.conf`` Kconfig file support has been removed, projects that use
   this should switch to using board Kconfig fragments instead (``boards/<board>.conf``).
 
+* Build time generated headers, such as the following:
+
+  .. list-table::
+     :header-rows: 1
+
+     * - Affected header files
+     * - ``version.h``
+     * - ``app_version.h``
+     * - ``core-isa-dM.h``
+     * - ``cmake_intdef.h``
+     * - ``driver-validation.h``
+     * - ``kobj-types-enum.h``
+     * - ``linker-kobject-prebuilt-data.h``
+     * - ``mcuboot_version.h``
+     * - ``offsets.h``
+     * - ``otype-to-size.h``
+     * - ``otype-to-str.h``
+     * - ``syscall_list.h``
+     * - ``strerror_table.h``
+     * - ``strsignal_table.h``
+     * - ``zsr.h``
+
+  and syscall headers are now namespaced into the ``zephyr/`` folder.
+  For the time being, :kconfig:option:`CONFIG_LEGACY_GENERATED_INCLUDE_PATH`, is enabled by
+  default so that downstream application will continue to compile, but it will be deprecated in the
+  future and developers are advised to update the include paths as soon as possible.
+
 Kernel
 ======
 
