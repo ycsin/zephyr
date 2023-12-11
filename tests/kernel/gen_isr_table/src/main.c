@@ -385,7 +385,7 @@ static void *gen_isr_table_setup(void)
 #ifdef CONFIG_MULTI_LEVEL_INTERRUPTS
 ZTEST(gen_isr_table, test_multi_level_bit_masks_sec)
 {
-#if CONFIG_1ST_LEVEL_INTERRUPT_BITS < 10 && CONFIG_2ND_LEVEL_INTERRUPT_BITS < 10
+#if CONFIG_1ST_LEVEL_INTERRUPT_BITS < 10 || CONFIG_2ND_LEVEL_INTERRUPT_BITS < 10
 	ztest_test_skip();
 #endif
 	/* 0x400 is an l2 interrupt */
@@ -422,7 +422,8 @@ ZTEST(gen_isr_table, test_multi_level_bit_masks_sec)
 #ifdef CONFIG_3RD_LEVEL_INTERRUPTS
 ZTEST(gen_isr_table, test_multi_level_bit_masks_thr)
 {
-#if CONFIG_2ND_LEVEL_INTERRUPT_BITS < 10 && CONFIG_3RD_LEVEL_INTERRUPT_BITS < 9
+#if CONFIG_1ST_LEVEL_INTERRUPT_BITS < 10 || CONFIG_2ND_LEVEL_INTERRUPT_BITS < 10 ||                \
+	CONFIG_3RD_LEVEL_INTERRUPT_BITS < 9
 	ztest_test_skip();
 # endif
 	/* 0x400 is an l2 interrupt */
