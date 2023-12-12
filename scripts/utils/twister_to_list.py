@@ -25,6 +25,7 @@ FIELDS = (
     "extra_sections",
     "platform_exclude",
     "platform_allow",
+    "simulation_exclude",
     "tags",
     "toolchain_exclude",
     "toolchain_allow"

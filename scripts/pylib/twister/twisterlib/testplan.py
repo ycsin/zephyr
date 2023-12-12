@@ -60,6 +60,8 @@ class Filters:
     TESTPLAN = 'testplan filter'
     # filters related to platform definition
     PLATFORM = 'Platform related filter'
+    # filters related to simulation definition
+    SIMULATION = 'Simulation related filter'
     # in case a test suite was quarantined.
     QUARENTINE = 'Quarantine filter'
     # in case a test suite is skipped intentionally .
@@ -605,6 +607,7 @@ class TestPlan:
         exclude_tag = self.options.exclude_tag
         all_filter = self.options.all
         runnable = (self.options.device_testing or self.options.filter == 'runnable')
+        device_testing = self.options.device_testing
         force_toolchain = self.options.force_toolchain
         force_platform = self.options.force_platform
         slow_only = self.options.enable_slow_only
@@ -755,6 +758,11 @@ class TestPlan:
 
                     if ts.platform_exclude and plat.name in ts.platform_exclude:
                         instance.add_filter("In test case platform exclude", Filters.TESTSUITE)
+
+                    if not device_testing \
+                            and ts.simulation_exclude \
+                            and plat.simulation in ts.simulation_exclude:
+                        instance.add_filter("In test case simulation exclude", Filters.SIMULATION)
 
                 if ts.toolchain_exclude and toolchain in ts.toolchain_exclude:
                     instance.add_filter("In test case toolchain exclude", Filters.TOOLCHAIN)

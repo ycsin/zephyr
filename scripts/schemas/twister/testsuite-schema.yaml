@@ -156,6 +156,9 @@ mapping:
         required: false
         sequence:
           - type: str
+      "simulation_exclude":
+        type: any
+        required: false
       "tags":
         type: any
         required: false
@@ -355,6 +358,9 @@ mapping:
             matching: "all"
             sequence:
               - type: str
+          "simulation_exclude":
+            type: any
+            required: false
           "tags":
             type: any
             required: false
