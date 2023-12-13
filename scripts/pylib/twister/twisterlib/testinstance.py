@@ -227,10 +227,12 @@ class TestInstance:
             target_ready = bool(filter == 'runnable' or self.platform.simulation in SUPPORTED_SIMS_IN_PYTEST)
 
         SUPPORTED_SIMS_WITH_EXEC = ['nsim', 'mdb-nsim', 'renode', 'tsim', 'native']
-        if filter != 'runnable' and \
-                self.platform.simulation in SUPPORTED_SIMS_WITH_EXEC and \
+        if filter != 'runnable':
+            if self.platform.simulation in SUPPORTED_SIMS_WITH_EXEC and \
                 self.platform.simulation_exec:
-            if not shutil.which(self.platform.simulation_exec):
+                if not shutil.which(self.platform.simulation_exec):
+                    target_ready = False
+            if self.testsuite.platform_type == ["mcu"]:
                 target_ready = False
 
         testsuite_runnable = self.testsuite_runnable(self.testsuite, fixtures)
