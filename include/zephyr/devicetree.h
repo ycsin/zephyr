@@ -2421,7 +2421,7 @@
 /* DT helper macro to check if the node has a grandparent interrupt controller */
 #define DT_HAS_GPARENT_INTC_INTERNAL(node_id)                                                      \
 	IF_ENABLED(DT_HAS_PARENT_INTC_INTERNAL(node_id),                                           \
-		   (DT_HAS_PARENT_INTC_INTERNAL(DT_PARENT_INTC_INTERNAL(node_id))))
+		   (DT_IS_INTC_INTERNAL(DT_PARENT_INTC_INTERNAL(node_id))))
 
 /**
  * DT helper macro to get the as-seen interrupt number in devicetree,

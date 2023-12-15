@@ -39,10 +39,22 @@ config 2ND_LVL_INTR_00_OFFSET
 config 2ND_LVL_INTR_01_OFFSET
 	default 4
 
+config NUM_3RD_LEVEL_AGGREGATORS
+	default 1
+
+config 3RD_LEVEL_INTERRUPTS
+	default y
+
+config 3RD_LEVEL_INTERRUPT_BITS
+	default 10
+
+config 3RD_LVL_INTR_00_OFFSET
+	default 11
+
 config MAX_IRQ_PER_AGGREGATOR
 	default 1023
 
 config NUM_IRQS
-	default 2058
+	default 3081
 
 endif # SOC_SERIES_RISCV32_VIRTUAL_RENODE

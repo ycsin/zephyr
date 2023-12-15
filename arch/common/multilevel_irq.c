@@ -180,3 +180,13 @@ unsigned int z_get_sw_isr_table_idx(unsigned int irq)
 
 	return table_idx;
 }
+
+// #define GET_DATA(node_id) DEVICE_DT_GET(node_id) , DT_IRQ_BY_IDX(node_id, 0, irq)
+// #define TEST(node_id) Z_IF_DT_IS_INTC(node_id, GET_DATA(node_id))
+
+// DT_FOREACH_CHILD_STATUS_OKAY(DT_PATH(soc), TEST);
+// DT_IRQN(DT_N_S_soc_S_interrupt_controller_4000000)
+// DT_HAS_PARENT_INTC_INTERNAL(DT_N_S_soc_S_interrupt_controller_4000000)
+// DT_HAS_GPARENT_INTC_INTERNAL(DT_N_S_soc_S_interrupt_controller_4000000)
+// DT_PARENT_INTC_INTERNAL(DT_N_S_soc_S_interrupt_controller_4000000)
+// DT_HAS_PARENT_INTC_INTERNAL(DT_N_S_soc_S_interrupt_controller_8000000)
