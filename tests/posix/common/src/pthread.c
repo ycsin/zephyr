@@ -189,7 +189,7 @@ int barrier_test_done(void)
 void *thread_top_term(void *p1)
 {
 	pthread_t self;
-	int oldstate, policy, ret;
+	int policy, ret;
 	int id = POINTER_TO_INT(p1);
 	struct sched_param param, getschedparam;
 
@@ -209,7 +209,7 @@ void *thread_top_term(void *p1)
 			getschedparam.sched_priority);
 
 	if (id % 2) {
-		ret = pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &oldstate);
+		ret = pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
 		zassert_false(ret, "Unable to set cancel state!");
 	}
 
@@ -503,7 +503,7 @@ ZTEST(posix_apis, test_pthread_errors_errno)
 ZTEST(posix_apis, test_pthread_termination)
 {
 	int32_t i, ret;
-	int oldstate, policy;
+	int policy;
 	pthread_attr_t attr[N_THR_T];
 	struct sched_param schedparam;
 	pthread_t newthread[N_THR_T];
@@ -539,7 +539,7 @@ ZTEST(posix_apis, test_pthread_termination)
 	}
 
 	/* TESTPOINT: Try setting invalid cancel state to current thread */
-	ret = pthread_setcancelstate(PTHREAD_CANCEL_INVALID, &oldstate);
+	ret = pthread_setcancelstate(PTHREAD_CANCEL_INVALID, NULL);
 	zassert_equal(ret, EINVAL, "invalid cancel state set!");
 
 	/* TESTPOINT: Try setting invalid policy */
