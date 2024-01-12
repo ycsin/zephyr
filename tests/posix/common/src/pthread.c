@@ -985,3 +985,74 @@ ZTEST(posix_apis, test_pthread_attr_large_stacksize)
 	zassert_equal(actual_size, expect_size);
 	zassert_ok(pthread_attr_destroy(&attr));
 }
+
+struct testcancel_cfg {
+	int cycles;
+	int cancelstate;
+};
+
+static void *test_pthread_cancel_fn(void *arg)
+{
+	struct testcancel_cfg *config = (struct testcancel_cfg *)arg;
+	int *cycles = &config->cycles;
+
+	/* Configure cancellation */
+	zassert_ok(pthread_setcancelstate(config->cancelstate, NULL));
+
+	while (--(*cycles) > 0) {
+		pthread_testcancel();
+		printk("Not cancelled, cycles left: %d\n", *cycles);
+		k_msleep(10);
+	}
+
+	return NULL;
+}
+
+ZTEST(posix_apis, test_pthread_testcancel)
+{
+	const int initial_cycles = 10;
+	struct testcancel_cfg config;
+	pthread_t th;
+
+	/*
+	 * Disallow the thread to be cancelled
+	 */
+	config.cancelstate = PTHREAD_CANCEL_DISABLE;
+	config.cycles = initial_cycles;
+
+	/* Create a thread that decrements `cycles` by 1 every 10ms until it reaches 0 */
+	zassert_ok(pthread_create(&th, NULL, test_pthread_cancel_fn, &config));
+
+	/* Let the thread to run for a while */
+	k_msleep(30); /* 3 cycles */
+
+	/* Then try to cancel the thread (will be ignored) */
+	printk("Try to cancel the thread\n");
+	zassert_ok(pthread_cancel(th));
+
+	/* This delay is long enough for the thread to finish if it wasn't cancelled */
+	k_msleep(500); /* 50 cycles */
+
+	/* Make sure that the thread is terminated */
+	zassert_ok(pthread_join(th, NULL));
+
+	/* Thread not cancelled, `cycles` decremented down to 0 */
+	zassert_equal(config.cycles, 0);
+
+	/*
+	 * Allow the thread to be cancelled
+	 */
+	config.cancelstate = PTHREAD_CANCEL_ENABLE;
+	config.cycles = initial_cycles;
+
+	/* Same as above */
+	zassert_ok(pthread_create(&th, NULL, test_pthread_cancel_fn, &config));
+	k_msleep(30);
+	printk("Try to cancel the thread\n");
+	zassert_ok(pthread_cancel(th));
+	k_msleep(500);
+	zassert_ok(pthread_join(th, NULL));
+
+	/* `cycles` will be decremented, but not down to 0 */
+	zassert_between_inclusive(config.cycles, 1, initial_cycles - 1);
+}
