@@ -21,8 +21,10 @@
 #define TEST_ARRAYS	DT_NODELABEL(test_arrays)
 #define TEST_PH	DT_NODELABEL(test_phandles)
 #define TEST_INTC	DT_NODELABEL(test_intc)
+#define TEST_INTC_3RD	DT_NODELABEL(test_intc_3rd)
 #define TEST_IRQ	DT_NODELABEL(test_irq)
 #define TEST_IRQ_EXT	DT_NODELABEL(test_irq_extended)
+#define TEST_IRQ_L3	DT_NODELABEL(test_irq_l3)
 #define TEST_TEMP	DT_NODELABEL(test_temp_sensor)
 #define TEST_REG	DT_NODELABEL(test_reg)
 #define TEST_VENDOR	DT_NODELABEL(test_vendor)
@@ -661,11 +663,16 @@ ZTEST(devicetree_api, test_irq)
 #ifndef CONFIG_MULTI_LEVEL_INTERRUPTS
 	zassert_equal(DT_IRQN(TEST_I2C_BUS), 6, "");
 	zassert_equal(DT_IRQN(DT_INST(0, DT_DRV_COMPAT)), 30, "");
+	zassert_equal(DT_IRQN(TEST_IRQ_L3), 40, "");
 #else
 	zassert_equal(DT_IRQN(TEST_I2C_BUS),
 			((6 + 1) << CONFIG_1ST_LEVEL_INTERRUPT_BITS) | 11, "");
 	zassert_equal(DT_IRQN(DT_INST(0, DT_DRV_COMPAT)),
 			((30 + 1) << CONFIG_1ST_LEVEL_INTERRUPT_BITS) | 11, "");
+	zassert_equal(
+		DT_IRQN(TEST_IRQ_L3),
+		((40 + 1) << (CONFIG_2ND_LEVEL_INTERRUPT_BITS + CONFIG_1ST_LEVEL_INTERRUPT_BITS)) |
+			((3 + 1) << CONFIG_1ST_LEVEL_INTERRUPT_BITS) | 11);
 #endif
 
 	/* DT_IRQN_BY_IDX */
@@ -683,7 +690,7 @@ ZTEST(devicetree_api, test_irq)
 #endif
 
 	/* DT_INST */
-	zassert_equal(DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT), 1, "");
+	zassert_equal(DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT), 2, "");
 
 	/* DT_INST_IRQ_HAS_IDX */
 	zassert_equal(DT_INST_IRQ_HAS_IDX(0, 0), 1, "");
@@ -758,6 +765,8 @@ ZTEST(devicetree_api, test_irq_level)
 	zassert_equal(DT_IRQ_LEVEL(TEST_TEMP), 0, "");
 	zassert_equal(DT_IRQ_LEVEL(TEST_INTC), 1, "");
 	zassert_equal(DT_IRQ_LEVEL(TEST_SPI), 2, "");
+	zassert_equal(DT_IRQ_LEVEL(TEST_INTC_3RD), 2, "");
+	zassert_equal(DT_IRQ_LEVEL(TEST_IRQ_L3), 3, "");
 
 	/* DT_IRQ_LEVEL */
 	#undef DT_DRV_COMPAT

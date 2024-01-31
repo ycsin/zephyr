@@ -440,6 +440,15 @@
 			interrupt-parent = <&test_cpu_intc>;
 		};
 
+		test_intc_3rd: interrupt-controller@bbbbdccc  {
+			compatible = "vnd,intc";
+			reg = <0xbbbbdccc 0x1000>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			interrupts = <3 0>;
+			interrupt-parent = <&test_intc>;
+		};
+
 		/* there should only be one of these */
 		test_irq: interrupt-holder {
 			compatible = "vnd,interrupt-holder";
@@ -447,6 +456,14 @@
 			interrupts = <30 3 40 5 60 7>;
 			interrupt-parent = <&test_intc>;
 			interrupt-names = "err", "stat", "done";
+		};
+
+		test_irq_l3: interrupt-holder-l3 {
+			compatible = "vnd,interrupt-holder";
+			status = "okay";
+			interrupts = <40 3>;
+			interrupt-parent = <&test_intc_3rd>;
+			interrupt-names = "err";
 		};
 
 		/* there should only be one of these */
