@@ -989,6 +989,7 @@ ZTEST(posix_apis, test_pthread_attr_large_stacksize)
 struct testcancel_cfg {
 	int cycles;
 	int cancelstate;
+	struct k_sem sem;
 };
 
 static void *test_pthread_cancel_fn(void *arg)
@@ -999,11 +1000,15 @@ static void *test_pthread_cancel_fn(void *arg)
 	/* Configure cancellation */
 	zassert_ok(pthread_setcancelstate(config->cancelstate, NULL));
 
-	while (--(*cycles) > 0) {
+	do {
+		k_sem_take(&config->sem, K_FOREVER);
 		pthread_testcancel();
-		printk("Not cancelled, cycles left: %d\n", *cycles);
-		k_msleep(10);
-	}
+		if (--(*cycles) > 0) {
+			printk("Not cancelled, cycles left: %d\n", *cycles);
+		} else {
+			break;
+		}
+	} while (true);
 
 	return NULL;
 }
@@ -1014,6 +1019,8 @@ ZTEST(posix_apis, test_pthread_testcancel)
 	struct testcancel_cfg config;
 	pthread_t th;
 
+	k_sem_init(&config.sem, 0, 1);
+
 	/*
 	 * Disallow the thread to be cancelled
 	 */
@@ -1023,15 +1030,25 @@ ZTEST(posix_apis, test_pthread_testcancel)
 	/* Create a thread that decrements `cycles` by 1 every 10ms until it reaches 0 */
 	zassert_ok(pthread_create(&th, NULL, test_pthread_cancel_fn, &config));
 
-	/* Let the thread to run for a while */
-	k_msleep(30); /* 3 cycles */
+	/* Let the thread to run */
+	k_sem_give(&config.sem);
+	k_msleep(10);
+	zassert_equal(config.cycles, 9);
 
 	/* Then try to cancel the thread (will be ignored) */
 	printk("Try to cancel the thread\n");
 	zassert_ok(pthread_cancel(th));
 
+	/* Let the thread to run */
+	k_sem_give(&config.sem);
+	k_msleep(10);
+	zassert_equal(config.cycles, 8);
+
 	/* This delay is long enough for the thread to finish if it wasn't cancelled */
-	k_msleep(500); /* 50 cycles */
+	for (int i = 0; i < 20; i++) {
+		k_sem_give(&config.sem);
+		k_msleep(10);
+	}
 
 	/* Make sure that the thread is terminated */
 	zassert_ok(pthread_join(th, NULL));
@@ -1042,17 +1059,30 @@ ZTEST(posix_apis, test_pthread_testcancel)
 	/*
 	 * Allow the thread to be cancelled
 	 */
+	k_sem_reset(&config.sem);
 	config.cancelstate = PTHREAD_CANCEL_ENABLE;
 	config.cycles = initial_cycles;
 
 	/* Same as above */
 	zassert_ok(pthread_create(&th, NULL, test_pthread_cancel_fn, &config));
-	k_msleep(30);
+
+	k_sem_give(&config.sem);
+	k_msleep(10);
+	zassert_equal(config.cycles, 9);
+
 	printk("Try to cancel the thread\n");
 	zassert_ok(pthread_cancel(th));
-	k_msleep(500);
+
+	k_sem_give(&config.sem);
+	k_msleep(10);
+	zassert_equal(config.cycles, 9);
+
+	for (int i = 0; i < 20; i++) {
+		k_sem_give(&config.sem);
+		k_msleep(10);
+	}
+
 	zassert_ok(pthread_join(th, NULL));
 
-	/* `cycles` will be decremented, but not down to 0 */
-	zassert_between_inclusive(config.cycles, 1, initial_cycles - 1);
+	zassert_equal(config.cycles, 9);
 }

@@ -591,7 +591,7 @@ void pthread_testcancel(void)
 {
 	struct posix_thread *t;
 	bool cancel_pending = false;
-	int state;
+	int state = PTHREAD_CANCEL_ENABLE;
 
 	t = to_posix_thread(pthread_self());
 	if (t == NULL) {
