@@ -6,7 +6,7 @@ if SOC_SERIES_ESP32C3
 config SOC_SERIES
 	default "esp32c3"
 
-config NUM_IRQS
+config DEFAULT_NUM_IRQS
 	default 62
 
 config ESPTOOLPY_FLASHFREQ_80M

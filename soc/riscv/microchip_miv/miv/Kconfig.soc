@@ -18,3 +18,10 @@ config SOC_MIV
 	select RISCV_ISA_EXT_ZIFENCEI
 
 endchoice
+
+if SOC_SERIES_MIV
+
+config SOC_NUM_IRQS
+	default 12
+
+endif

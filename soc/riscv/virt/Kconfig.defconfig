@@ -24,8 +24,8 @@ config 2ND_LVL_INTR_00_OFFSET
 config MAX_IRQ_PER_AGGREGATOR
 	default 52
 
-config NUM_IRQS
-	default 1035
+config DEFAULT_NUM_IRQS
+	default 64
 
 config PMP_SLOTS
 	default 16

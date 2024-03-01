@@ -16,4 +16,7 @@ config SOC_NRF54H20_ENGA_CPUPPR
 
 endchoice
 
+config SOC_NUM_IRQS
+	default 496
+
 endif # SOC_NRF54H20

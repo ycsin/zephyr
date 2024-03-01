@@ -218,7 +218,7 @@ config RISCV_RESERVED_IRQ_ISR_TABLES_OFFSET
 	  properly sized to take into account this offset. This is a hidden
 	  option which needs to be set per architecture and left alone.
 
-config NUM_IRQS
+config DEFAULT_NUM_IRQS
 	int
 
 config RV_BOOT_HART

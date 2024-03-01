@@ -23,7 +23,7 @@ config RISCV_SOC_INTERRUPT_INIT
 config RISCV_GP
 	default y
 
-config NUM_IRQS
+config DEFAULT_NUM_IRQS
 	default 87 if  NUCLEI_ECLIC
 	default 16 if !NUCLEI_ECLIC
 

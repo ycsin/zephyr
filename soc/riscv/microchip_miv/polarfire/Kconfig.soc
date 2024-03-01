@@ -24,7 +24,13 @@ config SOC_POLARFIRE
 
 endchoice
 
+if SOC_POLARFIRE
+
 config MPFS_HAL
-	depends on SOC_POLARFIRE
 	bool "Microchip Polarfire SOC hardware abstracton layer"
 	select HAS_MPFS_HAL
+
+config SOC_NUM_IRQS
+	default 0
+
+endif # SOC_POLARFIRE

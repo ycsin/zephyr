@@ -13,3 +13,10 @@ config SOC_EFINIX_SAPPHIRE
 	select RISCV
 	select RISCV_PRIVILEGED
 	select RISCV_HAS_PLIC
+
+if SOC_EFINIX_SAPPHIRE
+
+config SOC_NUM_IRQS
+	default 36
+
+endif # SOC_EFINIX_SAPPHIRE

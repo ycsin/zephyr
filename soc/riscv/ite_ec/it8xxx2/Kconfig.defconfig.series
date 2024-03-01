@@ -36,7 +36,7 @@ config VCMP_IT8XXX2_INIT_PRIORITY
 config PINCTRL
 	default y
 
-config NUM_IRQS
+config DEFAULT_NUM_IRQS
 	default 185
 
 config DYNAMIC_INTERRUPTS

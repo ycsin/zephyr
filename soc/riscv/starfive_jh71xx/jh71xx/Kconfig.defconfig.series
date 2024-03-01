@@ -21,7 +21,7 @@ config 2ND_LVL_ISR_TBL_OFFSET
 config 2ND_LVL_INTR_00_OFFSET
 	default 11
 
-config NUM_IRQS
+config DEFAULT_NUM_IRQS
 	default 139
 
 source "soc/riscv/starfive_jh71xx/jh71xx/Kconfig.defconfig.jh71*"

@@ -121,4 +121,7 @@ config SOC_ANDES_V5_IOCP
 		between cache and external non-caching master, such as DMA
 		controller.
 
+config SOC_NUM_IRQS
+	default 12
+
 endif # SOC_SERIES_ANDES_AE350

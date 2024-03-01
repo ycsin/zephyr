@@ -19,7 +19,7 @@ config RISCV_GP
 	bool
 	default y
 
-config NUM_IRQS
+config DEFAULT_NUM_IRQS
 	int
 	default 64
 

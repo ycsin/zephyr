@@ -9,7 +9,7 @@ config SOC
 	default "openisa_rv32m1"
 
 # 32 from event unit + 32 * (1 + max enabled INTMUX channel)
-config NUM_IRQS
+config DEFAULT_NUM_IRQS
 	default 288 if RV32M1_INTMUX_CHANNEL_7
 	default 256 if RV32M1_INTMUX_CHANNEL_6
 	default 224 if RV32M1_INTMUX_CHANNEL_5

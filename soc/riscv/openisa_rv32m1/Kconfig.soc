@@ -27,3 +27,11 @@ config SOC_OPENISA_RV32M1_RISCV32
 	  Enable support for OpenISA RV32M1 RISC-V processors. Choose
 	  this option to target the RI5CY or ZERO-RISCY core. This
 	  option should not be used to target either Arm core.
+
+if SOC_OPENISA_RV32M1_RISCV32
+
+# 32 from event unit
+config SOC_NUM_IRQS
+	default 32
+
+endif # SOC_OPENISA_RV32M1_RISCV32

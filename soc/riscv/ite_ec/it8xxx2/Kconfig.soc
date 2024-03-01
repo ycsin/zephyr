@@ -170,4 +170,7 @@ config ILM_MAX_SIZE
 	default 60 if SOC_IT81202_CX || SOC_IT81302_CX
 	default SRAM_SIZE
 
+config SOC_NUM_IRQS
+	default 185
+
 endif # SOC_IT8XXX2

@@ -11,3 +11,10 @@ config SOC_SERIES_SIFIVE_FREEDOM_E300
 	select SOC_FAMILY_SIFIVE_FREEDOM
 	help
 	  Enable support for SiFive Freedom FE300 SOC
+
+if SOC_SERIES_SIFIVE_FREEDOM_E300
+
+config SOC_NUM_IRQS
+	default 12
+
+endif # SOC_SERIES_SIFIVE_FREEDOM_E300

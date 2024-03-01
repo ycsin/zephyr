@@ -24,7 +24,7 @@ config 2ND_LVL_INTR_00_OFFSET
 config MAX_IRQ_PER_AGGREGATOR
 	default 52
 
-config NUM_IRQS
+config DEFAULT_NUM_IRQS
 	default 64
 
 source "soc/riscv/sifive_freedom/u500/Kconfig.defconfig.u*"

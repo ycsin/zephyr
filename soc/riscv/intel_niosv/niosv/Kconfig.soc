@@ -25,3 +25,10 @@ config SOC_NIOSV_G
 	select RISCV_ISA_EXT_ZIFENCEI
 
 endchoice
+
+if SOC_SERIES_NIOSV
+
+config SOC_NUM_IRQS # Platform interrupts IRQs index start from index 16
+	default 32
+
+endif

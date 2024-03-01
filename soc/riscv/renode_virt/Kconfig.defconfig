@@ -36,7 +36,7 @@ config 2ND_LVL_INTR_01_OFFSET
 config MAX_IRQ_PER_AGGREGATOR
 	default 1023
 
-config NUM_IRQS
+config DEFAULT_NUM_IRQS
 	default 2058
 
 endif # SOC_RISCV32_VIRTUAL_RENODE

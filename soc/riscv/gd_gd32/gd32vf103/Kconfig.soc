@@ -17,3 +17,11 @@ config SOC_GD32VF103
 	select RISCV_ISA_EXT_ZIFENCEI
 
 endchoice
+
+if SOC_SERIES_GD32VF103
+
+config SOC_NUM_IRQS
+	default 87 if  NUCLEI_ECLIC
+	default 16 if !NUCLEI_ECLIC
+
+endif

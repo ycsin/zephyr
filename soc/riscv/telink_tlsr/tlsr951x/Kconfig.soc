@@ -20,4 +20,8 @@ config TELINK_B91_PFT_ARCH
 	default y
 	select RISCV_SOC_CONTEXT_SAVE
 
+config SOC_NUM_IRQS
+	int
+	default 64
+
 endif # SOC_SERIES_TELINK_TLSR951X

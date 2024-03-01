@@ -46,8 +46,22 @@ extern "C" {
 #define RISCV_MCAUSE_IRQ_BIT          BIT(RISCV_MCAUSE_IRQ_POS)
 #endif
 
-#ifndef _ASMLANGUAGE
+#ifdef CONFIG_2ND_LEVEL_INTERRUPTS
+#ifdef CONFIG_3RD_LEVEL_INTERRUPTS
+#define CONFIG_NUM_IRQS                                                                            \
+	(CONFIG_SOC_NUM_IRQS +                                                                     \
+	 (CONFIG_NUM_2ND_LEVEL_AGGREGATORS + CONFIG_NUM_3RD_LEVEL_AGGREGATORS) *                   \
+		 CONFIG_MAX_IRQ_PER_AGGREGATOR)
+#else
+#define CONFIG_NUM_IRQS                                                                            \
+	(CONFIG_SOC_NUM_IRQS + (CONFIG_NUM_2ND_LEVEL_AGGREGATORS * CONFIG_MAX_IRQ_PER_AGGREGATOR))
+#endif /* CONFIG_3RD_LEVEL_INTERRUPTS */
+#else
+#define CONFIG_NUM_IRQS CONFIG_SOC_NUM_IRQS
+#endif /* CONFIG_2ND_LEVEL_INTERRUPTS */
 
+#ifndef _ASMLANGUAGE
+BUILD_ASSERT(CONFIG_NUM_IRQS == CONFIG_DEFAULT_NUM_IRQS);
 extern void arch_irq_enable(unsigned int irq);
 extern void arch_irq_disable(unsigned int irq);
 extern int arch_irq_is_enabled(unsigned int irq);

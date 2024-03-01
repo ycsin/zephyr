@@ -11,3 +11,10 @@ config SOC_RISCV_VIRT
 	select RISCV
 	select RISCV_PRIVILEGED
 	select RISCV_HAS_PLIC
+
+if SOC_RISCV_VIRT
+
+config SOC_NUM_IRQS
+	default 12
+
+endif # SOC_RISCV_VIRT
