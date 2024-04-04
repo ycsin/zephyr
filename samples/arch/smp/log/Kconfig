@@ -1,0 +1,4 @@
+config PIN_THREADS
+	bool ""
+
+source "Kconfig.zephyr"
