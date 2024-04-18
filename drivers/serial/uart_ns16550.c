@@ -55,6 +55,13 @@ BUILD_ASSERT(IS_ENABLED(CONFIG_PCIE), "NS16550(s) in DT need CONFIG_PCIE");
 /* Is UART module 'resets' line property defined */
 #define UART_NS16550_RESET_ENABLED DT_ANY_INST_HAS_PROP_STATUS_OKAY(resets)
 
+/*
+ * The Synopsys DesignWare 8250 has an extra feature whereby it detects if the
+ * LCR is written whilst busy.  If it is, then a busy detect interrupt is
+ * raised, the LCR needs to be rewritten and the uart status register read.
+ */
+#define UART_NS8250_ENABLED DT_HAS_COMPAT_STATUS_OKAY(snps_dw_apb_uart)
+
 #if UART_NS16550_RESET_ENABLED
 #include <zephyr/drivers/reset.h>
 #endif
@@ -97,6 +104,7 @@ BUILD_ASSERT(IS_ENABLED(CONFIG_PCIE), "NS16550(s) in DT need CONFIG_PCIE");
 #define REG_MDC 0x04  /* Modem control reg.             */
 #define REG_LSR 0x05  /* Line status reg.               */
 #define REG_MSR 0x06  /* Modem status reg.              */
+#define REG_USR 0x7C  /* UART status reg.               */
 #define REG_DLF 0xC0  /* Divisor Latch Fraction         */
 #define REG_PCP 0x200 /* PRV_CLOCK_PARAMS (Apollo Lake) */
 #define REG_MDR1 0x08 /* Mode control reg. (TI_K3) */
@@ -123,6 +131,7 @@ BUILD_ASSERT(IS_ENABLED(CONFIG_PCIE), "NS16550(s) in DT need CONFIG_PCIE");
 #define IIR_LS    0x06 /* receiver line status interrupt */
 #define IIR_MASK  0x07 /* interrupt id bits mask  */
 #define IIR_ID    0x06 /* interrupt ID mask without NIP */
+#define IIR_BUSY  0x07 /* DesignWare APB busy detect */
 #define IIR_FE    0xC0 /* FIFO mode enabled */
 #define IIR_CH    0x0C /* Character timeout*/
 
@@ -254,6 +263,7 @@ BUILD_ASSERT(IS_ENABLED(CONFIG_PCIE), "NS16550(s) in DT need CONFIG_PCIE");
 #define LSR(dev) (get_port(dev) + REG_LSR * reg_interval(dev))
 #define MSR(dev) (get_port(dev) + REG_MSR * reg_interval(dev))
 #define MDR1(dev) (get_port(dev) + REG_MDR1 * reg_interval(dev))
+#define USR(dev) (get_port(dev) + REG_USR)
 #define DLF(dev) (get_port(dev) + REG_DLF)
 #define PCP(dev) (get_port(dev) + REG_PCP)
 
@@ -345,11 +355,14 @@ struct uart_ns16550_device_config {
 #if defined(CONFIG_PINCTRL)
 	const struct pinctrl_dev_config *pincfg;
 #endif
+#if UART_NS16550_RESET_ENABLED
+	struct reset_dt_spec reset_spec;
+#endif
 #if UART_NS16550_IOPORT_ENABLED
 	bool io_map;
 #endif
-#if UART_NS16550_RESET_ENABLED
-	struct reset_dt_spec reset_spec;
+#if UART_NS8250_ENABLED
+	bool ns8250_compatible;
 #endif
 };
 
@@ -428,8 +441,8 @@ static uint8_t ns16550_inbyte(const struct uart_ns16550_device_config *cfg,
 }
 
 #if (defined(CONFIG_UART_NS16550_INTEL_LPSS_DMA) & (defined(CONFIG_UART_ASYNC_API)))\
-	| UART_NS16550_PCP_ENABLED
-static void ns16550_outword(const struct uart_ns16550_device_config *cfg,
+	| UART_NS16550_PCP_ENABLED | UART_NS8250_ENABLED
+static __maybe_unused void ns16550_outword(const struct uart_ns16550_device_config *cfg,
 			    uintptr_t port, uint32_t val)
 {
 #if UART_NS16550_IOPORT_ENABLED
@@ -1267,14 +1280,20 @@ static void uart_ns16550_irq_callback_set(const struct device *dev,
 static void uart_ns16550_isr(const struct device *dev)
 {
 	struct uart_ns16550_dev_data * const dev_data = dev->data;
+	const struct uart_ns16550_device_config * const config = dev->config;
+#if UART_NS8250_ENABLED | IS_ENABLED(CONFIG_UART_ASYNC_API)
+	uint8_t IIR_status = ns16550_inbyte(config, IIR(dev));
+#endif
 
 	if (dev_data->cb) {
 		dev_data->cb(dev, dev_data->cb_data);
+#if UART_NS8250_ENABLED
+	} else if (config->ns8250_compatible && (IIR_status & IIR_MASK) == IIR_BUSY) {
+		ns16550_inword(config, USR(dev));
+#endif
 	}
 #if (IS_ENABLED(CONFIG_UART_ASYNC_API))
 	if (dev_data->async.tx_dma_params.dma_dev != NULL) {
-		const struct uart_ns16550_device_config * const config = dev->config;
-		uint8_t IIR_status = ns16550_inbyte(config, IIR(dev));
 #if (IS_ENABLED(CONFIG_UART_NS16550_INTEL_LPSS_DMA))
 		uint32_t dma_status = ns16550_inword(config, SRC_TRAN(dev));
 
@@ -1928,7 +1947,10 @@ static const struct uart_driver_api uart_ns16550_driver_api = {
 		IF_ENABLED(CONFIG_PINCTRL,                                           \
 			(.pincfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n),))              \
 		IF_ENABLED(DT_INST_NODE_HAS_PROP(n, resets),                         \
-			(.reset_spec = RESET_DT_SPEC_INST_GET(n),))
+			(.reset_spec = RESET_DT_SPEC_INST_GET(n),))                  \
+		IF_ENABLED(UART_NS8250_ENABLED,                                      \
+			(.ns8250_compatible =                                        \
+				DT_INST_NODE_HAS_COMPAT(n, snps_dw_apb_uart),))
 
 #define UART_NS16550_COMMON_DEV_DATA_INITIALIZER(n)                                  \
 		.uart_config.baudrate = DT_INST_PROP_OR(n, current_speed, 0),        \

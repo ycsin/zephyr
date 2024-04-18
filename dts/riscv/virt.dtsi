@@ -29,7 +29,7 @@
 		interrupt-parent = < &plic >;
 		clock-frequency = < 0x384000 >;
 		reg = < 0x10000000 0x100 >;
-		compatible = "ns16550";
+		compatible = "ns16550", "snps,dw-apb-uart";
 		reg-shift = < 0 >;
 	};
 
