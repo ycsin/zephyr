@@ -16,6 +16,14 @@
 extern "C" {
 #endif
 
+struct fd_entry {
+	void *obj;
+	const struct fd_op_vtable *vtable;
+	atomic_t refcount;
+	struct k_mutex lock;
+	struct k_condvar cond;
+};
+
 /**
  * File descriptor virtual method table.
  * Currently all operations beyond read/write/close go thru ioctl method.
@@ -106,6 +114,23 @@ void *z_get_fd_obj(int fd, const struct fd_op_vtable *vtable, int err);
  */
 void *z_get_fd_obj_and_vtable(int fd, const struct fd_op_vtable **vtable,
 			      struct k_mutex **lock);
+
+/**
+ * @brief Get the file descriptor from an underlying object pointer and vtable pointer.
+ *
+ * @details This function is useful for functions other than read/write/ioctl
+ * to look up fd by underlying I/O object, optionally checking its
+ * type (using vtable reference). If object refers to invalid entry,
+ * NULL will be returned with errno set to EBADF. If object is valid,
+ * but vtable param is not NULL and doesn't match fd's vtable,
+ * NULL is returned and errno set to err param.
+ *
+ * @param obj Object previously returned by a call to e.g. @ref z_get_fd_obj.
+ * @param vtable Expected object vtable or NULL
+ *
+ * @return File descriptor or -1, with errno set
+ */
+int z_get_fd_by_obj_and_vtable(void *obj, const struct fd_op_vtable *vtable);
 
 /**
  * @brief Get the mutex and condition variable associated with the given object and vtable.

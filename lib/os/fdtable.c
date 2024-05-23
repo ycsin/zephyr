@@ -23,14 +23,6 @@
 #include <zephyr/internal/syscall_handler.h>
 #include <zephyr/sys/atomic.h>
 
-struct fd_entry {
-	void *obj;
-	const struct fd_op_vtable *vtable;
-	atomic_t refcount;
-	struct k_mutex lock;
-	struct k_condvar cond;
-};
-
 #ifdef CONFIG_POSIX_API
 static const struct fd_op_vtable stdinout_fd_op_vtable;
 #endif
@@ -174,12 +166,13 @@ void *z_get_fd_obj(int fd, const struct fd_op_vtable *vtable, int err)
 	return entry->obj;
 }
 
-static int z_get_fd_by_obj_and_vtable(void *obj, const struct fd_op_vtable *vtable)
+int z_get_fd_by_obj_and_vtable(void *obj, const struct fd_op_vtable *vtable)
 {
 	int fd;
 
 	for (fd = 0; fd < ARRAY_SIZE(fdtable); fd++) {
-		if (fdtable[fd].obj == obj && fdtable[fd].vtable == vtable) {
+		if ((fdtable[fd].obj == obj) &&
+		    ((vtable == NULL) || (fdtable[fd].vtable == vtable))) {
 			return fd;
 		}
 	}
