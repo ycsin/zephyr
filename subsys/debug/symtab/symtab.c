@@ -19,7 +19,7 @@ const char *const symtab_find_symbol_name(uintptr_t addr, uint32_t *offset)
 {
 	const struct symtab_info *const symtab = symtab_get();
 	const uint32_t symbol_offset = addr - symtab->start_addr;
-	uint32_t left = 0, right = symtab->length - 1;
+	uint32_t left = 0, right = symtab->length;
 	uint32_t ret_offset = 0;
 	const char *ret_name = "?";
 
