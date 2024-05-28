@@ -1,0 +1,24 @@
+# Symtab configuration options
+
+# Copyright (c) 2024 Meta Platforms
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig SYMTAB
+	bool "Generate symbol table"
+	help
+	  Generate the symbol table with the offset and name of every
+	  function.
+	  The symbol table can be accessed by including the
+	  <zephyr/debug/symtab.h> header.
+
+	  Choose N if you have no idea what is this.
+
+if SYMTAB
+
+config SYMTAB_SHELL
+	bool "Symtab shell commands"
+	depends on SHELL
+	help
+	  Enable shell commands for symtab.
+
+endif # SYMTAB
