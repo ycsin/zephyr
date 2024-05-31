@@ -86,15 +86,48 @@ static inline bool in_text_region(uintptr_t addr)
 }
 
 #ifdef CONFIG_FRAME_POINTER
-void z_riscv_unwind_stack(const z_arch_esf_t *esf)
+static inline bool fp_is_valid(unsigned long fp, unsigned long sp)
 {
-	uintptr_t fp = esf->s0;
+	unsigned long low, high, size;
+
+	if (_current == NULL || arch_is_in_isr()) {
+		size = CONFIG_ISR_STACK_SIZE;
+#ifdef CONFIG_USERSPACE
+	} else if (((esf->mstatus & MSTATUS_MPP) == PRV_U) &&
+		   ((_current->base.user_options & K_USER) != 0)) {
+		size = CONFIG_PRIVILEGED_STACK_SIZE;
+#endif /* CONFIG_USERSPACE */
+	} else {
+		size = _current->stack_info.size;
+	}
+
+	low = sp + sizeof(struct stackframe);
+	high = ROUND_UP(sp, size);
+
+	return !(fp < low || fp > high);
+}
+
+void z_riscv_unwind_stack(const z_arch_esf_t *esf, const _callee_saved_t *csf)
+{
+	uintptr_t sp;
+	uintptr_t fp;
 	uintptr_t ra;
 	struct stackframe *frame;
 
+	if (esf != NULL) {
+		fp = esf->s0;
+		sp = z_riscv_get_sp_before_exc(esf);
+	} else if ((csf == NULL) || csf == &k_current_get()->callee_saved) {
+		fp = (uintptr_t)__builtin_frame_address(0);
+		sp = k_current_get()->callee_saved.sp;
+	} else {
+		return;
+	}
+
 	LOG_ERR("call trace:");
 
-	for (int i = 0; (i < MAX_STACK_FRAMES) && (fp != 0U) && in_stack_bound(fp, esf);) {
+	for (int i = 0; (i < MAX_STACK_FRAMES) && (fp != 0U) && in_stack_bound(fp, esf) &&
+			fp_is_valid(fp, sp);) {
 		frame = (struct stackframe *)fp - 1;
 		ra = frame->ra;
 		if (in_text_region(ra)) {
@@ -115,11 +148,21 @@ void z_riscv_unwind_stack(const z_arch_esf_t *esf)
 	LOG_ERR("");
 }
 #else /* !CONFIG_FRAME_POINTER */
-void z_riscv_unwind_stack(const z_arch_esf_t *esf)
+void z_riscv_unwind_stack(const z_arch_esf_t *esf, const _callee_saved_t *csf)
 {
-	uintptr_t sp = z_riscv_get_sp_before_exc(esf);
+	uintptr_t sp;
 	uintptr_t ra;
-	uintptr_t *ksp = (uintptr_t *)sp;
+	uintptr_t *ksp;
+
+	if (esf != NULL) {
+		sp = z_riscv_get_sp_before_exc(esf);
+		ksp = (uintptr_t *)sp;
+	} else if ((csf == NULL) || csf == &k_current_get()->callee_saved) {
+		sp = k_current_get()->callee_saved.sp;
+		ksp = (uintptr_t *)sp;
+	} else {
+		return;
+	}
 
 	LOG_ERR("call trace:");
 
