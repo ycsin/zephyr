@@ -27,19 +27,11 @@ struct stackframe {
 	uintptr_t ra;
 };
 
-#ifdef CONFIG_FRAME_POINTER
-#define SFP_FMT "fp: "
-#else
-#define SFP_FMT "sp: "
-#endif
-
 #ifdef CONFIG_EXCEPTION_STACK_TRACE_SYMTAB
-#define LOG_STACK_TRACE(idx, sfp, ra, name, offset)                                                \
-	LOG_ERR("     %2d: " SFP_FMT PR_REG "   ra: " PR_REG " [%s+0x%x]", idx, sfp, ra, name,     \
-		offset)
+#define LOG_STACK_TRACE(idx, ra, name, offset)                                                     \
+	LOG_ERR("     %2d: ra: " PR_REG " [%s+0x%x]", idx, ra, name, offset)
 #else
-#define LOG_STACK_TRACE(idx, sfp, ra, name, offset)                                                \
-	LOG_ERR("     %2d: " SFP_FMT PR_REG "   ra: " PR_REG, idx, sfp, ra)
+#define LOG_STACK_TRACE(idx, ra, name, offset) LOG_ERR("     %2d: ra: " PR_REG, idx, ra)
 #endif
 
 static bool in_stack_bound(uintptr_t addr, const z_arch_esf_t *esf)
@@ -86,7 +78,7 @@ static inline bool in_text_region(uintptr_t addr)
 }
 
 #ifdef CONFIG_FRAME_POINTER
-void z_riscv_unwind_stack(const z_arch_esf_t *esf)
+static void walk_stackframe(const z_arch_esf_t *esf, bool (*fn)(void *, unsigned long), void *arg)
 {
 	uintptr_t fp = esf->s0;
 	uintptr_t ra;
@@ -97,12 +89,7 @@ void z_riscv_unwind_stack(const z_arch_esf_t *esf)
 	for (int i = 0; (i < MAX_STACK_FRAMES) && (fp != 0U) && in_stack_bound(fp, esf);) {
 		frame = (struct stackframe *)fp - 1;
 		ra = frame->ra;
-		if (in_text_region(ra)) {
-#ifdef CONFIG_EXCEPTION_STACK_TRACE_SYMTAB
-			uint32_t offset = 0;
-			const char *name = symtab_find_symbol_name(ra, &offset);
-#endif
-			LOG_STACK_TRACE(i, fp, ra, name, offset);
+		if (in_text_region(ra) && fn(arg, ra)) {
 			/*
 			 * Increment the iterator only if `ra` is within the text region to get the
 			 * most out of it
@@ -115,7 +102,7 @@ void z_riscv_unwind_stack(const z_arch_esf_t *esf)
 	LOG_ERR("");
 }
 #else /* !CONFIG_FRAME_POINTER */
-void z_riscv_unwind_stack(const z_arch_esf_t *esf)
+static void walk_stackframe(const z_arch_esf_t *esf, bool (*fn)(void *, unsigned long), void *arg)
 {
 	uintptr_t sp = z_riscv_get_sp_before_exc(esf);
 	uintptr_t ra;
@@ -127,12 +114,7 @@ void z_riscv_unwind_stack(const z_arch_esf_t *esf)
 			in_stack_bound((uintptr_t)ksp, esf);
 	     ksp++) {
 		ra = *ksp;
-		if (in_text_region(ra)) {
-#ifdef CONFIG_EXCEPTION_STACK_TRACE_SYMTAB
-			uint32_t offset = 0;
-			const char *name = symtab_find_symbol_name(ra, &offset);
-#endif
-			LOG_STACK_TRACE(i, (uintptr_t)ksp, ra, name, offset);
+		if (in_text_region(ra) && fn(arg, ra)) {
 			/*
 			 * Increment the iterator only if `ra` is within the text region to get the
 			 * most out of it
@@ -144,3 +126,28 @@ void z_riscv_unwind_stack(const z_arch_esf_t *esf)
 	LOG_ERR("");
 }
 #endif /* CONFIG_FRAME_POINTER */
+
+static bool print_trace_address(void *arg, unsigned long ra)
+{
+	int *i = arg;
+#ifdef CONFIG_EXCEPTION_STACK_TRACE_SYMTAB
+	uint32_t offset = 0;
+	const char *name = symtab_find_symbol_name(ra, &offset);
+#endif
+
+	LOG_STACK_TRACE((*i)++, ra, name, offset);
+
+	return true;
+}
+
+void arch_stack_walk(stack_trace_consume_fn consume_entry, void *cookie, const z_arch_esf_t *esf)
+{
+	walk_stackframe(esf, consume_entry, cookie);
+}
+
+void z_riscv_unwind_stack(const z_arch_esf_t *esf)
+{
+	int i = 0;
+
+	arch_stack_walk(print_trace_address, &i, esf);
+}

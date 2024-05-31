@@ -1240,6 +1240,19 @@ bool arch_pcie_msi_vector_connect(msi_vector_t *vector,
  */
 void arch_spin_relax(void);
 
+#include <zephyr/arch/riscv/exception.h>
+/**
+ * stack_trace_consume_fn - Callback for arch_stack_walk()
+ * @cookie:	Caller supplied pointer handed back by arch_stack_walk()
+ * @addr:	The stack entry address to consume
+ *
+ * Return:	True, if the entry was consumed or skipped
+ *		False, if there is no space left to store
+ */
+typedef bool (*stack_trace_consume_fn)(void *cookie, unsigned long addr);
+void arch_stack_walk(stack_trace_consume_fn consume_entry, void *cookie,
+		     const z_arch_esf_t *esf);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
