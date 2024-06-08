@@ -196,7 +196,29 @@ static void esf_dump(const struct arch_esf *esf)
 }
 
 #ifdef CONFIG_EXCEPTION_STACK_TRACE
-static void esf_unwind(const struct arch_esf *esf)
+#define MAX_STACK_FRAMES                                                                           \
+	MAX(CONFIG_EXCEPTION_STACK_TRACE_MAX_FRAMES, CONFIG_ARCH_STACKWALK_MAX_FRAMES)
+
+static bool print_trace_address(void *arg, unsigned long lr)
+{
+	int *i = arg;
+
+#ifdef CONFIG_SYMTAB
+		uint32_t offset = 0;
+		const char *name = symtab_find_symbol_name(lr, &offset);
+
+		LOG_ERR("backtrace %2d: lr: 0x%016lx [%s+0x%x]",
+			 (*i)++, lr, name, offset);
+#else
+		LOG_ERR("backtrace %2d: lr: 0x%016lx",
+			 (*i)++, lr);
+#endif
+
+	return true;
+}
+
+static void walk_stackframe(const _callee_saved_t *csf, const struct arch_esf *esf,
+			    bool (*fn)(void *, unsigned long), void *arg)
 {
 	/*
 	 * For GCC:
@@ -218,26 +240,23 @@ static void esf_unwind(const struct arch_esf *esf)
 	 *  +  +-----------------+
 	 */
 
+	ARG_UNUSED(csf);
 	uint64_t *fp = (uint64_t *) esf->fp;
-	unsigned int count = 0;
 	uint64_t lr;
 
-	LOG_ERR("");
-	for (int i = 0; (fp != NULL) && (i < CONFIG_EXCEPTION_STACK_TRACE_MAX_FRAMES); i++) {
+	for (int i = 0; (fp != NULL) && (i < MAX_STACK_FRAMES); i++) {
 		lr = fp[1];
-#ifdef CONFIG_SYMTAB
-		uint32_t offset = 0;
-		const char *name = symtab_find_symbol_name(lr, &offset);
-
-		LOG_ERR("backtrace %2d: fp: 0x%016llx lr: 0x%016llx [%s+0x%x]",
-			 count++, (uint64_t) fp, lr, name, offset);
-#else
-		LOG_ERR("backtrace %2d: fp: 0x%016llx lr: 0x%016llx",
-			 count++, (uint64_t) fp, lr);
-#endif
+		if (!fn(arg, lr)) {
+			break;
+		}
 		fp = (uint64_t *) fp[0];
 	}
-	LOG_ERR("");
+}
+
+void arch_stack_walk(stack_trace_callback_fn callback_fn, void *cookie,
+		     const struct k_thread *thread, const struct arch_esf *esf)
+{
+	walk_stackframe(&thread->callee_saved, esf, callback_fn, cookie);
 }
 #endif
 
@@ -364,7 +383,11 @@ void z_arm64_fatal_error(unsigned int reason, struct arch_esf *esf)
 	}
 
 #ifdef CONFIG_EXCEPTION_STACK_TRACE
-	esf_unwind(esf);
+	int i = 0;
+
+	LOG_ERR("");
+	arch_stack_walk(print_trace_address, &i, NULL, esf);
+	LOG_ERR("");
 #endif /* CONFIG_EXCEPTION_STACK_TRACE */
 #endif /* CONFIG_EXCEPTION_DEBUG */
 
