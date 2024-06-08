@@ -91,6 +91,8 @@ struct arch_esf {
 typedef struct soc_esf soc_esf_t;
 #endif
 
+#define stack_pointer_before_interrupt (*(uintptr_t *)((uintptr_t)_current_cpu->irq_stack - 16))
+
 #ifdef __cplusplus
 }
 #endif
