@@ -140,13 +140,29 @@ struct stack_frame {
 #endif
 };
 
-#define MAX_STACK_FRAMES CONFIG_EXCEPTION_STACK_TRACE_MAX_FRAMES
+#define MAX_STACK_FRAMES                                                                           \
+	MAX(CONFIG_EXCEPTION_STACK_TRACE_MAX_FRAMES, CONFIG_ARCH_STACKWALK_MAX_FRAMES)
 
-__pinned_func
-static void unwind_stack(uintptr_t base_ptr, uint16_t cs)
+static bool print_trace_address(void *arg, unsigned long addr)
 {
+#ifdef CONFIG_X86_64
+		ARG_UNUSED(arg);
+		LOG_ERR("     0x%016lx", addr);
+#else
+		LOG_ERR("     0x%08lx (%p)", addr, arg);
+#endif
+
+	return true;
+}
+
+__pinned_func static void walk_stackframe(bool validate_bound, const _callee_saved_t *csf,
+					  const struct arch_esf *esf,
+					  bool (*fn)(void *, unsigned long), void *arg)
+{
+	ARG_UNUSED(csf);
 	struct stack_frame *frame;
 	int i;
+	uintptr_t base_ptr = COND_CODE_1(CONFIG_X86_64, (esf->rbp), (esf->ebp));
 
 	if (base_ptr == 0U) {
 		LOG_ERR("NULL base ptr");
@@ -168,8 +184,8 @@ static void unwind_stack(uintptr_t base_ptr, uint16_t cs)
 		/* Ensure the stack frame is within the faulting context's
 		 * stack buffer
 		 */
-		if (z_x86_check_stack_bounds((uintptr_t)frame,
-					     sizeof(*frame), cs)) {
+		if (validate_bound &&
+		    z_x86_check_stack_bounds((uintptr_t)frame, sizeof(*frame), esf->cs)) {
 			LOG_ERR("     corrupted? (bp=%p)", frame);
 			break;
 		}
@@ -178,13 +194,18 @@ static void unwind_stack(uintptr_t base_ptr, uint16_t cs)
 		if (frame->ret_addr == 0U) {
 			break;
 		}
-#ifdef CONFIG_X86_64
-		LOG_ERR("     0x%016lx", frame->ret_addr);
-#else
-		LOG_ERR("     0x%08lx (0x%lx)", frame->ret_addr, frame->args);
-#endif
+		if (!fn(COND_CODE_1(CONFIG_X86_64, (NULL), ((void *)frame->args)),
+			frame->ret_addr)) {
+			break;
+		}
 		base_ptr = frame->next;
 	}
+}
+
+void arch_stack_walk(stack_trace_callback_fn callback_fn, void *cookie,
+		     const struct k_thread *thread, const struct arch_esf *esf)
+{
+	walk_stackframe(false, &thread->callee_saved, esf, callback_fn, cookie);
 }
 #endif /* CONFIG_EXCEPTION_STACK_TRACE */
 
@@ -231,7 +252,7 @@ static void dump_regs(const struct arch_esf *esf)
 #endif
 	LOG_ERR("RIP: 0x%016lx", esf->rip);
 #ifdef CONFIG_EXCEPTION_STACK_TRACE
-	unwind_stack(esf->rbp, esf->cs);
+	walk_stackframe(true, NULL, esf, print_trace_address, NULL);
 #endif
 }
 #else /* 32-bit */
@@ -250,7 +271,7 @@ static void dump_regs(const struct arch_esf *esf)
 #endif
 	LOG_ERR("EIP: 0x%08x", esf->eip);
 #ifdef CONFIG_EXCEPTION_STACK_TRACE
-	unwind_stack(esf->ebp, esf->cs);
+	walk_stackframe(true, NULL, esf, print_trace_address, NULL);
 #endif
 }
 #endif /* CONFIG_X86_64 */
