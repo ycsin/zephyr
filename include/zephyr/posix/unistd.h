@@ -8,6 +8,8 @@
 
 #include "posix_types.h"
 
+#include <sys/features.h>
+
 #ifdef CONFIG_POSIX_API
 #include <zephyr/fs/fs.h>
 #endif
@@ -19,8 +21,6 @@
 #include <zephyr/posix/sys/confstr.h>
 #include <zephyr/posix/sys/stat.h>
 #include <zephyr/posix/sys/sysconf.h>
-
-#include "posix_features.h"
 
 #ifdef __cplusplus
 extern "C" {
