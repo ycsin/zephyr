@@ -10,8 +10,10 @@
 
 #ifdef CONFIG_POSIX_API
 #include <signal.h>
+#include <unistd.h>
 #else
 #include <zephyr/posix/signal.h>
+#include <zephyr/posix/unistd.h>
 #endif
 
 /**

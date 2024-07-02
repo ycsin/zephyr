@@ -37,6 +37,7 @@ extern "C" {
  *
  * Initialize a condition variable with the default condition variable attributes.
  */
+#define _PTHREAD_COND_INITIALIZER (-1)
 #define PTHREAD_COND_INITIALIZER _PTHREAD_COND_INITIALIZER
 
 /**

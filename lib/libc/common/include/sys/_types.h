@@ -105,9 +105,40 @@ typedef unsigned short uid_t;
 #endif
 
 #ifndef _USECONDS_T_DECLARED
-typedef __useconds_t useconds_t;
+typedef unsigned long useconds_t;
 #define _USECONDS_T_DECLARED
 #endif
+
+#ifndef __machine_fpos_t_defined
+typedef long _fpos_t;
+#endif
+
+#ifndef __machine_off_t_defined
+typedef long _off_t;
+#endif
+
+#ifndef __WINT_TYPE__
+#define __WINT_TYPE__ unsigned int
+#endif
+typedef __WINT_TYPE__ wint_t;
+
+typedef struct {
+	int __count;
+	union {
+		wint_t __wch;
+		unsigned char __wchb[4];
+	} __value;
+} _mbstate_t;
+
+#define _TIMER_T_ unsigned long
+typedef _TIMER_T_ __timer_t;
+typedef __timer_t timer_t;
+
+#ifndef __machine_clockid_t_defined
+#define _CLOCKID_T_ unsigned long
+#endif
+typedef _CLOCKID_T_ __clockid_t;
+typedef __clockid_t clockid_t;
 
 #ifdef __cplusplus
 }

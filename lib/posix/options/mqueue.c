@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <string.h>
 #include <zephyr/sys/atomic.h>
+#include <zephyr/posix/fcntl.h>
 #include <zephyr/posix/mqueue.h>
 #include <zephyr/posix/pthread.h>
 

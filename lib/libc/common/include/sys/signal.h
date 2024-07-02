@@ -4,8 +4,9 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-#ifndef ZEPHYR_INCLUDE_POSIX_SIGNAL_H_
-#define ZEPHYR_INCLUDE_POSIX_SIGNAL_H_
+/* This had the same guard as /* zephyr/lib/libc/common/include/signal.h */
+#ifndef ZEPHYR_LIB_LIBC_COMMON_INCLUDE_SYS_SIGNAL_H_
+#define ZEPHYR_LIB_LIBC_COMMON_INCLUDE_SYS_SIGNAL_H_
 
 /* exclude external sys/signal.h */
 #define _SYS_SIGNAL_H
@@ -130,4 +131,4 @@ BUILD_ASSERT(RTSIG_MAX >= 0);
 }
 #endif
 
-#endif /* ZEPHYR_INCLUDE_POSIX_SIGNAL_H_ */
+#endif /* ZEPHYR_LIB_LIBC_COMMON_INCLUDE_SYS_SIGNAL_H_ */

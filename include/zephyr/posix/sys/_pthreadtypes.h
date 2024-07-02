@@ -10,6 +10,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,6 +48,7 @@ typedef struct {
 /* Pthread resource visibility */
 #define PTHREAD_PROCESS_PRIVATE 0
 #define PTHREAD_PROCESS_SHARED  1
+#define PTHREAD_PROCESS_PUBLIC 1
 #endif
 
 #if defined(_POSIX_THREAD_PRIO_PROTECT) || defined(__DOXYGEN__)
@@ -91,6 +93,11 @@ typedef struct {
 
 /* Condition variables */
 typedef uint32_t pthread_cond_t;
+#ifndef __machine_clockid_t_defined
+#define _CLOCKID_T_ unsigned long
+#endif
+typedef _CLOCKID_T_ __clockid_t;
+typedef __clockid_t clockid_t;
 typedef struct {
 	clockid_t clock;
 } pthread_condattr_t;

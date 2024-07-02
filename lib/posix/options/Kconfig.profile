@@ -139,6 +139,8 @@ config POSIX_AEP_REALTIME_MINIMAL
 	select POSIX_THREAD_PRIO_INHERIT
 	select POSIX_THREAD_PRIO_PROTECT
 	select POSIX_THREAD_PRIORITY_SCHEDULING
+	select POSIX_THREAD_PROCESS_SHARED # not sure if this is the right place
+	select POSIX_THREADS_EXT # not sure if this is the right place
 	# select POSIX_THREAD_SPORADIC_SERVER
 	help
 	  This option is not user configurable. It may be configured indirectly by selecting

@@ -106,6 +106,11 @@ config POSIX_THREAD_PRIORITY_SCHEDULING
 	  https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap02.html#tag_02_01_06
 	  https://man7.org/linux/man-pages/man7/posixoptions.7.html
 
+config POSIX_THREAD_PROCESS_SHARED
+	bool "blah"
+	help
+	  blah
+
 config POSIX_PTHREAD_ATTR_STACKSIZE_BITS
 	int "Significant bits for pthread_attr_t stacksize"
 	range 8 31
