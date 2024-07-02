@@ -6,13 +6,21 @@
 #include "posix/strsignal_table.h"
 
 #include <errno.h>
+#include <signal.h>
 #include <stdio.h>
 
 #include <zephyr/posix/pthread.h>
-#include <zephyr/posix/signal.h>
+#include <zephyr/sys/util.h>
 
 #define SIGNO_WORD_IDX(_signo) (_signo / BITS_PER_LONG)
 #define SIGNO_WORD_BIT(_signo) (_signo & BIT_MASK(LOG2(BITS_PER_LONG)))
+
+#undef SIGRTMIN
+#undef SIGRTMAX
+
+#define SIGRTMIN 32
+#define SIGRTMAX COND_CODE_1(CONFIG_POSIX_REALTIME_SIGNALS, (CONFIG_POSIX_RTSIG_MAX), (0))
+#define _NSIG    (SIGRTMAX + 1)
 
 BUILD_ASSERT(CONFIG_POSIX_RTSIG_MAX >= 0);
 
@@ -23,15 +31,21 @@ static inline bool signo_valid(int signo)
 
 static inline bool signo_is_rt(int signo)
 {
+#if defined(_POSIX_REALTIME_SIGNALS)
 	return ((signo >= SIGRTMIN) && (signo <= SIGRTMAX));
+#endif
+
+	return false;
 }
 
+#undef sigemptyset
 int sigemptyset(sigset_t *set)
 {
 	*set = (sigset_t){0};
 	return 0;
 }
 
+#undef sigfillset
 int sigfillset(sigset_t *set)
 {
 	for (int i = 0; i < ARRAY_SIZE(set->sig); i++) {
@@ -41,6 +55,7 @@ int sigfillset(sigset_t *set)
 	return 0;
 }
 
+#undef sigaddset
 int sigaddset(sigset_t *set, int signo)
 {
 	if (!signo_valid(signo)) {
@@ -53,6 +68,7 @@ int sigaddset(sigset_t *set, int signo)
 	return 0;
 }
 
+#undef sigdelset
 int sigdelset(sigset_t *set, int signo)
 {
 	if (!signo_valid(signo)) {
@@ -65,6 +81,7 @@ int sigdelset(sigset_t *set, int signo)
 	return 0;
 }
 
+#undef sigismember
 int sigismember(const sigset_t *set, int signo)
 {
 	if (!signo_valid(signo)) {

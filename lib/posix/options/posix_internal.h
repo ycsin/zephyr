@@ -7,13 +7,13 @@
 #ifndef ZEPHYR_LIB_POSIX_POSIX_INTERNAL_H_
 #define ZEPHYR_LIB_POSIX_POSIX_INTERNAL_H_
 
+#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
 
 #include <zephyr/kernel.h>
 #include <zephyr/posix/pthread.h>
-#include <zephyr/posix/signal.h>
 #include <zephyr/sys/dlist.h>
 #include <zephyr/sys/slist.h>
 

@@ -8,6 +8,7 @@
 #include "posix_internal.h"
 
 #include <errno.h>
+#include <string.h>
 #include <time.h>
 
 #include <zephyr/kernel.h>

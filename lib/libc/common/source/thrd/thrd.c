@@ -4,9 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define _POSIX_C_SOURCE 200809L
+
 #include <errno.h>
 #include <threads.h>
+#include <time.h>
 
+#include <sys/features.h>
 #include <zephyr/kernel.h>
 #include <zephyr/posix/pthread.h>
 #include <zephyr/posix/sched.h>

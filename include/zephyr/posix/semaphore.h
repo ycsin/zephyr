@@ -6,13 +6,16 @@
 #ifndef ZEPHYR_INCLUDE_POSIX_SEMAPHORE_H_
 #define ZEPHYR_INCLUDE_POSIX_SEMAPHORE_H_
 
-#include "posix_types.h"
-
 #include <time.h>
+
+#include <zephyr/kernel.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* Semaphore */
+typedef struct k_sem sem_t;
 
 #define SEM_FAILED ((sem_t *) 0)
 

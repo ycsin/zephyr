@@ -8,12 +8,12 @@
 #include "posix_internal.h"
 
 #include <errno.h>
+#include <signal.h>
 #include <time.h>
 
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/posix/pthread.h>
-#include <zephyr/posix/signal.h>
 
 #define ACTIVE 1
 #define NOT_ACTIVE 0

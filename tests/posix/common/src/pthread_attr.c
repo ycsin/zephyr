@@ -6,6 +6,7 @@
 
 #include <pthread.h>
 
+#include <zephyr/posix/sched.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/ztest.h>
 

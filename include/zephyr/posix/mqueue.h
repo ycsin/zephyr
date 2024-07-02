@@ -7,13 +7,8 @@
 #ifndef ZEPHYR_INCLUDE_POSIX_MESSAGE_PASSING_H_
 #define ZEPHYR_INCLUDE_POSIX_MESSAGE_PASSING_H_
 
+#include <signal.h>
 #include <time.h>
-
-#include <zephyr/kernel.h>
-#include <zephyr/posix/fcntl.h>
-#include <zephyr/posix/signal.h>
-#include <zephyr/posix/sys/stat.h>
-#include "posix_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,6 +22,8 @@ struct mq_attr {
 	long mq_msgsize;
 	long mq_curmsgs;	/* Number of messages currently queued. */
 };
+
+struct sigevent;
 
 mqd_t mq_open(const char *name, int oflags, ...);
 int mq_close(mqd_t mqdes);

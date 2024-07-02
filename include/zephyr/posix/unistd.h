@@ -6,9 +6,8 @@
 #ifndef ZEPHYR_INCLUDE_POSIX_UNISTD_H_
 #define ZEPHYR_INCLUDE_POSIX_UNISTD_H_
 
-#include "posix_types.h"
-
 #include <sys/features.h>
+#include <sys/types.h>
 
 #ifdef CONFIG_POSIX_API
 #include <zephyr/fs/fs.h>
@@ -21,10 +20,13 @@
 #include <zephyr/posix/sys/confstr.h>
 #include <zephyr/posix/sys/stat.h>
 #include <zephyr/posix/sys/sysconf.h>
+#include <zephyr/toolchain.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+unsigned int alarm(unsigned int seconds);
 
 #ifdef CONFIG_POSIX_API
 /* File related operations */

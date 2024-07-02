@@ -39,7 +39,7 @@ static void *sender_thread(void *p1)
 	curtime.tv_sec += 1;
 	zassert_false(mq_timedsend(mqd, send_data, MESSAGE_SIZE, 0, &curtime),
 		      "Not able to send message in timer");
-	usleep(USEC_PER_MSEC);
+	k_msleep(1);
 	zassert_false(mq_close(mqd),
 		      "unable to close message queue descriptor.");
 	pthread_exit(p1);
@@ -58,7 +58,7 @@ static void *receiver_thread(void *p1)
 	mq_timedreceive(mqd, rec_data, MESSAGE_SIZE, 0, &curtime);
 	zassert_false(strcmp(rec_data, send_data), "Error in data reception. exp: %s act: %s",
 		      send_data, rec_data);
-	usleep(USEC_PER_MSEC);
+	k_msleep(1);
 	zassert_false(mq_close(mqd),
 		      "unable to close message queue descriptor.");
 	pthread_exit(p1);
@@ -85,7 +85,7 @@ ZTEST(mqueue, test_mqueue)
 					  (i % 2 == 0) ? receiver_thread : sender_thread, NULL));
 	}
 
-	usleep(USEC_PER_MSEC * 10U);
+	k_msleep(10U);
 
 	for (int i = 0; i < N_THR; i++) {
 		pthread_join(newthread[i], &retval);
@@ -124,7 +124,9 @@ ZTEST(mqueue, test_mqueue_notify_basic)
 	struct sigevent not = {
 		.sigev_notify = SIGEV_NONE,
 		.sigev_value.sival_ptr = (void *)&notification_executed,
+#if defined(_POSIX_REALTIME_SIGNALS)
 		.sigev_notify_function = notify_function_basic,
+#endif
 	};
 	int32_t mode = 0777;
 	int flags = O_RDWR | O_CREAT;
@@ -170,13 +172,16 @@ ZTEST(mqueue, test_mqueue_notify_thread)
 		.mq_msgsize = MESSAGE_SIZE,
 		.mq_maxmsg = MESG_COUNT_PERMQ,
 	};
-	struct sigevent not = {
-		.sigev_notify = SIGEV_THREAD,
-		.sigev_value.sival_int = (int)pthread_self(),
-		.sigev_notify_function = notify_function_thread,
-	};
+	struct sigevent not = {.sigev_notify = SIGEV_THREAD,
+			       .sigev_value.sival_int = (int)pthread_self(),
+			       COND_CODE_1(CONFIG_PICOLIBC, (),
+					   (.sigev_notify_function = notify_function_thread, ))};
 	int32_t mode = 0777;
 	int flags = O_RDWR | O_CREAT;
+
+	if (IS_ENABLED(CONFIG_PICOLIBC)) {
+		ztest_test_skip();
+	}
 
 	notification_executed = false;
 	memset(rec_data, 0, MESSAGE_SIZE);
@@ -187,7 +192,7 @@ ZTEST(mqueue, test_mqueue_notify_thread)
 
 	zassert_ok(mq_send(mqd, send_data, MESSAGE_SIZE, 0), "Unable to send message");
 
-	usleep(USEC_PER_MSEC * 100U);
+	k_msleep(100U);
 
 	zassert_true(notification_executed, "Notification not triggered.");
 
@@ -202,13 +207,16 @@ ZTEST(mqueue, test_mqueue_notify_non_empty_queue)
 		.mq_msgsize = MESSAGE_SIZE,
 		.mq_maxmsg = MESG_COUNT_PERMQ,
 	};
-	struct sigevent not = {
-		.sigev_notify = SIGEV_NONE,
-		.sigev_value.sival_ptr = (void *)&notification_executed,
-		.sigev_notify_function = notify_function_basic,
-	};
+	struct sigevent not = {.sigev_notify = SIGEV_NONE,
+			       .sigev_value.sival_ptr = (void *)&notification_executed,
+			       COND_CODE_1(CONFIG_PICOLIBC, (),
+					   (.sigev_notify_function = notify_function_basic, ))};
 	int32_t mode = 0777;
 	int flags = O_RDWR | O_CREAT;
+
+	if (IS_ENABLED(CONFIG_PICOLIBC)) {
+		ztest_test_skip();
+	}
 
 	notification_executed = false;
 	memset(rec_data, 0, MESSAGE_SIZE);
@@ -242,13 +250,16 @@ ZTEST(mqueue, test_mqueue_notify_errors)
 		.mq_msgsize = MESSAGE_SIZE,
 		.mq_maxmsg = MESG_COUNT_PERMQ,
 	};
-	struct sigevent not = {
-		.sigev_notify = SIGEV_SIGNAL,
-		.sigev_value.sival_ptr = (void *)&notification_executed,
-		.sigev_notify_function = notify_function_basic,
-	};
+	struct sigevent not = {.sigev_notify = SIGEV_SIGNAL,
+			       .sigev_value.sival_ptr = (void *)&notification_executed,
+			       COND_CODE_1(CONFIG_PICOLIBC, (),
+					   (.sigev_notify_function = notify_function_basic, ))};
 	int32_t mode = 0777;
 	int flags = O_RDWR | O_CREAT;
+
+	if (IS_ENABLED(CONFIG_PICOLIBC)) {
+		ztest_test_skip();
+	}
 
 	zassert_not_ok(mq_notify(NULL, NULL), "Should return -1 and set errno to EBADF.");
 	zassert_equal(errno, EBADF);

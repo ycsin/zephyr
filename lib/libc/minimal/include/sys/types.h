@@ -11,8 +11,6 @@
 #include <stdint.h>
 #include <sys/_types.h>
 
-typedef unsigned int mode_t;
-
 #if !defined(__ssize_t_defined)
 #define __ssize_t_defined
 

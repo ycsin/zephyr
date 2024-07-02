@@ -17,9 +17,9 @@ if (NOT CONFIG_TC_PROVIDES_POSIX_SIGNALS)
       COMMAND
       ${PYTHON_EXECUTABLE}
       ${ZEPHYR_BASE}/scripts/build/gen_strsignal_table.py
-      -i ${ZEPHYR_BASE}/include/zephyr/posix/signal.h
+      -i ${ZEPHYR_BASE}/lib/libc/common/include/sys/signal.h
       -o ${STRSIGNAL_TABLE_H}
-      DEPENDS ${ZEPHYR_BASE}/include/zephyr/posix/signal.h
+      DEPENDS ${ZEPHYR_BASE}/lib/libc/common/include/sys/signal.h
     )
   endif()
 endif()
