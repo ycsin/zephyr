@@ -6,9 +6,9 @@
 
 #include <errno.h>
 #include <threads.h>
+#include <pthread.h>
 
 #include <zephyr/kernel.h>
-#include <zephyr/posix/pthread.h>
 
 int tss_create(tss_t *key, tss_dtor_t destructor)
 {

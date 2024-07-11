@@ -6,9 +6,9 @@
 
 #include <errno.h>
 #include <threads.h>
+#include <pthread.h>
 
 #include <zephyr/kernel.h>
-#include <zephyr/posix/pthread.h>
 
 int mtx_init(mtx_t *mutex, int type)
 {

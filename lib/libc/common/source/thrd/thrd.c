@@ -6,10 +6,10 @@
 
 #include <errno.h>
 #include <threads.h>
+#include <pthread.h>
+#include <sched.h>
 
 #include <zephyr/kernel.h>
-#include <zephyr/posix/pthread.h>
-#include <zephyr/posix/sched.h>
 
 struct thrd_trampoline_arg {
 	thrd_start_t func;

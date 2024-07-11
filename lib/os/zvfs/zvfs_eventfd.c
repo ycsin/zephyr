@@ -6,9 +6,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <fcntl.h>
 #include <zephyr/kernel.h>
 #include <zephyr/net/socket.h>
-#include <zephyr/posix/fcntl.h>
 #include <zephyr/zvfs/eventfd.h>
 #include <zephyr/sys/bitarray.h>
 #include <zephyr/sys/fdtable.h>

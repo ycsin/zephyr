@@ -8,11 +8,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#ifdef CONFIG_ARCH_POSIX
 #include <unistd.h>
-#else
-#include <zephyr/posix/unistd.h>
-#endif
 
 #include <zephyr/kernel.h>
 #include <zephyr/shell/shell.h>

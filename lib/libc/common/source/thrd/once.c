@@ -6,9 +6,9 @@
 
 #include <errno.h>
 #include <threads.h>
+#include <pthread.h>
 
 #include <zephyr/kernel.h>
-#include <zephyr/posix/pthread.h>
 
 void call_once(once_flag *flag, void (*func)(void))
 {

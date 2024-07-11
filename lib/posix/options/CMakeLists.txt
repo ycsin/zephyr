@@ -4,10 +4,6 @@ set(GEN_DIR ${ZEPHYR_BINARY_DIR}/include/generated)
 
 zephyr_syscall_header_ifdef(CONFIG_POSIX_TIMERS posix_clock.h)
 
-if(CONFIG_POSIX_API)
-  zephyr_include_directories(${ZEPHYR_BASE}/include/zephyr/posix)
-endif()
-
 if (NOT CONFIG_TC_PROVIDES_POSIX_SIGNALS)
   if(CONFIG_POSIX_SIGNALS)
     set(STRSIGNAL_TABLE_H ${GEN_DIR}/posix/strsignal_table.h)

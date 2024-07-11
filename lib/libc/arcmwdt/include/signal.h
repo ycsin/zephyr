@@ -7,6 +7,6 @@
 #ifndef LIB_LIBC_ARCMWDT_INCLUDE_SIGNAL_H_
 #define LIB_LIBC_ARCMWDT_INCLUDE_SIGNAL_H_
 
-#include <zephyr/posix/signal.h>
+#include <signal.h>
 
 #endif /* LIB_LIBC_ARCMWDT_INCLUDE_SIGNAL_H_ */

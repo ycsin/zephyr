@@ -12,10 +12,11 @@ LOG_MODULE_REGISTER(modem_ublox_sara_r4, CONFIG_MODEM_LOG_LEVEL);
 #include <zephyr/kernel.h>
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
+
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/device.h>
 #include <zephyr/init.h>
-#include <zephyr/posix/fcntl.h>
 
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/net_offload.h>

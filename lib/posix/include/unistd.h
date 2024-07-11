@@ -17,7 +17,7 @@
 #include <zephyr/net/hostname.h>
 #endif
 #include <zephyr/posix/sys/confstr.h>
-#include <zephyr/posix/sys/stat.h>
+#include <sys/stat.h>
 #include <zephyr/posix/sys/sysconf.h>
 
 #include "posix_features.h"
