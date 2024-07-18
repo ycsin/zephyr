@@ -137,6 +137,32 @@ static void walk_stackframe(stack_trace_callback_fn cb, void *cookie, const stru
 		ra = csf->ra;
 	}
 
+	/* print esf->mepc */
+	if (!cb(cookie, ra)) {
+		return;
+	}
+
+	if (esf) {
+		/* print esf->ra */
+		if (!cb(cookie, esf->ra)) {
+			return;
+		}
+
+		/* unwind once */
+		last_fp = fp;
+		frame = (struct stackframe *)fp - 1;
+		if (vrfy(frame->ra, thread, esf)) {
+			/*frame->ra is a `fp`*/
+			fp = frame->ra;
+			/* unwind once */
+			frame = (struct stackframe *)fp - 1;
+		}
+		/* get the `fp` `ra` normally */
+		fp = frame->fp;
+		ra = frame->ra;
+	}
+
+
 	for (int i = 0; (i < MAX_STACK_FRAMES) && vrfy(fp, thread, esf) && (fp > last_fp);) {
 		if (in_text_region(ra)) {
 			if (!cb(cookie, ra)) {
