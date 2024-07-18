@@ -148,9 +148,8 @@ static void walk_stackframe(stack_trace_callback_fn cb, void *cookie, const stru
 		last_fp = fp;
 		/* Unwind to the previous frame */
 		frame = (struct stackframe *)fp - 1;
-		if (esf && (esf->mepc == ra)) {
+		if (esf && (esf->mepc == ra) && !(frame->ra & 0x7) && vrfy(frame->ra, thread, esf)) {
 			/* We hit function where ra is not saved on the stack */
-			LOG_WRN("We hit function where ra is not saved on the stack");
 			fp = frame->ra;
 			ra = esf->ra;
 		} else {

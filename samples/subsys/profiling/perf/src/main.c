@@ -7,7 +7,7 @@
 #include <zephyr/kernel.h>
 #include <stdio.h>
 
-#define WAIT_KOEF 10000
+#define WAIT_KOEF USEC_PER_MSEC * 10
 
 #define NOINLINE __attribute__((noinline))
 
