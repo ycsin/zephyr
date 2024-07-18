@@ -60,11 +60,12 @@ static void perf_tracer(struct k_timer *timer)
 		arch_stack_walk(save_ra, ctx, _current, esf);
 	}
 
-	if (ctx->trace_length != 0) {
+	if (ctx->trace_length > 2) {
 		ctx->buf[trace_hdr_idx] = ctx->trace_length;
 		ctx->buf_idx += ctx->trace_length;
 	} else {
-		--ctx->buf_idx;
+		// ctx->buf_idx--;
+		ctx->buf_idx -= ctx->trace_length;
 		if (ctx->buf_full) {
 			k_timer_stop(timer);
 			k_work_reschedule(&ctx->dwork, K_NO_WAIT);
