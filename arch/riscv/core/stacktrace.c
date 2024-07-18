@@ -90,7 +90,10 @@ static bool in_stack_bound(uintptr_t addr, const struct k_thread *const thread,
 static bool in_fatal_stack_bound(uintptr_t addr, const struct k_thread *const thread,
 				 const struct arch_esf *esf)
 {
-	if (!IS_ALIGNED(addr, sizeof(uintptr_t))) {
+	const uintptr_t align =
+		COND_CODE_1(CONFIG_FRAME_POINTER, (ARCH_STACK_PTR_ALIGN), (sizeof(uintptr_t)));
+
+	if (!IS_ALIGNED(addr, align)) {
 		return false;
 	}
 
@@ -148,7 +151,7 @@ static void walk_stackframe(stack_trace_callback_fn cb, void *cookie, const stru
 		last_fp = fp;
 		/* Unwind to the previous frame */
 		frame = (struct stackframe *)fp - 1;
-		if (esf && (esf->mepc == ra) && !(frame->ra & 0x7) && vrfy(frame->ra, thread, esf)) {
+		if (esf && (esf->mepc == ra) && vrfy(frame->ra, thread, esf)) {
 			/* We hit function where ra is not saved on the stack */
 			fp = frame->ra;
 			ra = esf->ra;
