@@ -142,16 +142,43 @@ static void walk_stackframe(stack_trace_callback_fn cb, void *cookie, const stru
 			break;
 		}
 		last_fp = fp;
+
 		/* Unwind to the previous frame */
 		frame = (struct stackframe *)fp - 1;
+
 		if ((i == 0) && (esf != NULL)) {
+			/* Print `esf->ra` if we are at the top of the stack */
 			if (in_text_region(esf->ra) && !cb(cookie, esf->ra)) {
 				break;
 			}
+			/**
+			 * For the first stack frame, the `ra` is not stored in the frame if the
+			 * preempted function doesn't call any other function, we can observe:
+			 *
+			 *                     .-------------.
+			 *   frame[0]->fp ---> | frame[0] fp |
+			 *                     :-------------:
+			 *   frame[0]->ra ---> | frame[1] fp |
+			 *                     | frame[1] ra |
+			 *                     :~~~~~~~~~~~~~:
+			 *                     | frame[N] fp |
+			 *
+			 * Instead of:
+			 *
+			 *                     .-------------.
+			 *   frame[0]->fp ---> | frame[0] fp |
+			 *   frame[0]->ra ---> | frame[1] ra |
+			 *                     :-------------:
+			 *                     | frame[1] fp |
+			 *                     | frame[1] ra |
+			 *                     :~~~~~~~~~~~~~:
+			 *                     | frame[N] fp |
+			 *
+			 * Check if `frame->ra` actually points to a `fp`, and adjust accordingly
+			 */
 			if (vrfy(frame->ra, thread, esf)) {
-				/* We hit function where ra is not saved on the stack */
 				fp = frame->ra;
-				frame = (struct stackframe *)fp - 1;
+				frame = (struct stackframe *)fp;
 			}
 		}
 
