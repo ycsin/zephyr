@@ -137,54 +137,26 @@ static void walk_stackframe(stack_trace_callback_fn cb, void *cookie, const stru
 		ra = csf->ra;
 	}
 
-	/* print esf->mepc */
-	if (!cb(cookie, ra)) {
-		return;
-	}
-
-	if (esf) {
-		/* print esf->ra */
-		if (!cb(cookie, esf->ra)) {
-			return;
-		}
-
-		/* unwind once */
-		last_fp = fp;
-		frame = (struct stackframe *)fp - 1;
-		if (vrfy(frame->ra, thread, esf)) {
-			/*frame->ra is a `fp`*/
-			fp = frame->ra;
-			/* unwind once */
-			frame = (struct stackframe *)fp - 1;
-		}
-		/* get the `fp` `ra` normally */
-		fp = frame->fp;
-		ra = frame->ra;
-	}
-
-
-	for (int i = 0; (i < MAX_STACK_FRAMES) && vrfy(fp, thread, esf) && (fp > last_fp);) {
-		if (in_text_region(ra)) {
-			if (!cb(cookie, ra)) {
-				break;
-			}
-			/*
-			 * Increment the iterator only if `ra` is within the text region to get the
-			 * most out of it
-			 */
-			i++;
+	for (int i = 0; (i < MAX_STACK_FRAMES) && vrfy(fp, thread, esf) && (fp > last_fp); i++) {
+		if (in_text_region(ra) && !cb(cookie, ra)) {
+			break;
 		}
 		last_fp = fp;
 		/* Unwind to the previous frame */
 		frame = (struct stackframe *)fp - 1;
-		if (esf && (esf->mepc == ra) && vrfy(frame->ra, thread, esf)) {
-			/* We hit function where ra is not saved on the stack */
-			fp = frame->ra;
-			ra = esf->ra;
-		} else {
-			fp = frame->fp;
-			ra = frame->ra;
+		if ((i == 0) && (esf != NULL)) {
+			if (in_text_region(esf->ra) && !cb(cookie, esf->ra)) {
+				break;
+			}
+			if (vrfy(frame->ra, thread, esf)) {
+				/* We hit function where ra is not saved on the stack */
+				fp = frame->ra;
+				frame = (struct stackframe *)fp - 1;
+			}
 		}
+
+		fp = frame->fp;
+		ra = frame->ra;
 	}
 }
 #else  /* !CONFIG_FRAME_POINTER */
