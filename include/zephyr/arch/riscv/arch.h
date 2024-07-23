@@ -29,6 +29,7 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/arch/riscv/csr.h>
 #include <zephyr/arch/riscv/exception.h>
+#include <zephyr/arch/riscv/gdbstub.h>
 
 /* stacks, for RISCV architecture stack should be 16byte-aligned */
 #define ARCH_STACK_PTR_ALIGN  16
