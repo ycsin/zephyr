@@ -80,6 +80,7 @@ unsigned int z_get_sw_isr_table_idx(unsigned int irq)
 	} else {
 		/* irq level must be 1 if no intc entry */
 		__ASSERT(level == 1, "can't find an aggregator to handle irq(%X)", irq);
+		printk("can't find an aggregator to handle irq(%X)", irq);
 		table_idx = irq;
 	}
 

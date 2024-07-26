@@ -8,6 +8,7 @@
 #include <zephyr/sw_isr_table.h>
 #include <zephyr/irq.h>
 #include <zephyr/sys/__assert.h>
+#include <zephyr/sys/printk.h>
 
 void __weak z_isr_install(unsigned int irq, void (*routine)(const void *),
 			  const void *param)
@@ -24,6 +25,7 @@ void __weak z_isr_install(unsigned int irq, void (*routine)(const void *),
 #endif /* !CONFIG_GIC */
 
 	table_idx = z_get_sw_isr_table_idx(irq);
+	printk("installed %X[%p] to %u\n", irq, param, table_idx);
 
 	/* If dynamic IRQs are enabled, then the _sw_isr_table is in RAM and
 	 * can be modified

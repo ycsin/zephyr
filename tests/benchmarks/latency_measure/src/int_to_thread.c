@@ -23,12 +23,32 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/irq.h>
+#include <zephyr/irq_multilevel.h>
 #include "utils.h"
 #include "timing_sc.h"
 
 #include <zephyr/irq_offload.h>
 
+// #define _INT_OFFLOAD
+// #define _INT_MSIP
+#define _INT_PLIC
+
+const uint32_t local_irq = 11;
+const uint32_t irqn = IRQ_TO_L2(local_irq) | RISCV_IRQ_MSOFT;
+
 static K_SEM_DEFINE(isr_sem, 0, 1);
+#define MSIP_BASE 0x2000000UL
+#define MSIP(hartid) ((volatile uint32_t *)MSIP_BASE)[hartid]
+
+#define DT_DRV_COMPAT	sifive_plic_1_0_0
+#define PLIC_BASE DT_INST_REG_ADDR(0)
+#define IRQ_REG(n) (n >> 5)
+
+#define REG_PRIORITY(irq)     (PLIC_BASE + 0x0 + (irq << 2))
+#define REG_PENDING(irq)      (PLIC_BASE + 0x1000 + (IRQ_REG(irq) << 2))
+#define REG_ENABLE(hart, irq) (PLIC_BASE + 0x2000 + (hart << 7) + IRQ_REG(irq))
+#define REG_CLAIM(hart)       (PLIC_BASE + 0x200004 + (hart << 12))
 
 /**
  * @brief Test ISR used to measure time to return to thread
@@ -45,6 +65,31 @@ static void test_isr(const void *arg)
 	}
 
 	timestamp.sample = timing_timestamp_get();
+	printk("signaled\n");
+#ifdef _INT_MSIP
+	/* Clear MSIP */
+	MSIP(0) = 0;
+#endif
+}
+
+__maybe_unused
+static void trig_msip(const void *arg)
+{
+	irq_connect_dynamic(RISCV_IRQ_MSOFT, 0, test_isr, arg, 0);
+	/* Trigger MSIP */
+	MSIP(0) = 1;
+}
+
+__maybe_unused
+static void trig_plic(const void *arg)
+{
+	uint32_t pend;
+
+	pend = sys_read32(REG_PENDING(local_irq));
+	printk("initial pend %X\n", pend);
+	pend |= BIT(local_irq);
+	printk("write pend %X to %p\n", pend, (void *)REG_PENDING(local_irq));
+	sys_write32(pend, REG_PENDING(local_irq));
 }
 
 /**
@@ -60,8 +105,21 @@ static void int_to_interrupted_thread(uint32_t num_iterations, uint64_t *sum)
 
 	*sum = 0ull;
 
+#ifdef _INT_PLIC
+	irq_connect_dynamic(irqn, 1, test_isr, NULL, 0);
+#endif
+
 	for (uint32_t i = 0; i < num_iterations; i++) {
+		// printk("%u trig\n", i);
+#ifdef _INT_MSIP
+		trig_msip(NULL);
+#elif defined(_INT_PLIC)
+		/* set PLIC pending */
+		trig_plic(NULL);
+#else
 		irq_offload(test_isr, NULL);
+#endif
+
 		finish = timing_timestamp_get();
 		start = timestamp.sample;
 
@@ -109,11 +167,21 @@ static void alt_thread_entry(void *p1, void *p2, void *p3)
 
 	ARG_UNUSED(p3);
 
+#ifdef _INT_PLIC
+	irq_connect_dynamic(irqn, 1, test_isr, sem, 0);
+#endif
+
 	for (uint32_t i = 0; i < num_iterations; i++) {
 
 		/* 2. Trigger the test_isr() to execute */
 
+#ifdef _INT_MSIP
+		trig_msip(sem);
+#elif defined(_INT_PLIC)
+		trig_plic(sem);
+#else
 		irq_offload(test_isr, sem);
+#endif
 
 		/*
 		 * ISR expected to have awakened higher priority start_thread
@@ -157,6 +225,11 @@ static void int_to_another_thread(uint32_t num_iterations, uint64_t *sum,
 	*sum = timestamp.cycles;
 }
 
+static void isr_blah(const void *arg)
+{
+	printk("blah\n");
+}
+
 /**
  *
  * @brief The test main function
@@ -167,6 +240,15 @@ int int_to_thread(uint32_t num_iterations)
 {
 	uint64_t sum;
 	char description[120];
+
+#ifndef _INT_DEFAULT
+	irq_enable(RISCV_IRQ_MSOFT);
+#endif
+
+#ifdef _INT_PLIC
+	irq_connect_dynamic(irqn, 1, isr_blah, NULL, 0);
+	irq_enable(irqn);
+#endif
 
 	timing_start();
 	TICK_SYNCH();

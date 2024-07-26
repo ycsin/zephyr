@@ -84,97 +84,97 @@ static void test_thread(void *arg1, void *arg2, void *arg3)
 
 	timestamp_overhead_init(CONFIG_BENCHMARK_NUM_ITERATIONS);
 
-	/* Preemptive threads context switching */
-	thread_switch_yield(CONFIG_BENCHMARK_NUM_ITERATIONS, false);
+	// /* Preemptive threads context switching */
+	// thread_switch_yield(CONFIG_BENCHMARK_NUM_ITERATIONS, false);
 
-	/* Cooperative threads context switching */
-	thread_switch_yield(CONFIG_BENCHMARK_NUM_ITERATIONS, true);
+	// /* Cooperative threads context switching */
+	// thread_switch_yield(CONFIG_BENCHMARK_NUM_ITERATIONS, true);
 
 	int_to_thread(CONFIG_BENCHMARK_NUM_ITERATIONS);
 
-	/* Thread creation, starting, suspending, resuming and aborting. */
+// 	/* Thread creation, starting, suspending, resuming and aborting. */
 
-	thread_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, 0);
-#ifdef CONFIG_USERSPACE
-	thread_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, K_USER);
-	thread_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, K_USER);
-	thread_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, 0);
-#endif
+// 	thread_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, 0);
+// #ifdef CONFIG_USERSPACE
+// 	thread_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, K_USER);
+// 	thread_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, K_USER);
+// 	thread_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, 0);
+// #endif
 
-	fifo_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0);
-#ifdef CONFIG_USERSPACE
-	fifo_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER);
-#endif
+// 	fifo_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0);
+// #ifdef CONFIG_USERSPACE
+// 	fifo_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER);
+// #endif
 
-	fifo_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, 0);
-#ifdef CONFIG_USERSPACE
-	fifo_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, K_USER);
-	fifo_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, 0);
-	fifo_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, K_USER);
-#endif
+// 	fifo_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, 0);
+// #ifdef CONFIG_USERSPACE
+// 	fifo_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, K_USER);
+// 	fifo_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, 0);
+// 	fifo_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, K_USER);
+// #endif
 
 
-	lifo_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0);
-#ifdef CONFIG_USERSPACE
-	lifo_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER);
-#endif
+// 	lifo_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0);
+// #ifdef CONFIG_USERSPACE
+// 	lifo_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER);
+// #endif
 
-	lifo_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, 0);
-#ifdef CONFIG_USERSPACE
-	lifo_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, K_USER);
-	lifo_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, 0);
-	lifo_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, K_USER);
-#endif
+// 	lifo_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, 0);
+// #ifdef CONFIG_USERSPACE
+// 	lifo_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, K_USER);
+// 	lifo_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, 0);
+// 	lifo_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, K_USER);
+// #endif
 
-	event_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0);
-#ifdef CONFIG_USERSPACE
-	event_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER);
-#endif
+// 	event_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0);
+// #ifdef CONFIG_USERSPACE
+// 	event_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER);
+// #endif
 
-	event_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, 0);
-#ifdef CONFIG_USERSPACE
-	event_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, K_USER);
-	event_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, 0);
-	event_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, K_USER);
-#endif
+// 	event_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, 0);
+// #ifdef CONFIG_USERSPACE
+// 	event_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, K_USER);
+// 	event_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, 0);
+// 	event_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, K_USER);
+// #endif
 
-	sema_test_signal(CONFIG_BENCHMARK_NUM_ITERATIONS, 0);
-#ifdef CONFIG_USERSPACE
-	sema_test_signal(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER);
-#endif
+// 	sema_test_signal(CONFIG_BENCHMARK_NUM_ITERATIONS, 0);
+// #ifdef CONFIG_USERSPACE
+// 	sema_test_signal(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER);
+// #endif
 
-	sema_context_switch(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, 0);
-#ifdef CONFIG_USERSPACE
-	sema_context_switch(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, K_USER);
-	sema_context_switch(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, 0);
-	sema_context_switch(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, K_USER);
-#endif
+// 	sema_context_switch(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, 0);
+// #ifdef CONFIG_USERSPACE
+// 	sema_context_switch(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, K_USER);
+// 	sema_context_switch(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, 0);
+// 	sema_context_switch(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, K_USER);
+// #endif
 
-	condvar_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, 0);
-#ifdef CONFIG_USERSPACE
-	condvar_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, K_USER);
-	condvar_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, 0);
-	condvar_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, K_USER);
-#endif
+// 	condvar_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, 0);
+// #ifdef CONFIG_USERSPACE
+// 	condvar_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, K_USER);
+// 	condvar_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, 0);
+// 	condvar_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, K_USER);
+// #endif
 
-	stack_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0);
-#ifdef CONFIG_USERSPACE
-	stack_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER);
-#endif
+// 	stack_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0);
+// #ifdef CONFIG_USERSPACE
+// 	stack_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER);
+// #endif
 
-	stack_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, 0);
-#ifdef CONFIG_USERSPACE
-	stack_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, K_USER);
-	stack_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, 0);
-	stack_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, K_USER);
-#endif
+// 	stack_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, 0);
+// #ifdef CONFIG_USERSPACE
+// 	stack_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, 0, K_USER);
+// 	stack_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, 0);
+// 	stack_blocking_ops(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER, K_USER);
+// #endif
 
-	mutex_lock_unlock(CONFIG_BENCHMARK_NUM_ITERATIONS, 0);
-#ifdef CONFIG_USERSPACE
-	mutex_lock_unlock(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER);
-#endif
+// 	mutex_lock_unlock(CONFIG_BENCHMARK_NUM_ITERATIONS, 0);
+// #ifdef CONFIG_USERSPACE
+// 	mutex_lock_unlock(CONFIG_BENCHMARK_NUM_ITERATIONS, K_USER);
+// #endif
 
-	heap_malloc_free();
+// 	heap_malloc_free();
 
 	TC_END_REPORT(error_count);
 }

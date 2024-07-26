@@ -173,11 +173,11 @@ static inline mem_addr_t get_threshold_priority_addr(const struct device *dev, u
  */
 static inline const struct device *get_plic_dev_from_irq(uint32_t irq)
 {
-#ifdef CONFIG_DYNAMIC_INTERRUPTS
-	return z_get_sw_isr_device_from_irq(irq);
-#else
+// #ifdef CONFIG_DYNAMIC_INTERRUPTS
+// 	return z_get_sw_isr_device_from_irq(irq);
+// #else
 	return DEVICE_DT_INST_GET(0);
-#endif
+// #endif
 }
 
 /**
@@ -219,8 +219,11 @@ static void plic_irq_enable_set_state(uint32_t irq, bool enable)
 
 		key = irq_lock();
 		en_value = sys_read32(en_addr);
+		printk("%X\n", en_value);
 		WRITE_BIT(en_value, local_irq & PLIC_REG_MASK, enable);
 		sys_write32(en_value, en_addr);
+		if (local_irq != 10)
+			printk("%d: %X %lX\n", local_irq, en_value, en_addr);
 		irq_unlock(key);
 	}
 }
@@ -329,6 +332,14 @@ static void plic_irq_handler(const struct device *dev)
 
 	/* Get the IRQ number generating the interrupt */
 	const uint32_t local_irq = sys_read32(claim_complete_addr);
+
+	// if (local_irq == 0) {
+	// 	sys_write32(local_irq, claim_complete_addr);
+	// 	return;
+	// }
+
+	if (local_irq != 10)
+		printk("[%d]\n", local_irq);
 
 #ifdef CONFIG_PLIC_SHELL
 	const struct plic_data *data = dev->data;
@@ -554,6 +565,8 @@ SHELL_CMD_ARG_REGISTER(plic, &plic_cmds, "PLIC shell commands",
 	{                                                                                          \
 		IRQ_CONNECT(DT_INST_IRQN(n), 0, plic_irq_handler, DEVICE_DT_INST_GET(n), 0);       \
 		irq_enable(DT_INST_IRQN(n));                                                       \
+		IRQ_CONNECT(RISCV_IRQ_MSOFT, 1, plic_irq_handler, DEVICE_DT_INST_GET(n), 0);       \
+		irq_enable(RISCV_IRQ_MSOFT);                                                       \
 	}
 
 #define PLIC_INTC_CONFIG_INIT(n)                                                                   \
@@ -574,6 +587,10 @@ SHELL_CMD_ARG_REGISTER(plic, &plic_cmds, "PLIC shell commands",
 #define PLIC_INTC_DEVICE_INIT(n)                                                                   \
 	IRQ_PARENT_ENTRY_DEFINE(                                                                   \
 		plic##n, DEVICE_DT_INST_GET(n), DT_INST_IRQN(n),                                   \
+		INTC_INST_ISR_TBL_OFFSET(n),                                                       \
+		DT_INST_INTC_GET_AGGREGATOR_LEVEL(n));                                             \
+	IRQ_PARENT_ENTRY_DEFINE(                                                                   \
+		plic_sw##n, DEVICE_DT_INST_GET(n), 3,                                   \
 		INTC_INST_ISR_TBL_OFFSET(n),                                                       \
 		DT_INST_INTC_GET_AGGREGATOR_LEVEL(n));                                             \
 	PLIC_INTC_CONFIG_INIT(n)                                                                   \
