@@ -278,8 +278,10 @@ typedef void (* ISR)(const void *);
 
             if isinstance(func, int):
                 func_as_string = "{0:#x}".format(func)
+                func_name = f" /* {self.__config.get_sym_from_addr(func)} */"
             else:
                 func_as_string = func
+                func_name = ""
 
             if level2_offset is not None and i == level2_offset:
                 fp.write("\t/* Level 2 interrupts start here (offset: {}) */\n".
@@ -288,5 +290,5 @@ typedef void (* ISR)(const void *);
                 fp.write("\t/* Level 3 interrupts start here (offset: {}) */\n".
                          format(level3_offset))
 
-            fp.write("\t{{(const void *){0}, (ISR){1}}}, /* {2} */\n".format(param, func_as_string, i))
+            fp.write("\t{{(const void *){0}, (ISR){1}{2}}}, /* {3} */\n".format(param, func_as_string, func_name, i))
         fp.write("};\n")

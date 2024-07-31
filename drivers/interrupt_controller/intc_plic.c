@@ -38,6 +38,7 @@
 #define CONTEXT_CLAIM 0x04
 #define CONTEXT_ENABLE_BASE 0x2000
 #define CONTEXT_ENABLE_SIZE 0x80
+#define CONTEXT_PEND_BASE 0x1000
 /*
  * Trigger type is mentioned, but not defined in the RISCV PLIC specs.
  * However, it is defined and supported by at least the Andes & Telink datasheet, and supported
@@ -71,6 +72,7 @@ typedef void (*riscv_plic_irq_config_func_t)(void);
 struct plic_config {
 	mem_addr_t prio;
 	mem_addr_t irq_en;
+	mem_addr_t pend;
 	mem_addr_t reg;
 	mem_addr_t trig;
 	uint32_t max_prio;
@@ -83,6 +85,10 @@ struct plic_stats {
 	uint16_t *const irq_count;
 	const int irq_count_len;
 };
+
+#ifdef CONFIG_PLIC_SHELL
+static uint32_t cpu[CONFIG_MP_MAX_NUM_CPUS];
+#endif
 
 struct plic_data {
 	struct plic_stats stats;
@@ -208,11 +214,13 @@ static uint32_t __maybe_unused riscv_plic_irq_trig_val(const struct device *dev,
 static void plic_irq_enable_set_state(uint32_t irq, bool enable)
 {
 	const struct device *dev = get_plic_dev_from_irq(irq);
+	const struct plic_config *config = dev->config;
 	const uint32_t local_irq = irq_from_level_2(irq);
 
-	for (uint32_t cpu_num = 0; cpu_num < arch_num_cpus(); cpu_num++) {
-		mem_addr_t en_addr =
-			get_context_en_addr(dev, cpu_num) + local_irq_to_reg_offset(local_irq);
+	printk("PLIC: %sabling IRQ 0x%X(0x%X)\n", (enable ? "en" : "dis"), local_irq, irq);
+	for (uint32_t ctx = 0; ctx < 15872; ctx++) {
+		mem_addr_t en_addr = config->irq_en + ctx * CONTEXT_ENABLE_SIZE +
+				     local_irq_to_reg_offset(local_irq);
 
 		uint32_t en_value;
 		uint32_t key;
@@ -238,6 +246,20 @@ static void plic_irq_enable_set_state(uint32_t irq, bool enable)
 void riscv_plic_irq_enable(uint32_t irq)
 {
 	plic_irq_enable_set_state(irq, true);
+}
+
+void riscv_plic_sw_irq_set_pending(const struct device *dev, uint32_t irq)
+{
+	const uint32_t local_irq = irq_from_level_2(irq);
+	const struct plic_config *config = dev->config;
+	mem_addr_t pend_addr = config->pend + local_irq_to_reg_offset(local_irq);
+	uint32_t pend;
+
+	printk("PLIC: setting 0x%X as pending\n", local_irq);
+
+	pend = sys_read32(pend_addr);
+	pend |= BIT(local_irq & PLIC_REG_MASK);
+	sys_write32(pend, pend_addr);
 }
 
 /**
@@ -330,6 +352,10 @@ static void plic_irq_handler(const struct device *dev)
 	/* Get the IRQ number generating the interrupt */
 	const uint32_t local_irq = sys_read32(claim_complete_addr);
 
+	if (local_irq != DT_IRQ_BY_IDX(DT_NODELABEL(uart0), 0, irq)) {
+		printk("%d\n", local_irq);
+	}
+
 #ifdef CONFIG_PLIC_SHELL
 	const struct plic_data *data = dev->data;
 	struct plic_stats stat = data->stats;
@@ -338,6 +364,8 @@ static void plic_irq_handler(const struct device *dev)
 	if (stat.irq_count[local_irq] != __UINT16_MAX__) {
 		stat.irq_count[local_irq]++;
 	}
+
+	cpu[arch_proc_id()]++;
 #endif /* CONFIG_PLIC_SHELL */
 
 	/*
@@ -467,6 +495,13 @@ static int cmd_get_stats(const struct shell *sh, size_t argc, char *argv[])
 	}
 	shell_print(sh, "");
 
+	shell_print(sh, "   CPU\t      Hits");
+	shell_print(sh, "==================");
+	for (int i = 0; i < arch_num_cpus(); i++) {
+		shell_print(sh, "%6d\t%10d", i, cpu[i]);
+	}
+	shell_print(sh, "");
+
 	return 0;
 }
 
@@ -554,6 +589,9 @@ SHELL_CMD_ARG_REGISTER(plic, &plic_cmds, "PLIC shell commands",
 	{                                                                                          \
 		IRQ_CONNECT(DT_INST_IRQN(n), 0, plic_irq_handler, DEVICE_DT_INST_GET(n), 0);       \
 		irq_enable(DT_INST_IRQN(n));                                                       \
+		IRQ_CONNECT(DT_INST_IRQN_BY_IDX(n, 1), 0, plic_irq_handler, DEVICE_DT_INST_GET(n), \
+			    0);                                                                    \
+		irq_enable(DT_INST_IRQN_BY_IDX(n, 1));                                             \
 	}
 
 #define PLIC_INTC_CONFIG_INIT(n)                                                                   \
@@ -561,6 +599,7 @@ SHELL_CMD_ARG_REGISTER(plic, &plic_cmds, "PLIC shell commands",
 	static const struct plic_config plic_config_##n = {                                        \
 		.prio = PLIC_BASE_ADDR(n),                                                         \
 		.irq_en = PLIC_BASE_ADDR(n) + CONTEXT_ENABLE_BASE,                                 \
+		.pend = PLIC_BASE_ADDR(n) + CONTEXT_PEND_BASE,                                     \
 		.reg = PLIC_BASE_ADDR(n) + CONTEXT_BASE,                                           \
 		IF_ENABLED(PLIC_SUPPORTS_TRIG_TYPE,                                                \
 			   (.trig = PLIC_BASE_ADDR(n) + PLIC_REG_TRIG_TYPE_OFFSET,))               \
@@ -574,6 +613,10 @@ SHELL_CMD_ARG_REGISTER(plic, &plic_cmds, "PLIC shell commands",
 #define PLIC_INTC_DEVICE_INIT(n)                                                                   \
 	IRQ_PARENT_ENTRY_DEFINE(                                                                   \
 		plic##n, DEVICE_DT_INST_GET(n), DT_INST_IRQN(n),                                   \
+		INTC_INST_ISR_TBL_OFFSET(n),                                                       \
+		DT_INST_INTC_GET_AGGREGATOR_LEVEL(n));                                             \
+	IRQ_PARENT_ENTRY_DEFINE(                                                                   \
+		plic_sw##n, DEVICE_DT_INST_GET(n), DT_INST_IRQN_BY_IDX(n, 1),                      \
 		INTC_INST_ISR_TBL_OFFSET(n),                                                       \
 		DT_INST_INTC_GET_AGGREGATOR_LEVEL(n));                                             \
 	PLIC_INTC_CONFIG_INIT(n)                                                                   \
