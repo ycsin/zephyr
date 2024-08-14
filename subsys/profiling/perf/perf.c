@@ -23,27 +23,46 @@ struct perf_data_t {
 	struct k_work_delayable dwork;
 
 	size_t idx;
+	size_t session_idx;
 	uintptr_t buf[CONFIG_PROFILING_PERF_BUFFER_SIZE];
 	bool buf_full;
 };
 
 #define PERF_EVENT_TRACING_BUF_OVERFLOW (1 << 0)
 
-static struct perf_data_t perf_data = {
-	.idx = 0,
-};
+static struct perf_data_t perf_data;
+
+static bool store_ra(void *arg, unsigned long ra)
+{
+	struct perf_data_t *perf = arg;
+	uintptr_t *buf = perf->buf + perf->idx;
+	size_t size = CONFIG_PROFILING_PERF_BUFFER_SIZE - perf->idx;
+
+	if (perf->session_idx >= size) {
+		/* stop if current session can't fit into the available buffer */
+		perf->buf_full = true;
+		return false;
+	}
+
+	buf[perf->session_idx++] = ra;
+
+	return true;
+}
 
 static void perf_tracer(struct k_timer *timer)
 {
+	const struct arch_esf *esf = (struct arch_esf *)stack_pointer_before_interrupt;
 	struct perf_data_t *perf_data_ptr =
 		(struct perf_data_t *)k_timer_user_data_get(timer);
 
 	size_t trace_length = 0;
 
 	if (++perf_data_ptr->idx < CONFIG_PROFILING_PERF_BUFFER_SIZE) {
-		trace_length = arch_perf_current_stack_trace(
-					perf_data_ptr->buf + perf_data_ptr->idx,
-					CONFIG_PROFILING_PERF_BUFFER_SIZE - perf_data_ptr->idx);
+		perf_data_ptr->session_idx = 0;
+		arch_stack_walk(store_ra, perf_data_ptr, NULL, esf);
+		if (!perf_data_ptr->buf_full) {
+			trace_length = perf_data_ptr->session_idx;
+		}
 	}
 
 	if (trace_length != 0) {
@@ -52,7 +71,6 @@ static void perf_tracer(struct k_timer *timer)
 	} else {
 		--perf_data_ptr->idx;
 		perf_data_ptr->buf_full = true;
-		k_timer_stop(timer);
 		k_work_reschedule(&perf_data_ptr->dwork, K_NO_WAIT);
 	}
 }
@@ -122,15 +140,6 @@ int cmd_perf_print(const struct shell *sh, size_t argc, char **argv)
 	return 0;
 }
 
-static int cmd_perf(const struct shell *sh, size_t argc, char **argv)
-{
-	ARG_UNUSED(argc);
-	ARG_UNUSED(argv);
-
-	shell_print(sh, "perfy");
-	return 0;
-}
-
 #define CMD_HELP_RECORD										\
 	"Start recording for <duration> ms on <frequency> Hz\n"	\
 	"Usage: record <duration> <frequency>\n"
@@ -140,6 +149,6 @@ SHELL_STATIC_SUBCMD_SET_CREATE(m_sub_perf,
 	SHELL_CMD_ARG(printbuf, NULL, "Print the perf buffer", cmd_perf_print, 0, 0),
 	SHELL_SUBCMD_SET_END
 );
-SHELL_CMD_ARG_REGISTER(perf, &m_sub_perf, "Perf!", cmd_perf, 0, 0);
+SHELL_CMD_ARG_REGISTER(perf, &m_sub_perf, "Perf!", NULL, 0, 0);
 
 SYS_INIT(perf_init, APPLICATION, 0);

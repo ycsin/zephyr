@@ -90,10 +90,7 @@ static bool in_stack_bound(uintptr_t addr, const struct k_thread *const thread,
 static bool in_fatal_stack_bound(uintptr_t addr, const struct k_thread *const thread,
 				 const struct arch_esf *esf)
 {
-	const uintptr_t align =
-		COND_CODE_1(CONFIG_FRAME_POINTER, (ARCH_STACK_PTR_ALIGN), (sizeof(uintptr_t)));
-
-	if (!IS_ALIGNED(addr, align)) {
+	if (!IS_ALIGNED(addr, sizeof(uintptr_t))) {
 		return false;
 	}
 
