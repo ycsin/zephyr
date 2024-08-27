@@ -140,3 +140,30 @@ void k_thread_foreach_unlocked_filter_by_cpu(unsigned int cpu, k_thread_user_cb_
 	k_spin_unlock(&z_thread_monitor_lock, key);
 }
 #endif /* CONFIG_SMP */
+
+
+struct thread_entry {
+	const struct k_thread *const thread;
+	bool valid;
+};
+
+static void thread_valid_cb(const struct k_thread *cthread, void *user_data)
+{
+	struct thread_entry *entry = user_data;
+
+	if (cthread == entry->thread) {
+		entry->valid = true;
+	}
+}
+
+bool k_thread_is_valid(const struct k_thread *thread)
+{
+	struct thread_entry entry = {
+		.thread = thread,
+		.valid = false,
+	};
+
+	k_thread_foreach(thread_valid_cb, &entry);
+
+	return entry.valid;
+}

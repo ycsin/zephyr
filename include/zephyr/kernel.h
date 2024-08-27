@@ -229,6 +229,15 @@ void k_thread_foreach_unlocked_filter_by_cpu(unsigned int cpu,
 }
 #endif
 
+/**
+ * @brief Check if the thread pointer is a valid thread
+ *
+ * @param thread The thread pointer to verify
+ *
+ * @return true if @a thread is a thread, false otherwise.
+ */
+bool k_thread_is_valid(const struct k_thread *thread);
+
 /** @} */
 
 /**
