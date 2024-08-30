@@ -50,7 +50,7 @@ endif()
 if(CONFIG_PLIC_SHELL)
   message(WARNING "
       WARNING:  `CONFIG_PLIC_SHELL` is enabled.
-      This can use quite a bit of RAM (PLICs * IRQs * sizeof(uint16_t))"
+      This can use quite a bit of RAM (PLICs * IRQs * sizeof(PLIC_IRQ_COUNT_TYPE))"
   )
 endif()
 

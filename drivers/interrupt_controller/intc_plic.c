@@ -68,6 +68,26 @@
 #define INTC_PLIC_STATIC static inline
 #endif
 
+#ifdef CONFIG_PLIC_SHELL_IRQ_COUNT
+#ifdef CONFIG_PLIC_IRQ_COUNT_UINT8
+typedef uint8_t plic_irq_count_t;
+#define IRQ_COUNT_MAX UINT8_MAX
+#define IRQ_COUNT_FMT "%*d"
+#elif CONFIG_PLIC_IRQ_COUNT_UINT16
+typedef uint16_t plic_irq_count_t;
+#define IRQ_COUNT_MAX UINT16_MAX
+#define IRQ_COUNT_FMT "%*d"
+#elif CONFIG_PLIC_IRQ_COUNT_UINT32
+typedef uint32_t plic_irq_count_t;
+#define IRQ_COUNT_MAX UINT32_MAX
+#define IRQ_COUNT_FMT "%*d"
+#elif CONFIG_PLIC_IRQ_COUNT_UINT64
+typedef uint64_t plic_irq_count_t;
+#define IRQ_COUNT_MAX UINT64_MAX
+#define IRQ_COUNT_FMT "%*lld"
+#endif
+#endif /* CONFIG_PLIC_SHELL_IRQ_COUNT */
+
 typedef void (*riscv_plic_irq_config_func_t)(void);
 struct plic_config {
 	mem_addr_t prio;
@@ -75,14 +95,18 @@ struct plic_config {
 	mem_addr_t reg;
 	mem_addr_t trig;
 	uint32_t max_prio;
-	uint32_t num_irqs;
+	/* Number of IRQs that the PLIC physically supports */
+	uint32_t riscv_ndev;
+	/* Number of IRQs supported in this driver */
+	uint32_t nr_irqs;
 	riscv_plic_irq_config_func_t irq_config_func;
 	struct _isr_table_entry *isr_table;
 };
 
 struct plic_stats {
-	uint16_t *const irq_count;
-	const int irq_count_len;
+#ifdef CONFIG_PLIC_SHELL_IRQ_COUNT
+	plic_irq_count_t *const irq_count;
+#endif /* CONFIG_PLIC_SHELL_IRQ_COUNT */
 };
 
 struct plic_data {
@@ -106,7 +130,7 @@ static inline uint32_t get_plic_enabled_size(const struct device *dev)
 {
 	const struct plic_config *config = dev->config;
 
-	return local_irq_to_reg_index(config->num_irqs) + 1;
+	return local_irq_to_reg_index(config->riscv_ndev) + 1;
 }
 
 static inline uint32_t get_first_context(uint32_t hartid)
@@ -332,15 +356,15 @@ static void plic_irq_handler(const struct device *dev)
 	/* Get the IRQ number generating the interrupt */
 	const uint32_t local_irq = sys_read32(claim_complete_addr);
 
-#ifdef CONFIG_PLIC_SHELL
+#ifdef CONFIG_PLIC_SHELL_IRQ_COUNT
 	const struct plic_data *data = dev->data;
 	struct plic_stats stat = data->stats;
 
-	/* Cap the count at __UINT16_MAX__ */
-	if (stat.irq_count[local_irq] != __UINT16_MAX__) {
+	/* Cap the count at IRQ_COUNT_MAX */
+	if (stat.irq_count[local_irq] != IRQ_COUNT_MAX) {
 		stat.irq_count[local_irq]++;
 	}
-#endif /* CONFIG_PLIC_SHELL */
+#endif /* CONFIG_PLIC_SHELL_IRQ_COUNT */
 
 	/*
 	 * Save IRQ in save_irq. To be used, if need be, by
@@ -355,7 +379,7 @@ static void plic_irq_handler(const struct device *dev)
 	 * If the IRQ is out of range, call z_irq_spurious.
 	 * A call to z_irq_spurious will not return.
 	 */
-	if (local_irq == 0U || local_irq >= config->num_irqs) {
+	if ((local_irq == 0U) || (local_irq >= config->nr_irqs)) {
 		z_irq_spurious(NULL);
 	}
 
@@ -417,7 +441,7 @@ static int plic_init(const struct device *dev)
 	}
 
 	/* Set priority of each interrupt line to 0 initially */
-	for (uint32_t i = 0; i < config->num_irqs; i++) {
+	for (uint32_t i = 0; i < config->riscv_ndev; i++) {
 		sys_write32(0U, prio_addr + (i * sizeof(uint32_t)));
 	}
 
@@ -442,11 +466,12 @@ static inline int parse_device(const struct shell *sh, size_t argc, char *argv[]
 	return 0;
 }
 
-static int cmd_get_stats(const struct shell *sh, size_t argc, char *argv[])
+#ifdef CONFIG_PLIC_SHELL_IRQ_COUNT
+static int cmd_stats_get(const struct shell *sh, size_t argc, char *argv[])
 {
 	const struct device *dev;
 	int ret = parse_device(sh, argc, argv, &dev);
-	uint16_t min_hit = 0;
+	plic_irq_count_t min_hit = 0;
 
 	if (ret != 0) {
 		return ret;
@@ -457,21 +482,27 @@ static int cmd_get_stats(const struct shell *sh, size_t argc, char *argv[])
 	struct plic_stats stat = data->stats;
 
 	if (argc > 2) {
-		min_hit = (uint16_t)atoi(argv[2]);
-		shell_print(sh, "IRQ line with > %d hits:", min_hit);
+		min_hit = (plic_irq_count_t)shell_strtoull(argv[2], 10, &ret);
+		if (ret != 0) {
+			shell_error(sh, "Failed to parse %s: %d", argv[2], ret);
+			return ret;
+		}
+		shell_print(sh, "IRQ line with > " IRQ_COUNT_FMT " hits:", 0, min_hit);
 	}
 
-	shell_print(sh, "   IRQ        Hits\tISR(ARG)");
-	for (int i = 0; i < stat.irq_count_len; i++) {
+	shell_print(sh, "   IRQ  %*sHits\tISR(ARG)", CONFIG_PLIC_IRQ_COUNT_WIDTH - 4, "");
+	for (int i = 0; i < config->nr_irqs; i++) {
 		if (stat.irq_count[i] > min_hit) {
 #ifdef CONFIG_SYMTAB
 			const char *name =
 				symtab_find_symbol_name((uintptr_t)config->isr_table[i].isr, NULL);
 
-			shell_print(sh, "  %4d  %10d\t%s(%p)", i, stat.irq_count[i], name,
+			shell_print(sh, "  %4d  " IRQ_COUNT_FMT "\t%s(%p)", i,
+				    CONFIG_PLIC_IRQ_COUNT_WIDTH, stat.irq_count[i], name,
 				    config->isr_table[i].arg);
 #else
-			shell_print(sh, "  %4d  %10d\t%p(%p)", i, stat.irq_count[i],
+			shell_print(sh, "  %4d  " IRQ_COUNT_FMT "\t%p(%p)", i,
+				    CONFIG_PLIC_IRQ_COUNT_WIDTH, stat.irq_count[i],
 				    (void *)config->isr_table[i].isr, config->isr_table[i].arg);
 #endif /* CONFIG_SYMTAB */
 		}
@@ -481,7 +512,7 @@ static int cmd_get_stats(const struct shell *sh, size_t argc, char *argv[])
 	return 0;
 }
 
-static int cmd_clear_stats(const struct shell *sh, size_t argc, char *argv[])
+static int cmd_stats_clear(const struct shell *sh, size_t argc, char *argv[])
 {
 	const struct device *dev;
 	int ret = parse_device(sh, argc, argv, &dev);
@@ -491,19 +522,21 @@ static int cmd_clear_stats(const struct shell *sh, size_t argc, char *argv[])
 	}
 
 	const struct plic_data *data = dev->data;
+	const struct plic_config *config = dev->config;
 	struct plic_stats stat = data->stats;
 
-	memset(stat.irq_count, 0, stat.irq_count_len * sizeof(uint16_t));
+	memset(stat.irq_count, 0, config->nr_irqs * sizeof(plic_irq_count_t));
 
 	shell_print(sh, "Cleared stats of %s.\n", dev->name);
 
 	return 0;
 }
+#endif /* CONFIG_PLIC_SHELL_IRQ_COUNT */
 
 /* Device name autocompletion support */
 static void device_name_get(size_t idx, struct shell_static_entry *entry)
 {
-	const struct device *dev = shell_device_lookup(idx, NULL);
+	const struct device *dev = shell_device_lookup(idx, "interrupt-controller");
 
 	entry->syntax = (dev != NULL) ? dev->name : NULL;
 	entry->handler = NULL;
@@ -513,50 +546,50 @@ static void device_name_get(size_t idx, struct shell_static_entry *entry)
 
 SHELL_DYNAMIC_CMD_CREATE(dsub_device_name, device_name_get);
 
+#ifdef CONFIG_PLIC_SHELL_IRQ_COUNT
 SHELL_STATIC_SUBCMD_SET_CREATE(plic_stats_cmds,
 	SHELL_CMD_ARG(get, &dsub_device_name,
 		"Read PLIC's stats.\n"
 		"Usage: plic stats get <device> [minimum hits]",
-		cmd_get_stats, 2, 1),
+		cmd_stats_get, 2, 1),
 	SHELL_CMD_ARG(clear, &dsub_device_name,
 		"Reset PLIC's stats.\n"
 		"Usage: plic stats clear <device>",
-		cmd_clear_stats, 2, 0),
+		cmd_stats_clear, 2, 0),
 	SHELL_SUBCMD_SET_END
 );
+#endif /* CONFIG_PLIC_SHELL_IRQ_COUNT */
 
 SHELL_STATIC_SUBCMD_SET_CREATE(plic_cmds,
-	SHELL_CMD_ARG(stats, &plic_stats_cmds, "PLIC stats", NULL, 3, 0),
+#ifdef CONFIG_PLIC_SHELL_IRQ_COUNT
+	SHELL_CMD(stats, &plic_stats_cmds, "IRQ stats", NULL),
+#endif /* CONFIG_PLIC_SHELL_IRQ_COUNT */
 	SHELL_SUBCMD_SET_END
 );
 
-static int cmd_plic(const struct shell *sh, size_t argc, char **argv)
-{
-	shell_error(sh, "%s:unknown parameter: %s", argv[0], argv[1]);
-	return -EINVAL;
-}
-
-SHELL_CMD_ARG_REGISTER(plic, &plic_cmds, "PLIC shell commands",
-		       cmd_plic, 2, 0);
+SHELL_CMD_REGISTER(plic, &plic_cmds, "PLIC shell commands", NULL);
+#endif /* CONFIG_PLIC_SHELL */
 
 #define PLIC_MIN_IRQ_NUM(n) MIN(DT_INST_PROP(n, riscv_ndev), CONFIG_MAX_IRQ_PER_AGGREGATOR)
+
+#ifdef CONFIG_PLIC_SHELL_IRQ_COUNT
 #define PLIC_INTC_IRQ_COUNT_BUF_DEFINE(n)                                                          \
-	static uint16_t local_irq_count_##n[PLIC_MIN_IRQ_NUM(n)];
+	static plic_irq_count_t local_irq_count_##n[PLIC_MIN_IRQ_NUM(n)]
+#define PLIC_INTC_IRQ_COUNT_INIT(n)                                                                \
+	.stats = {                                                                                 \
+		.irq_count = &local_irq_count_##n[0],                                              \
+	},
+
+#else
+#define PLIC_INTC_IRQ_COUNT_BUF_DEFINE(n)
+#define PLIC_INTC_IRQ_COUNT_INIT(n)
+#endif /* CONFIG_PLIC_SHELL_IRQ_COUNT */
 
 #define PLIC_INTC_DATA_INIT(n)                                                                     \
 	PLIC_INTC_IRQ_COUNT_BUF_DEFINE(n);                                                         \
 	static struct plic_data plic_data_##n = {                                                  \
-		.stats = {                                                                         \
-			.irq_count = local_irq_count_##n,                                          \
-			.irq_count_len = PLIC_MIN_IRQ_NUM(n),                                      \
-		},                                                                                 \
+		PLIC_INTC_IRQ_COUNT_INIT(n)                                                        \
 	};
-
-#define PLIC_INTC_DATA(n) &plic_data_##n
-#else
-#define PLIC_INTC_DATA_INIT(...)
-#define PLIC_INTC_DATA(n) (NULL)
-#endif
 
 #define PLIC_INTC_IRQ_FUNC_DECLARE(n) static void plic_irq_config_func_##n(void)
 
@@ -576,7 +609,8 @@ SHELL_CMD_ARG_REGISTER(plic, &plic_cmds, "PLIC shell commands",
 		IF_ENABLED(PLIC_SUPPORTS_TRIG_TYPE,                                                \
 			   (.trig = PLIC_BASE_ADDR(n) + PLIC_REG_TRIG_TYPE_OFFSET,))               \
 		.max_prio = DT_INST_PROP(n, riscv_max_priority),                                   \
-		.num_irqs = DT_INST_PROP(n, riscv_ndev),                                           \
+		.riscv_ndev = DT_INST_PROP(n, riscv_ndev),                                         \
+		.nr_irqs = PLIC_MIN_IRQ_NUM(n),                                                    \
 		.irq_config_func = plic_irq_config_func_##n,                                       \
 		.isr_table = &_sw_isr_table[INTC_INST_ISR_TBL_OFFSET(n)],                          \
 	};                                                                                         \
@@ -590,7 +624,7 @@ SHELL_CMD_ARG_REGISTER(plic, &plic_cmds, "PLIC shell commands",
 	PLIC_INTC_CONFIG_INIT(n)                                                                   \
 	PLIC_INTC_DATA_INIT(n)                                                                     \
 	DEVICE_DT_INST_DEFINE(n, &plic_init, NULL,                                                 \
-			      PLIC_INTC_DATA(n), &plic_config_##n,                                 \
+			      &plic_data_##n, &plic_config_##n,                                    \
 			      PRE_KERNEL_1, CONFIG_INTC_INIT_PRIORITY,                             \
 			      NULL);
 

@@ -18,6 +18,57 @@ config PLIC_SHELL
 	depends on SHELL
 	help
 	  Enable additional shell commands useful for debugging.
-	  Caution: This can use quite a bit of RAM (PLICs * IRQs * sizeof(uint16_t)).
+
+if PLIC_SHELL
+
+config PLIC_SHELL_IRQ_COUNT
+	bool "IRQ count shell commands"
+	default y
+	help
+	  Records the number of hits per interrupt line and provide shell commands to access them.
+	  Caution: This can use quite a bit of RAM (PLICs * IRQs * sizeof(PLIC_IRQ_COUNT_TYPE)).
+
+choice PLIC_IRQ_COUNT_TYPE
+	prompt "Variable type used to store IRQ hit count"
+	depends on PLIC_SHELL_IRQ_COUNT
+	default PLIC_IRQ_COUNT_UINT16
+
+config PLIC_IRQ_COUNT_UINT8
+	bool "Stores up to 255"
+	help
+	  Use uint8_t as the underlying type.
+	  This stores up to 255 hits.
+
+config PLIC_IRQ_COUNT_UINT16
+	bool "Stores up to 65535"
+	help
+	  Use uint16_t as the underlying type.
+	  This stores up to 65535 hits.
+
+config PLIC_IRQ_COUNT_UINT32
+	bool "Stores up to 4294967295"
+	help
+	  Use uint32_t as the underlying type.
+	  This stores up to 4294967295 hits.
+
+config PLIC_IRQ_COUNT_UINT64
+	bool "Stores up to 18446744073709552000"
+	help
+	  Use uint64_t as the underlying type.
+	  This stores up to 18446744073709552000 hits.
+
+endchoice # PLIC_IRQ_COUNT_TYPE
+
+config PLIC_IRQ_COUNT_WIDTH
+	int
+	default 5 if PLIC_IRQ_COUNT_UINT8 # width(255) is 3, but width(CPU##) is 5
+	default 5 if PLIC_IRQ_COUNT_UINT16
+	default 10 if PLIC_IRQ_COUNT_UINT32
+	default 20 if PLIC_IRQ_COUNT_UINT64
+	depends on PLIC_SHELL_IRQ_COUNT
+	help
+	  Internal helper to get the width for a variable type
+
+endif # PLIC_SHELL
 
 endif # PLIC
