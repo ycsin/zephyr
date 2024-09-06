@@ -40,71 +40,46 @@ FUNC_NORETURN void z_nios2_fatal_error(unsigned int reason,
 	CODE_UNREACHABLE;
 }
 
-#if defined(CONFIG_EXTRA_EXCEPTION_INFO) && \
-	(defined(CONFIG_PRINTK) || defined(CONFIG_LOG)) \
-	&& defined(ALT_CPU_HAS_EXTRA_EXCEPTION_INFO)
-static char *cause_str(uint32_t cause_code)
+#if defined(CONFIG_EXTRA_EXCEPTION_INFO) && defined(CONFIG_LOG) &&                                 \
+	defined(ALT_CPU_HAS_EXTRA_EXCEPTION_INFO)
+
+static const char *const cause_string[26] = {
+	[0] = "reset",
+	[1] = "processor-only reset request",
+	[2] = "interrupt",
+	[3] = "trap",
+	[4] = "unimplemented instruction",
+	[5] = "illegal instruction",
+	[6] = "misaligned data address",
+	[7] = "misaligned destination address",
+	[8] = "division error",
+	[9] = "supervisor-only instruction address",
+	[10] = "supervisor-only instruction",
+	[11] = "supervisor-only data address",
+	[12] = "TLB miss",
+	[13] = "TLB permission violation (execute)",
+	[14] = "TLB permission violation (read)",
+	[15] = "TLB permission violation (write)",
+	[16] = "MPU region violation (instruction)",
+	[17] = "MPU region violation (data)",
+	[18] = "ECC TLB error",
+	[19] = "ECC fetch error (instruction)",
+	[20] = "ECC register file error",
+	[21] = "ECC data error",
+	[22] = "ECC data cache writeback error",
+	[23] = "bus instruction fetch error",
+	[24] = "bus data region violation",
+	[25] = "unknown",
+};
+static const char *cause_str(uint32_t cause_code)
 {
-	switch (cause_code) {
-	case 0:
-		return "reset";
-	case 1:
-		return "processor-only reset request";
-	case 2:
-		return "interrupt";
-	case 3:
-		return "trap";
-	case 4:
-		return "unimplemented instruction";
-	case 5:
-		return "illegal instruction";
-	case 6:
-		return "misaligned data address";
-	case 7:
-		return "misaligned destination address";
-	case 8:
-		return "division error";
-	case 9:
-		return "supervisor-only instruction address";
-	case 10:
-		return "supervisor-only instruction";
-	case 11:
-		return "supervisor-only data address";
-	case 12:
-		return "TLB miss";
-	case 13:
-		return "TLB permission violation (execute)";
-	case 14:
-		return "TLB permission violation (read)";
-	case 15:
-		return "TLB permission violation (write)";
-	case 16:
-		return "MPU region violation (instruction)";
-	case 17:
-		return "MPU region violation (data)";
-	case 18:
-		return "ECC TLB error";
-	case 19:
-		return "ECC fetch error (instruction)";
-	case 20:
-		return "ECC register file error";
-	case 21:
-		return "ECC data error";
-	case 22:
-		return "ECC data cache writeback error";
-	case 23:
-		return "bus instruction fetch error";
-	case 24:
-		return "bus data region violation";
-	default:
-		return "unknown";
-	}
+	return cause_string[MIN(cause_code, ARRAY_SIZE(cause_string) - 1)];
 }
 #endif
 
 FUNC_NORETURN void _Fault(const struct arch_esf *esf)
 {
-#if defined(CONFIG_PRINTK) || defined(CONFIG_LOG)
+#if defined(CONFIG_LOG)
 	/* Unfortunately, completely unavailable on Nios II/e cores */
 #ifdef ALT_CPU_HAS_EXTRA_EXCEPTION_INFO
 	uint32_t exc_reg, badaddr_reg, eccftl;
@@ -128,7 +103,7 @@ FUNC_NORETURN void _Fault(const struct arch_esf *esf)
 		LOG_ERR("Badaddr: 0x%x", badaddr_reg);
 	}
 #endif /* ALT_CPU_HAS_EXTRA_EXCEPTION_INFO */
-#endif /* CONFIG_PRINTK || CONFIG_LOG */
+#endif /* CONFIG_LOG */
 
 	z_nios2_fatal_error(K_ERR_CPU_EXCEPTION, esf);
 }
