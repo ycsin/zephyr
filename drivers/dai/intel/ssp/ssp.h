@@ -120,7 +120,7 @@ struct dai_intel_ssp_plat_data {
 	uint32_t hdamlssp_base;
 	uint32_t i2svss_base;
 #endif
-	int irq;
+	uint32_t irq;
 	const char *irq_name;
 	uint32_t flags;
 	struct dai_intel_ssp_plat_fifo_data fifo[2];

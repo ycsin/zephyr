@@ -14,14 +14,14 @@ struct intc_mtk_cfg {
 	volatile uint32_t *status_reg;
 };
 
-bool intc_mtk_adsp_get_enable(const struct device *dev, int irq)
+bool intc_mtk_adsp_get_enable(const struct device *dev, uint32_t irq)
 {
 	const struct intc_mtk_cfg *cfg = dev->config;
 
 	return (*cfg->enable_reg | (BIT(irq) & cfg->irq_mask)) != 0;
 }
 
-void intc_mtk_adsp_set_enable(const struct device *dev, int irq, bool val)
+void intc_mtk_adsp_set_enable(const struct device *dev, uint32_t irq, bool val)
 {
 	const struct intc_mtk_cfg *cfg = dev->config;
 

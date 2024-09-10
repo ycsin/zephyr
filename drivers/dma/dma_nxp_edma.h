@@ -196,7 +196,7 @@ struct edma_channel {
 	 */
 	dma_callback_t cb;
 	/* INTID associated with the channel */
-	int irq;
+	uint32_t irq;
 	/* the channel's status */
 	struct dma_status stat;
 	/* cyclic buffer size - currently, this is set to head_block's size */

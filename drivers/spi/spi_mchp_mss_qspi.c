@@ -99,7 +99,7 @@ LOG_MODULE_REGISTER(mss_qspi, CONFIG_SPI_LOG_LEVEL);
 struct mss_qspi_config {
 	mm_reg_t base;
 	void (*irq_config_func)(const struct device *dev);
-	int irq;
+	uint32_t irq;
 	uint32_t clock_freq;
 };
 

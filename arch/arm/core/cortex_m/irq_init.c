@@ -25,7 +25,7 @@
 
 void z_arm_interrupt_init(void)
 {
-	int irq = 0;
+	uint32_t irq = 0;
 
 	for (; irq < CONFIG_NUM_IRQS; irq++) {
 		NVIC_SetPriority((IRQn_Type)irq, _IRQ_PRIO_OFFSET);

@@ -273,7 +273,7 @@ uint32_t restore_flags(uint32_t irq)
 __pinned_func
 int ioapic_suspend(const struct device *port)
 {
-	int irq;
+	uint32_t irq;
 	uint32_t rte_lo;
 
 	ARG_UNUSED(port);
@@ -295,7 +295,7 @@ int ioapic_suspend(const struct device *port)
 __pinned_func
 int ioapic_resume_from_suspend(const struct device *port)
 {
-	int irq;
+	uint32_t irq;
 	uint32_t flags;
 	uint32_t rteValue;
 

@@ -55,7 +55,7 @@ static void wkpu_nxp_s32_interrupt_handler(const struct device *dev)
 	struct wkpu_nxp_s32_data *data = dev->data;
 	uint64_t pending = wkpu_nxp_s32_get_pending(dev);
 	uint64_t irq_mask;
-	int irq;
+	uint32_t irq;
 
 	while (pending) {
 		irq_mask = LSB_GET(pending);

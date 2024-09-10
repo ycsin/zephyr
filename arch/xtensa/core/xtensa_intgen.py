@@ -125,7 +125,7 @@ for lvl in ints_by_lvl:
         cprint("}")
         continue
 
-    cprint("int irq;")
+    cprint("uint32_t irq;")
     print("")
 
     emit_int_handler(sorted(ints_by_lvl[lvl]))

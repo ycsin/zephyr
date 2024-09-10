@@ -177,7 +177,7 @@ struct dai_intel_dmic {
 	uint32_t hdamldmic_base;
 	uint32_t vshim_base;
 #endif
-	int irq;
+	uint32_t irq;
 	uint32_t flags;
 	uint32_t gain_left;
 	uint32_t gain_right;

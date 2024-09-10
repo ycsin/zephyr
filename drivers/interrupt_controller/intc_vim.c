@@ -135,7 +135,7 @@ int z_vim_irq_is_enabled(uint32_t irq)
 	return !!(regval & (BIT(irq_bit_num)));
 }
 
-void z_vim_arm_enter_irq(int irq)
+void z_vim_arm_enter_irq(uint32_t irq)
 {
 	uint32_t irq_group_num, irq_bit_num;
 

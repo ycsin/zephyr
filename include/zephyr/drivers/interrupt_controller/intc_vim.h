@@ -339,6 +339,6 @@ int z_vim_irq_is_enabled(uint32_t irq);
  *
  * @param irq interrupt ID.
  */
-void z_vim_arm_enter_irq(int irq);
+void z_vim_arm_enter_irq(uint32_t irq);
 
 #endif /* ZEPHYR_DRIVERS_INTC_VIM_H_ */

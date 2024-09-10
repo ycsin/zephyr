@@ -32,7 +32,7 @@ struct npcx_kbd_config {
 	/* Pinmux configuration */
 	const struct pinctrl_dev_config *pcfg;
 	/* Keyboard scan input (KSI) wake-up irq */
-	int irq;
+	uint32_t irq;
 	/* Size of keyboard inputs-wui mapping array */
 	int wui_size;
 	/* Mapping table between keyboard inputs and wui */

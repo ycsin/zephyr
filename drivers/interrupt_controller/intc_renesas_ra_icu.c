@@ -39,9 +39,9 @@ int ra_icu_query_exists_irq(uint32_t event)
 	return -EINVAL;
 }
 
-int ra_icu_query_available_irq(uint32_t event)
+uint32_t ra_icu_query_available_irq(uint32_t event)
 {
-	int irq = -EINVAL;
+	uint32_t irq = -EINVAL;
 
 	if (ra_icu_query_exists_irq(event) > 0) {
 		return -EINVAL;
@@ -79,13 +79,13 @@ static void ra_icu_irq_configure(unsigned int irqn, uint32_t intcfg)
 	sys_write8(reg | (intcfg & IRQCRi_IRQMD_MASK), IRQCRi_REG(irqn));
 }
 
-int ra_icu_irq_connect_dynamic(uint32_t irq, unsigned int priority,
-			       void (*routine)(const void *parameter), const void *parameter,
-			       uint32_t flags)
+uint32_t ra_icu_irq_connect_dynamic(uint32_t irq, unsigned int priority,
+				    void (*routine)(const void *parameter), const void *parameter,
+				    uint32_t flags)
 {
 	uint32_t event = ((flags & RA_ICU_FLAG_EVENT_MASK) >> RA_ICU_FLAG_EVENT_OFFSET);
 	uint32_t intcfg = ((flags & RA_ICU_FLAG_INTCFG_MASK) >> RA_ICU_FLAG_INTCFG_OFFSET);
-	int irqn = irq;
+	uint32_t irqn = irq;
 
 	if (irq == RA_ICU_IRQ_UNSPECIFIED) {
 		irqn = ra_icu_query_available_irq(event);

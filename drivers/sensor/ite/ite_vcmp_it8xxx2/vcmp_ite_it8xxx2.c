@@ -45,7 +45,7 @@ struct vcmp_it8xxx2_config {
 	/* Voltage comparator status 2 register */
 	volatile uint8_t *reg_vcmpsts2;
 	/* Voltage comparator module irq */
-	int irq;
+	uint32_t irq;
 	/* Voltage comparator channel */
 	int vcmp_ch;
 	/* Scan period for "all voltage comparator channel" */

@@ -49,7 +49,7 @@ struct gpio_ra_irq_info {
 	const uint8_t *const pins;
 	size_t num;
 	int port_irq;
-	int irq;
+	uint32_t irq;
 	uint32_t priority;
 	uint32_t flags;
 	ra_isr_handler isr;
@@ -83,7 +83,7 @@ static void gpio_ra_isr(const struct device *dev, uint32_t port_irq)
 {
 	struct gpio_ra_data *data = dev->data;
 	const struct gpio_ra_pin_irq_info *pin_irq = &data->port_irq_info[port_irq];
-	const int irq = ra_icu_query_exists_irq(gpio_ra_irq_info_event(pin_irq->info));
+	const uint32_t irq = ra_icu_query_exists_irq(gpio_ra_irq_info_event(pin_irq->info));
 
 	if (irq >= 0) {
 		gpio_fire_callbacks(&data->callbacks, dev, BIT(pin_irq->pin));
@@ -178,7 +178,7 @@ static int gpio_ra_pin_configure(const struct device *dev, gpio_pin_t pin, gpio_
 	if (flags & GPIO_INT_ENABLE) {
 		const struct gpio_ra_irq_info *irq_info;
 		uint32_t intcfg;
-		int irqn;
+		uint32_t irqn;
 
 		if (mode == GPIO_INT_MODE_LEVEL) {
 			if (trig != GPIO_INT_TRIG_LOW) {

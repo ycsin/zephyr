@@ -35,7 +35,7 @@ struct it8xxx2_kbd_config {
 	/* Keyboard scan controller base address */
 	struct kscan_it8xxx2_regs *base;
 	/* Keyboard scan input (KSI) wake-up irq */
-	int irq;
+	uint32_t irq;
 	/* KSI[7:0] wake-up input source configuration list */
 	const struct it8xxx2_kbd_wuc_map_cfg *wuc_map_list;
 	/* KSI[7:0]/KSO[17:0] keyboard scan alternate configuration */

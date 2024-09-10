@@ -326,7 +326,7 @@ static int gpio_lpc11u6x_pin_interrupt_configure(const struct device *port,
 	struct lpc11u6x_pint_regs *pint_regs = (struct lpc11u6x_pint_regs *)
 		(config->shared->gpio_base + LPC11U6X_PINT_REGS);
 	uint8_t intpin;
-	int irq;
+	uint32_t irq;
 
 	if (pin >= config->ngpios) {
 		return -EINVAL;

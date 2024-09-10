@@ -292,7 +292,7 @@ static int to_zephyr_irq(uint32_t regmap, uint32_t irq,
 }
 
 /* used to convert master-relative INTID to system INTID */
-static int to_system_irq(uint32_t regmap, int irq, int master_index)
+static uint32_t to_system_irq(uint32_t regmap, uint32_t irq, int master_index)
 {
 	int i;
 
@@ -406,7 +406,7 @@ static void irqsteer_isr_dispatcher(const void *data)
 	struct irqsteer_dispatcher *dispatcher;
 	const struct irqsteer_config *cfg;
 	uint32_t table_idx;
-	int system_irq, zephyr_irq, i;
+	uint32_t system_irq, zephyr_irq, i;
 	uint64_t status;
 
 	dispatcher = (struct irqsteer_dispatcher *)data;

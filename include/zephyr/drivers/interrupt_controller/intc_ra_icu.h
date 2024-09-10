@@ -25,13 +25,13 @@ typedef void (*ra_isr_handler)(const void *);
 
 extern void ra_icu_clear_int_flag(unsigned int irqn);
 
-extern int ra_icu_query_available_irq(uint32_t event);
+extern uint32_t ra_icu_query_available_irq(uint32_t event);
 extern int ra_icu_query_exists_irq(uint32_t event);
 
 extern void ra_icu_query_irq_config(uint32_t irq, uint32_t *intcfg, ra_isr_handler *pisr,
 				    const void **cbarg);
 
-extern int ra_icu_irq_connect_dynamic(uint32_t irq, unsigned int priority,
+extern uint32_t ra_icu_irq_connect_dynamic(uint32_t irq, unsigned int priority,
 				      void (*routine)(const void *parameter), const void *parameter,
 				      uint32_t flags);
 
