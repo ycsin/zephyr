@@ -990,7 +990,7 @@ static void smbus_isr(const struct device *dev)
 	static void pch_config_##n(const struct device *dev)                   \
 	{                                                                      \
 		const struct pch_config * const config = dev->config;          \
-		unsigned int irq;                                              \
+		uint32_t irq;                                                  \
 		if (DT_INST_IRQN(n) == PCIE_IRQ_DETECT) {                      \
 			irq = pcie_alloc_irq(config->pcie->bdf);               \
 			if (irq == PCIE_CONF_INTR_IRQ_NONE) {                  \

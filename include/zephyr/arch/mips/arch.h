@@ -36,9 +36,9 @@ extern "C" {
 
 #define STACK_ROUND_UP(x) ROUND_UP(x, ARCH_STACK_PTR_ALIGN)
 
-void arch_irq_enable(unsigned int irq);
-void arch_irq_disable(unsigned int irq);
-int arch_irq_is_enabled(unsigned int irq);
+void arch_irq_enable(uint32_t irq);
+void arch_irq_disable(uint32_t irq);
+int arch_irq_is_enabled(uint32_t irq);
 void z_irq_spurious(const void *unused);
 
 /**

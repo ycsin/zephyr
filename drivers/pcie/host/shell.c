@@ -288,7 +288,7 @@ static pcie_bdf_t get_bdf(char *str)
 static void show(const struct shell *sh, pcie_bdf_t bdf, bool details, bool dump)
 {
 	uint32_t data;
-	unsigned int irq;
+	uint32_t irq;
 
 	data = pcie_conf_read(bdf, PCIE_CONF_ID);
 

@@ -11,9 +11,9 @@
 #if defined(CONFIG_ARM_SECURE_FIRMWARE) && \
 	defined(CONFIG_ARMV7_M_ARMV8_M_MAINLINE)
 
-extern irq_target_state_t irq_target_state_set(unsigned int irq,
+extern irq_target_state_t irq_target_state_set(uint32_t irq,
 	irq_target_state_t target_state);
-extern int irq_target_state_is_secure(unsigned int irq);
+extern int irq_target_state_is_secure(uint32_t irq);
 
 ZTEST(arm_irq_advanced_features, test_arm_irq_target_state)
 {

@@ -43,7 +43,7 @@
  * @param flags interrupt flags
  */
 __boot_func
-void z_irq_controller_irq_config(unsigned int vector, unsigned int irq,
+void z_irq_controller_irq_config(unsigned int vector, uint32_t irq,
 				 uint32_t flags)
 {
 	__ASSERT(irq <= HARDWARE_IRQ_LIMIT, "invalid irq line");
@@ -61,8 +61,8 @@ void z_irq_controller_irq_config(unsigned int vector, unsigned int irq,
  * The public interface for enabling/disabling a specific IRQ for the IA-32
  * architecture is defined as follows in include/arch/x86/arch.h
  *
- *   extern void  irq_enable  (unsigned int irq);
- *   extern void  irq_disable (unsigned int irq);
+ *   extern void  irq_enable  (uint32_t irq);
+ *   extern void  irq_disable (uint32_t irq);
  *
  * The irq_enable() routine is provided by the interrupt controller driver due
  * to the IRQ virtualization that is performed by this platform.  See the
@@ -70,7 +70,7 @@ void z_irq_controller_irq_config(unsigned int vector, unsigned int irq,
  * virtualization.
  */
 __pinned_func
-void arch_irq_enable(unsigned int irq)
+void arch_irq_enable(uint32_t irq)
 {
 	if (IS_IOAPIC_IRQ(irq)) {
 		z_ioapic_irq_enable(irq);
@@ -88,7 +88,7 @@ void arch_irq_enable(unsigned int irq)
  * virtualization.
  */
 __pinned_func
-void arch_irq_disable(unsigned int irq)
+void arch_irq_disable(uint32_t irq)
 {
 	if (IS_IOAPIC_IRQ(irq)) {
 		z_ioapic_irq_disable(irq);

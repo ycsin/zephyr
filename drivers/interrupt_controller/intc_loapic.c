@@ -201,7 +201,7 @@ uint32_t z_loapic_irq_base(void)
  * This associates an IRQ with the desired vector in the IDT.
  */
 __pinned_func
-void z_loapic_int_vec_set(unsigned int irq, /* IRQ number of the interrupt */
+void z_loapic_int_vec_set(uint32_t irq, /* IRQ number of the interrupt */
 				  unsigned int vector /* vector to copy into the LVT */
 				  )
 {
@@ -237,7 +237,7 @@ void z_loapic_int_vec_set(unsigned int irq, /* IRQ number of the interrupt */
  * This routine clears the interrupt mask bit in the LVT for the specified IRQ
  */
 __pinned_func
-void z_loapic_irq_enable(unsigned int irq)
+void z_loapic_irq_enable(uint32_t irq)
 {
 	unsigned int oldLevel;   /* previous interrupt lock level */
 
@@ -263,7 +263,7 @@ void z_loapic_irq_enable(unsigned int irq)
  * This routine clears the interrupt mask bit in the LVT for the specified IRQ
  */
 __pinned_func
-void z_loapic_irq_disable(unsigned int irq)
+void z_loapic_irq_disable(uint32_t irq)
 {
 	unsigned int oldLevel;   /* previous interrupt lock level */
 

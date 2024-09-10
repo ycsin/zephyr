@@ -23,13 +23,13 @@ extern "C" {
  * public documentation.
  */
 typedef void (*irq_next_level_func_t)(const struct device *dev,
-				      unsigned int irq);
+				      uint32_t irq);
 typedef unsigned int (*irq_next_level_get_state_t)(const struct device *dev);
 typedef void (*irq_next_level_priority_t)(const struct device *dev,
-					  unsigned int irq, unsigned int prio,
+					  uint32_t irq, unsigned int prio,
 					  uint32_t flags);
 typedef int (*irq_next_level_get_line_state_t)(const struct device *dev,
-					       unsigned int irq);
+					       uint32_t irq);
 
 struct irq_next_level_api {
 	irq_next_level_func_t intr_enable;
@@ -127,7 +127,7 @@ static inline void irq_set_priority_next_level(const struct device *dev,
  * @return interrupt enable state, true or false
  */
 static inline unsigned int irq_line_is_enabled_next_level(const struct device *dev,
-							  unsigned int irq)
+							  uint32_t irq)
 {
 	const struct irq_next_level_api *api =
 		(const struct irq_next_level_api *)dev->api;

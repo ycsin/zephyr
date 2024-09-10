@@ -198,7 +198,7 @@ static void enable_msix(pcie_bdf_t bdf,
 			msi_vector_t *vectors,
 			uint8_t n_vector,
 			uint32_t base,
-			unsigned int irq)
+			uint32_t irq)
 {
 	uint32_t mcr;
 	int i;
@@ -236,7 +236,7 @@ static void enable_msi(pcie_bdf_t bdf,
 		       msi_vector_t *vectors,
 		       uint8_t n_vector,
 		       uint32_t base,
-		       unsigned int irq)
+		       uint32_t irq)
 {
 	uint32_t mcr;
 	uint32_t map;
@@ -269,7 +269,7 @@ static void enable_msi(pcie_bdf_t bdf,
 bool pcie_msi_enable(pcie_bdf_t bdf,
 		     msi_vector_t *vectors,
 		     uint8_t n_vector,
-		     unsigned int irq)
+		     uint32_t irq)
 {
 	uint32_t base;
 	bool msi;

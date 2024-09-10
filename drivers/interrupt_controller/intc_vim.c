@@ -49,7 +49,7 @@ unsigned int z_vim_irq_get_active(void)
 	return (actirq & VIM_ACTIRQ_NUM_MASK);
 }
 
-void z_vim_irq_eoi(unsigned int irq)
+void z_vim_irq_eoi(uint32_t irq)
 {
 	sys_write32(0, VIM_IRQVEC);
 }
@@ -61,7 +61,7 @@ void z_vim_irq_init(void)
 	LOG_DBG("VIM: Number of IRQs = %u\n", num_of_irqs);
 }
 
-void z_vim_irq_priority_set(unsigned int irq, unsigned int prio, uint32_t flags)
+void z_vim_irq_priority_set(uint32_t irq, unsigned int prio, uint32_t flags)
 {
 	uint32_t irq_group_num, irq_bit_num, regval;
 
@@ -88,7 +88,7 @@ void z_vim_irq_priority_set(unsigned int irq, unsigned int prio, uint32_t flags)
 	sys_write32(regval, VIM_INTTYPE(irq_group_num));
 }
 
-void z_vim_irq_enable(unsigned int irq)
+void z_vim_irq_enable(uint32_t irq)
 {
 	uint32_t irq_group_num, irq_bit_num;
 
@@ -103,7 +103,7 @@ void z_vim_irq_enable(unsigned int irq)
 	sys_write32(BIT(irq_bit_num), VIM_INTR_EN_SET(irq_group_num));
 }
 
-void z_vim_irq_disable(unsigned int irq)
+void z_vim_irq_disable(uint32_t irq)
 {
 	uint32_t irq_group_num, irq_bit_num;
 
@@ -118,7 +118,7 @@ void z_vim_irq_disable(unsigned int irq)
 	sys_write32(BIT(irq_bit_num), VIM_INTR_EN_CLR(irq_group_num));
 }
 
-int z_vim_irq_is_enabled(unsigned int irq)
+int z_vim_irq_is_enabled(uint32_t irq)
 {
 	uint32_t irq_group_num, irq_bit_num, regval;
 

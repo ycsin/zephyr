@@ -135,7 +135,7 @@ void z_arc_firq_stack_set(void)
  * line. After this call, the CPU will receive interrupts for the specified
  * @a irq.
  */
-void arch_irq_enable(unsigned int irq);
+void arch_irq_enable(uint32_t irq);
 
 /**
  * @brief Disable an interrupt line
@@ -143,7 +143,7 @@ void arch_irq_enable(unsigned int irq);
  * Disable an interrupt line. After this call, the CPU will stop receiving
  * interrupts for the specified @a irq.
  */
-void arch_irq_disable(unsigned int irq);
+void arch_irq_disable(uint32_t irq);
 
 /**
  * @brief Return IRQ enable state
@@ -151,14 +151,14 @@ void arch_irq_disable(unsigned int irq);
  * @param irq IRQ line
  * @return interrupt enable state, true or false
  */
-int arch_irq_is_enabled(unsigned int irq);
+int arch_irq_is_enabled(uint32_t irq);
 
 #ifdef CONFIG_ARC_CONNECT
 
 #define IRQ_NUM_TO_IDU_NUM(id)		((id) - ARC_CONNECT_IDU_IRQ_START)
 #define IRQ_IS_COMMON(id)		((id) >= ARC_CONNECT_IDU_IRQ_START)
 
-void arch_irq_enable(unsigned int irq)
+void arch_irq_enable(uint32_t irq)
 {
 	if (IRQ_IS_COMMON(irq)) {
 		z_arc_connect_idu_set_mask(IRQ_NUM_TO_IDU_NUM(irq), 0x0);
@@ -167,7 +167,7 @@ void arch_irq_enable(unsigned int irq)
 	}
 }
 
-void arch_irq_disable(unsigned int irq)
+void arch_irq_disable(uint32_t irq)
 {
 	if (IRQ_IS_COMMON(irq)) {
 		z_arc_connect_idu_set_mask(IRQ_NUM_TO_IDU_NUM(irq), 0x1);
@@ -176,7 +176,7 @@ void arch_irq_disable(unsigned int irq)
 	}
 }
 
-int arch_irq_is_enabled(unsigned int irq)
+int arch_irq_is_enabled(uint32_t irq)
 {
 	if (IRQ_IS_COMMON(irq)) {
 		return !z_arc_connect_idu_read_mask(IRQ_NUM_TO_IDU_NUM(irq));
@@ -185,17 +185,17 @@ int arch_irq_is_enabled(unsigned int irq)
 	}
 }
 #else
-void arch_irq_enable(unsigned int irq)
+void arch_irq_enable(uint32_t irq)
 {
 	z_arc_v2_irq_unit_int_enable(irq);
 }
 
-void arch_irq_disable(unsigned int irq)
+void arch_irq_disable(uint32_t irq)
 {
 	z_arc_v2_irq_unit_int_disable(irq);
 }
 
-int arch_irq_is_enabled(unsigned int irq)
+int arch_irq_is_enabled(uint32_t irq)
 {
 	return z_arc_v2_irq_unit_int_enabled(irq);
 }
@@ -213,7 +213,7 @@ int arch_irq_is_enabled(unsigned int irq)
  * depends on CONFIG_NUM_IRQ_PRIO_LEVELS.
  */
 
-void z_irq_priority_set(unsigned int irq, unsigned int prio, uint32_t flags)
+void z_irq_priority_set(uint32_t irq, unsigned int prio, uint32_t flags)
 {
 	ARG_UNUSED(flags);
 
@@ -246,7 +246,7 @@ void z_irq_spurious(const void *unused)
 }
 
 #ifdef CONFIG_DYNAMIC_INTERRUPTS
-int arch_irq_connect_dynamic(unsigned int irq, unsigned int priority,
+int arch_irq_connect_dynamic(uint32_t irq, unsigned int priority,
 			     void (*routine)(const void *parameter),
 			     const void *parameter, uint32_t flags)
 {

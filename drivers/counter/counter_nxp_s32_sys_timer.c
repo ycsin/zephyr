@@ -71,7 +71,7 @@ struct nxp_s32_sys_timer_config {
 	unsigned int irqn;
 };
 
-static ALWAYS_INLINE void irq_set_pending(unsigned int irq)
+static ALWAYS_INLINE void irq_set_pending(uint32_t irq)
 {
 #if defined(CONFIG_GIC)
 	arm_gic_irq_set_pending(irq);

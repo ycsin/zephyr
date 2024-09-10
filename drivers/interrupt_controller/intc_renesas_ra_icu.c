@@ -64,7 +64,7 @@ void ra_icu_clear_int_flag(unsigned int irqn)
 	sys_write32(cfg & ~BIT(IELSRn_IR_POS), IELSRn_REG(irqn));
 }
 
-void ra_icu_query_irq_config(unsigned int irq, uint32_t *intcfg, ra_isr_handler *cb,
+void ra_icu_query_irq_config(uint32_t irq, uint32_t *intcfg, ra_isr_handler *cb,
 			     const void **cbarg)
 {
 	*intcfg = sys_read32(IELSRn_REG(irq));
@@ -79,7 +79,7 @@ static void ra_icu_irq_configure(unsigned int irqn, uint32_t intcfg)
 	sys_write8(reg | (intcfg & IRQCRi_IRQMD_MASK), IRQCRi_REG(irqn));
 }
 
-int ra_icu_irq_connect_dynamic(unsigned int irq, unsigned int priority,
+int ra_icu_irq_connect_dynamic(uint32_t irq, unsigned int priority,
 			       void (*routine)(const void *parameter), const void *parameter,
 			       uint32_t flags)
 {
@@ -103,7 +103,7 @@ int ra_icu_irq_connect_dynamic(unsigned int irq, unsigned int priority,
 	return irqn;
 }
 
-int ra_icu_irq_disconnect_dynamic(unsigned int irq, unsigned int priority,
+int ra_icu_irq_disconnect_dynamic(uint32_t irq, unsigned int priority,
 				  void (*routine)(const void *parameter), const void *parameter,
 				  uint32_t flags)
 {

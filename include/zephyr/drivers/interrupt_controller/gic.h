@@ -277,14 +277,14 @@
  *
  * @param irq interrupt ID
  */
-void arm_gic_irq_enable(unsigned int irq);
+void arm_gic_irq_enable(uint32_t irq);
 
 /**
  * @brief Disable interrupt
  *
  * @param irq interrupt ID
  */
-void arm_gic_irq_disable(unsigned int irq);
+void arm_gic_irq_disable(uint32_t irq);
 
 /**
  * @brief Check if an interrupt is enabled
@@ -292,7 +292,7 @@ void arm_gic_irq_disable(unsigned int irq);
  * @param irq interrupt ID
  * @return Returns true if interrupt is enabled, false otherwise
  */
-bool arm_gic_irq_is_enabled(unsigned int irq);
+bool arm_gic_irq_is_enabled(uint32_t irq);
 
 /**
  * @brief Check if an interrupt is pending
@@ -300,21 +300,21 @@ bool arm_gic_irq_is_enabled(unsigned int irq);
  * @param irq interrupt ID
  * @return Returns true if interrupt is pending, false otherwise
  */
-bool arm_gic_irq_is_pending(unsigned int irq);
+bool arm_gic_irq_is_pending(uint32_t irq);
 
 /**
  * @brief Set interrupt as pending
  *
  * @param irq interrupt ID
  */
-void arm_gic_irq_set_pending(unsigned int irq);
+void arm_gic_irq_set_pending(uint32_t irq);
 
 /**
  * @brief Clear the pending irq
  *
  * @param irq interrupt ID
  */
-void arm_gic_irq_clear_pending(unsigned int irq);
+void arm_gic_irq_clear_pending(uint32_t irq);
 
 /**
  * @brief Set interrupt priority
@@ -324,7 +324,7 @@ void arm_gic_irq_clear_pending(unsigned int irq);
  * @param flags interrupt flags
  */
 void arm_gic_irq_set_priority(
-	unsigned int irq, unsigned int prio, unsigned int flags);
+	uint32_t irq, unsigned int prio, unsigned int flags);
 
 /**
  * @brief Get active interrupt ID
@@ -338,7 +338,7 @@ unsigned int arm_gic_get_active(void);
  *
  * @param irq interrupt ID
  */
-void arm_gic_eoi(unsigned int irq);
+void arm_gic_eoi(uint32_t irq);
 
 #ifdef CONFIG_SMP
 /**

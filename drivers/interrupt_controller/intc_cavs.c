@@ -64,7 +64,7 @@ static void cavs_ictl_isr(const struct device *port)
 }
 
 static void cavs_ictl_irq_enable(const struct device *dev,
-					unsigned int irq)
+					uint32_t irq)
 {
 	struct cavs_ictl_runtime *context = dev->data;
 
@@ -74,7 +74,7 @@ static void cavs_ictl_irq_enable(const struct device *dev,
 }
 
 static void cavs_ictl_irq_disable(const struct device *dev,
-					 unsigned int irq)
+					 uint32_t irq)
 {
 	struct cavs_ictl_runtime *context = dev->data;
 
@@ -97,7 +97,7 @@ static unsigned int cavs_ictl_irq_get_state(const struct device *dev)
 }
 
 static int cavs_ictl_irq_get_line_state(const struct device *dev,
-					unsigned int irq)
+					uint32_t irq)
 {
 	struct cavs_ictl_runtime *context = dev->data;
 

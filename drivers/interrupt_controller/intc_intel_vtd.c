@@ -426,7 +426,7 @@ static uint16_t vtd_ictl_get_irte_vector(const struct device *dev,
 
 static int vtd_ictl_set_irte_irq(const struct device *dev,
 				 uint8_t irte_idx,
-				 unsigned int irq)
+				 uint32_t irq)
 {
 	struct vtd_ictl_data *data = dev->data;
 
@@ -436,7 +436,7 @@ static int vtd_ictl_set_irte_irq(const struct device *dev,
 }
 
 static int vtd_ictl_get_irte_by_irq(const struct device *dev,
-				    unsigned int irq)
+				    uint32_t irq)
 {
 	struct vtd_ictl_data *data = dev->data;
 	int irte_idx;

@@ -283,7 +283,7 @@ bool pcie_probe_iobar(pcie_bdf_t bdf,
 
 unsigned int pcie_alloc_irq(pcie_bdf_t bdf)
 {
-	unsigned int irq;
+	uint32_t irq;
 	uint32_t data;
 
 	data = pcie_conf_read(bdf, PCIE_CONF_INTR);
@@ -330,7 +330,7 @@ unsigned int pcie_get_irq(pcie_bdf_t bdf)
 }
 
 bool pcie_connect_dynamic_irq(pcie_bdf_t bdf,
-			      unsigned int irq,
+			      uint32_t irq,
 			      unsigned int priority,
 			      void (*routine)(const void *parameter),
 			      const void *parameter,
@@ -358,7 +358,7 @@ bool pcie_connect_dynamic_irq(pcie_bdf_t bdf,
 	return true;
 }
 
-void pcie_irq_enable(pcie_bdf_t bdf, unsigned int irq)
+void pcie_irq_enable(pcie_bdf_t bdf, uint32_t irq)
 {
 #if CONFIG_PCIE_MSI
 	if (pcie_msi_enable(bdf, NULL, 1, irq)) {

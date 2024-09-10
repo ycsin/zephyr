@@ -22,17 +22,17 @@
 #define ESP32C6_INTSTATUS_REG1_THRESHOLD	32
 #define ESP32C6_INTSTATUS_REG2_THRESHOLD	64
 
-void arch_irq_enable(unsigned int irq)
+void arch_irq_enable(uint32_t irq)
 {
 	esp_intr_enable(irq);
 }
 
-void arch_irq_disable(unsigned int irq)
+void arch_irq_disable(uint32_t irq)
 {
 	esp_intr_disable(irq);
 }
 
-int arch_irq_is_enabled(unsigned int irq)
+int arch_irq_is_enabled(uint32_t irq)
 {
 	bool res = false;
 	uint32_t key = irq_lock();

@@ -24,9 +24,9 @@ extern "C" {
 void posix_halt_cpu(void);
 void posix_atomic_halt_cpu(unsigned int imask);
 
-void posix_irq_enable(unsigned int irq);
-void posix_irq_disable(unsigned int irq);
-int  posix_irq_is_enabled(unsigned int irq);
+void posix_irq_enable(uint32_t irq);
+void posix_irq_disable(uint32_t irq);
+int  posix_irq_is_enabled(uint32_t irq);
 unsigned int posix_irq_lock(void);
 void posix_irq_unlock(unsigned int key);
 void posix_irq_full_unlock(void);

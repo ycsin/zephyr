@@ -109,10 +109,10 @@ uint32_t ioapic_suspend_buf[SUSPEND_BITS_REQD / 32] = {0};
 
 static uint32_t __IoApicGet(int32_t offset);
 static void __IoApicSet(int32_t offset, uint32_t value);
-static void ioApicRedSetHi(unsigned int irq, uint32_t upper32);
-static void ioApicRedSetLo(unsigned int irq, uint32_t lower32);
-static uint32_t ioApicRedGetLo(unsigned int irq);
-static void IoApicRedUpdateLo(unsigned int irq, uint32_t value,
+static void ioApicRedSetHi(uint32_t irq, uint32_t upper32);
+static void ioApicRedSetLo(uint32_t irq, uint32_t lower32);
+static uint32_t ioApicRedGetLo(uint32_t irq);
+static void IoApicRedUpdateLo(uint32_t irq, uint32_t value,
 					uint32_t mask);
 
 #if defined(CONFIG_INTEL_VTD_ICTL) &&				\
@@ -192,7 +192,7 @@ uint32_t z_ioapic_num_rtes(void)
  * @param irq IRQ number to enable
  */
 __pinned_func
-void z_ioapic_irq_enable(unsigned int irq)
+void z_ioapic_irq_enable(uint32_t irq)
 {
 	IoApicRedUpdateLo(irq, 0, IOAPIC_INT_MASK);
 }
@@ -204,7 +204,7 @@ void z_ioapic_irq_enable(unsigned int irq)
  * @param irq IRQ number to disable
  */
 __pinned_func
-void z_ioapic_irq_disable(unsigned int irq)
+void z_ioapic_irq_disable(uint32_t irq)
 {
 	IoApicRedUpdateLo(irq, IOAPIC_INT_MASK, IOAPIC_INT_MASK);
 }
@@ -213,7 +213,7 @@ void z_ioapic_irq_disable(unsigned int irq)
 #ifdef CONFIG_PM_DEVICE
 
 __pinned_func
-void store_flags(unsigned int irq, uint32_t flags)
+void store_flags(uint32_t irq, uint32_t flags)
 {
 	/* Currently only the following four flags are modified */
 	if (flags & IOAPIC_LOW) {
@@ -242,7 +242,7 @@ void store_flags(unsigned int irq, uint32_t flags)
 }
 
 __pinned_func
-uint32_t restore_flags(unsigned int irq)
+uint32_t restore_flags(uint32_t irq)
 {
 	uint32_t flags = 0U;
 
@@ -357,7 +357,7 @@ static int ioapic_pm_action(const struct device *dev,
  * @param flags Interrupt flags
  */
 __boot_func
-void z_ioapic_irq_set(unsigned int irq, unsigned int vector, uint32_t flags)
+void z_ioapic_irq_set(uint32_t irq, unsigned int vector, uint32_t flags)
 {
 	uint32_t rteValue;   /* value to copy into redirection table entry */
 #if defined(CONFIG_INTEL_VTD_ICTL) &&				\
@@ -415,7 +415,7 @@ no_vtd:
  * @param vector Vector number
  */
 __boot_func
-void z_ioapic_int_vec_set(unsigned int irq, unsigned int vector)
+void z_ioapic_int_vec_set(uint32_t irq, unsigned int vector)
 {
 	IoApicRedUpdateLo(irq, vector, IOAPIC_VEC_MASK);
 }
@@ -478,7 +478,7 @@ static void __IoApicSet(int32_t offset, uint32_t value)
  * @return 32 low-order bits
  */
 __pinned_func
-static uint32_t ioApicRedGetLo(unsigned int irq)
+static uint32_t ioApicRedGetLo(uint32_t irq)
 {
 	int32_t offset = IOAPIC_REDTBL + (irq << 1); /* register offset */
 
@@ -494,7 +494,7 @@ static uint32_t ioApicRedGetLo(unsigned int irq)
  * @param lower32 Value to be written
  */
 __pinned_func
-static void ioApicRedSetLo(unsigned int irq, uint32_t lower32)
+static void ioApicRedSetLo(uint32_t irq, uint32_t lower32)
 {
 	int32_t offset = IOAPIC_REDTBL + (irq << 1); /* register offset */
 
@@ -510,7 +510,7 @@ static void ioApicRedSetLo(unsigned int irq, uint32_t lower32)
  * @param upper32 Value to be written
  */
 __pinned_func
-static void ioApicRedSetHi(unsigned int irq, uint32_t upper32)
+static void ioApicRedSetHi(uint32_t irq, uint32_t upper32)
 {
 	int32_t offset = IOAPIC_REDTBL + (irq << 1) + 1; /* register offset */
 
@@ -528,7 +528,7 @@ static void ioApicRedSetHi(unsigned int irq, uint32_t upper32)
  * @param mask  Mask of bits to be modified
  */
 __pinned_func
-static void IoApicRedUpdateLo(unsigned int irq,
+static void IoApicRedUpdateLo(uint32_t irq,
 				uint32_t value,
 				uint32_t mask)
 {

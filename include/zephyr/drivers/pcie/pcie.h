@@ -323,7 +323,7 @@ extern unsigned int pcie_get_irq(pcie_bdf_t bdf);
  * to the specified IRQ, and the IRQ is enabled (at the I/O APIC, or
  * wherever appropriate).
  */
-extern void pcie_irq_enable(pcie_bdf_t bdf, unsigned int irq);
+extern void pcie_irq_enable(pcie_bdf_t bdf, uint32_t irq);
 
 /**
  * @brief Find a PCI(e) capability in an endpoint's configuration space.
@@ -355,7 +355,7 @@ extern uint32_t pcie_get_ext_cap(pcie_bdf_t bdf, uint32_t cap_id);
  * @return true if connected, false otherwise
  */
 extern bool pcie_connect_dynamic_irq(pcie_bdf_t bdf,
-				     unsigned int irq,
+				     uint32_t irq,
 				     unsigned int priority,
 				     void (*routine)(const void *parameter),
 				     const void *parameter,

@@ -68,17 +68,17 @@ static void vexriscv_litex_irq_handler(const void *device)
 	DT_FOREACH_STATUS_OKAY_NODE(LITEX_IRQ_ADD);
 }
 
-void arch_irq_enable(unsigned int irq)
+void arch_irq_enable(uint32_t irq)
 {
 	vexriscv_litex_irq_setmask(vexriscv_litex_irq_getmask() | (1 << irq));
 }
 
-void arch_irq_disable(unsigned int irq)
+void arch_irq_disable(uint32_t irq)
 {
 	vexriscv_litex_irq_setmask(vexriscv_litex_irq_getmask() & ~(1 << irq));
 }
 
-int arch_irq_is_enabled(unsigned int irq)
+int arch_irq_is_enabled(uint32_t irq)
 {
 	return vexriscv_litex_irq_getmask() & (1 << irq);
 }

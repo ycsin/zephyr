@@ -26,7 +26,7 @@ static const struct device *irq_dev(unsigned int *irq_inout)
 	return DEVICE_DT_GET(DT_INST(1, mediatek_adsp_intc));
 }
 
-void z_soc_irq_enable(unsigned int irq)
+void z_soc_irq_enable(uint32_t irq)
 {
 	/* First 32 IRQs are the Xtensa architectural vectors,  */
 	if (irq < 32) {
@@ -38,7 +38,7 @@ void z_soc_irq_enable(unsigned int irq)
 	}
 }
 
-void z_soc_irq_disable(unsigned int irq)
+void z_soc_irq_disable(uint32_t irq)
 {
 	if (irq < 32) {
 		xtensa_irq_disable(irq);
@@ -49,7 +49,7 @@ void z_soc_irq_disable(unsigned int irq)
 	}
 }
 
-int z_soc_irq_is_enabled(unsigned int irq)
+int z_soc_irq_is_enabled(uint32_t irq)
 {
 	if (irq < 32) {
 		return xtensa_irq_is_enabled(irq);

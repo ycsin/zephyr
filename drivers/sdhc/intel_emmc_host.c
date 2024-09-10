@@ -1301,7 +1301,7 @@ static const struct sdhc_driver_api emmc_api = {
 		BUILD_ASSERT(IS_ENABLED(CONFIG_DYNAMIC_INTERRUPTS),                                \
 			     "eMMC PCI device needs CONFIG_DYNAMIC_INTERRUPTS");                   \
 		const struct emmc_config *const dev_cfg = port->config;                            \
-		unsigned int irq = pcie_alloc_irq(dev_cfg->pcie->bdf);                             \
+		uint32_t irq = pcie_alloc_irq(dev_cfg->pcie->bdf);                             \
                                                                                                    \
 		if (irq == PCIE_CONF_INTR_IRQ_NONE) {                                              \
 			return;                                                                    \

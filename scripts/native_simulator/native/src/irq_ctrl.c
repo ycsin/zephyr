@@ -68,12 +68,12 @@ int hw_irq_ctrl_get_cur_prio(void)
 	return currently_running_prio;
 }
 
-void hw_irq_ctrl_prio_set(unsigned int irq, unsigned int prio)
+void hw_irq_ctrl_prio_set(uint32_t irq, unsigned int prio)
 {
 	irq_prio[irq] = prio;
 }
 
-uint8_t hw_irq_ctrl_get_prio(unsigned int irq)
+uint8_t hw_irq_ctrl_get_prio(uint32_t irq)
 {
 	return irq_prio[irq];
 }
@@ -149,12 +149,12 @@ void hw_irq_ctrl_clear_all_irqs(void)
 	irq_premask = 0U;
 }
 
-void hw_irq_ctrl_disable_irq(unsigned int irq)
+void hw_irq_ctrl_disable_irq(uint32_t irq)
 {
 	irq_mask &= ~((uint64_t)1<<irq);
 }
 
-int hw_irq_ctrl_is_irq_enabled(unsigned int irq)
+int hw_irq_ctrl_is_irq_enabled(uint32_t irq)
 {
 	return (irq_mask & ((uint64_t)1 << irq))?1:0;
 }
@@ -173,7 +173,7 @@ uint64_t hw_irq_ctrl_get_irq_mask(void)
  * This is an API between the MCU model/IRQ handling side and the IRQ controller
  * model
  */
-void hw_irq_ctrl_clear_irq(unsigned int irq)
+void hw_irq_ctrl_clear_irq(uint32_t irq)
 {
 	irq_status  &= ~((uint64_t)1<<irq);
 	irq_premask &= ~((uint64_t)1<<irq);
@@ -188,7 +188,7 @@ void hw_irq_ctrl_clear_irq(unsigned int irq)
  * If the enabled interrupt is pending, it will immediately vector to its
  * interrupt handler and continue (maybe with some swap() before)
  */
-void hw_irq_ctrl_enable_irq(unsigned int irq)
+void hw_irq_ctrl_enable_irq(uint32_t irq)
 {
 	irq_mask |= ((uint64_t)1<<irq);
 	if (irq_premask & ((uint64_t)1<<irq)) { /* if the interrupt is pending */
@@ -196,7 +196,7 @@ void hw_irq_ctrl_enable_irq(unsigned int irq)
 	}
 }
 
-static inline void hw_irq_ctrl_irq_raise_prefix(unsigned int irq)
+static inline void hw_irq_ctrl_irq_raise_prefix(uint32_t irq)
 {
 	if (irq < N_IRQS) {
 		irq_premask |= ((uint64_t)1<<irq);
@@ -215,7 +215,7 @@ static inline void hw_irq_ctrl_irq_raise_prefix(unsigned int irq)
  * This function is meant to be used by either the SW manual IRQ raising
  * or by HW which wants the IRQ to be raised in one delta cycle from now
  */
-void hw_irq_ctrl_set_irq(unsigned int irq)
+void hw_irq_ctrl_set_irq(uint32_t irq)
 {
 	hw_irq_ctrl_irq_raise_prefix(irq);
 	if ((irqs_locked == false) || (lock_ignore)) {
@@ -252,7 +252,7 @@ static void irq_raising_from_hw_now(void)
  *
  * Call only from HW threads; Should be used with care
  */
-void hw_irq_ctrl_raise_im(unsigned int irq)
+void hw_irq_ctrl_raise_im(uint32_t irq)
 {
 	hw_irq_ctrl_irq_raise_prefix(irq);
 	irq_raising_from_hw_now();
@@ -263,7 +263,7 @@ void hw_irq_ctrl_raise_im(unsigned int irq)
  *
  * Call only from SW threads; Should be used with care
  */
-void hw_irq_ctrl_raise_im_from_sw(unsigned int irq)
+void hw_irq_ctrl_raise_im_from_sw(uint32_t irq)
 {
 	hw_irq_ctrl_irq_raise_prefix(irq);
 

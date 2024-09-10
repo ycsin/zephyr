@@ -113,7 +113,7 @@ void dw_ace_irq_disable(const struct device *dev, uint32_t irq)
 	}
 }
 
-int dw_ace_irq_is_enabled(const struct device *dev, unsigned int irq)
+int dw_ace_irq_is_enabled(const struct device *dev, uint32_t irq)
 {
 	ARG_UNUSED(dev);
 
@@ -127,7 +127,7 @@ int dw_ace_irq_is_enabled(const struct device *dev, unsigned int irq)
 }
 
 #ifdef CONFIG_DYNAMIC_INTERRUPTS
-int dw_ace_irq_connect_dynamic(const struct device *dev, unsigned int irq,
+int dw_ace_irq_connect_dynamic(const struct device *dev, uint32_t irq,
 				   unsigned int priority,
 				   void (*routine)(const void *parameter),
 				   const void *parameter, uint32_t flags)

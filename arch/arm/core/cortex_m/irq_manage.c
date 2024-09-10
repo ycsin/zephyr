@@ -34,17 +34,17 @@ extern void z_arm_reserved(void);
 
 #if !defined(CONFIG_ARM_CUSTOM_INTERRUPT_CONTROLLER)
 
-void arch_irq_enable(unsigned int irq)
+void arch_irq_enable(uint32_t irq)
 {
 	NVIC_EnableIRQ((IRQn_Type)irq);
 }
 
-void arch_irq_disable(unsigned int irq)
+void arch_irq_disable(uint32_t irq)
 {
 	NVIC_DisableIRQ((IRQn_Type)irq);
 }
 
-int arch_irq_is_enabled(unsigned int irq)
+int arch_irq_is_enabled(uint32_t irq)
 {
 	return NVIC->ISER[REG_FROM_IRQ(irq)] & BIT(BIT_FROM_IRQ(irq));
 }
@@ -58,7 +58,7 @@ int arch_irq_is_enabled(unsigned int irq)
  * of priority levels is a little complex, as there are some hardware
  * priority levels which are reserved.
  */
-void z_arm_irq_priority_set(unsigned int irq, unsigned int prio, uint32_t flags)
+void z_arm_irq_priority_set(uint32_t irq, unsigned int prio, uint32_t flags)
 {
 	/* The kernel may reserve some of the highest priority levels.
 	 * So we offset the requested priority level with the number
@@ -165,7 +165,7 @@ void _arch_isr_direct_pm(void)
  *
  * @return The resulting target state of the given IRQ
  */
-irq_target_state_t irq_target_state_set(unsigned int irq,
+irq_target_state_t irq_target_state_set(uint32_t irq,
 	irq_target_state_t irq_target_state)
 {
 	uint32_t result;
@@ -200,7 +200,7 @@ irq_target_state_t irq_target_state_set(unsigned int irq,
  *
  * @return 1 if target state is Secure, 0 otherwise.
  */
-int irq_target_state_is_secure(unsigned int irq)
+int irq_target_state_is_secure(uint32_t irq)
 {
 	return NVIC_GetTargetState(irq) == 0;
 }
@@ -240,7 +240,7 @@ void irq_target_state_set_all_non_secure(void)
 
 #ifdef CONFIG_DYNAMIC_INTERRUPTS
 #ifdef CONFIG_GEN_ISR_TABLES
-int arch_irq_connect_dynamic(unsigned int irq, unsigned int priority,
+int arch_irq_connect_dynamic(uint32_t irq, unsigned int priority,
 			     void (*routine)(const void *parameter),
 			     const void *parameter, uint32_t flags)
 {

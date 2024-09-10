@@ -25,12 +25,12 @@ void ite_intc_save_and_disable_interrupts(void);
 /* Restore interrupt state of soc-level from ier_setting[], use with care. */
 void ite_intc_restore_interrupts(void);
 
-extern void ite_intc_irq_enable(unsigned int irq);
-extern void ite_intc_irq_disable(unsigned int irq);
+extern void ite_intc_irq_enable(uint32_t irq);
+extern void ite_intc_irq_disable(uint32_t irq);
 extern uint8_t ite_intc_get_irq_num(void);
-extern int ite_intc_irq_is_enable(unsigned int irq);
-extern void ite_intc_irq_polarity_set(unsigned int irq, unsigned int flags);
-extern void ite_intc_isr_clear(unsigned int irq);
+extern int ite_intc_irq_is_enable(uint32_t irq);
+extern void ite_intc_irq_polarity_set(uint32_t irq, unsigned int flags);
+extern void ite_intc_isr_clear(uint32_t irq);
 void ite_intc_init(void);
 bool ite_intc_no_irq(void);
 #endif /* CONFIG_HAS_ITE_INTC */

@@ -29,15 +29,15 @@ extern "C" {
 #ifndef _ASMLANGUAGE
 
 extern void z_arc_firq_stack_set(void);
-extern void arch_irq_enable(unsigned int irq);
-extern void arch_irq_disable(unsigned int irq);
-extern int arch_irq_is_enabled(unsigned int irq);
+extern void arch_irq_enable(uint32_t irq);
+extern void arch_irq_disable(uint32_t irq);
+extern int arch_irq_is_enabled(uint32_t irq);
 #ifdef CONFIG_TRACING_ISR
 extern void sys_trace_isr_enter(void);
 extern void sys_trace_isr_exit(void);
 #endif
 
-extern void z_irq_priority_set(unsigned int irq, unsigned int prio,
+extern void z_irq_priority_set(uint32_t irq, unsigned int prio,
 			      uint32_t flags);
 
 /* Z_ISR_DECLARE will populate the .intList section with the interrupt's

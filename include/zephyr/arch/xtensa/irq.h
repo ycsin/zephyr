@@ -84,9 +84,9 @@ static inline void z_xt_set_intset(unsigned int arg)
 #endif /* CONFIG_2ND_LEVEL_INTERRUPTS */
 
 void z_soc_irq_init(void);
-void z_soc_irq_enable(unsigned int irq);
-void z_soc_irq_disable(unsigned int irq);
-int z_soc_irq_is_enabled(unsigned int irq);
+void z_soc_irq_enable(uint32_t irq);
+void z_soc_irq_disable(uint32_t irq);
+int z_soc_irq_is_enabled(uint32_t irq);
 
 #define arch_irq_enable(irq)	z_soc_irq_enable(irq)
 #define arch_irq_disable(irq)	z_soc_irq_disable(irq)
@@ -94,7 +94,7 @@ int z_soc_irq_is_enabled(unsigned int irq);
 #define arch_irq_is_enabled(irq)	z_soc_irq_is_enabled(irq)
 
 #ifdef CONFIG_DYNAMIC_INTERRUPTS
-extern int z_soc_irq_connect_dynamic(unsigned int irq, unsigned int priority,
+extern int z_soc_irq_connect_dynamic(uint32_t irq, unsigned int priority,
 				     void (*routine)(const void *parameter),
 				     const void *parameter, uint32_t flags);
 #endif
@@ -160,7 +160,7 @@ static ALWAYS_INLINE bool arch_irq_unlocked(unsigned int key)
  *
  * @return True if interrupt is enabled, false otherwise.
  */
-int xtensa_irq_is_enabled(unsigned int irq);
+int xtensa_irq_is_enabled(uint32_t irq);
 
 #include <zephyr/irq.h>
 

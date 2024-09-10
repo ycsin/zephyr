@@ -27,7 +27,7 @@ extern "C" {
  *
  * @return corresponding index in _sw_isr_table
  */
-unsigned int z_get_sw_isr_table_idx(unsigned int irq);
+unsigned int z_get_sw_isr_table_idx(uint32_t irq);
 
 /**
  * @brief Helper function used to get the parent interrupt controller device based on passed IRQ.
@@ -36,7 +36,7 @@ unsigned int z_get_sw_isr_table_idx(unsigned int irq);
  *
  * @return corresponding interrupt controller device in _sw_isr_table
  */
-const struct device *z_get_sw_isr_device_from_irq(unsigned int irq);
+const struct device *z_get_sw_isr_device_from_irq(uint32_t irq);
 
 /**
  * @brief Helper function used to get the IRQN of the passed in parent interrupt

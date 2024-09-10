@@ -32,29 +32,29 @@ void z_arm64_fatal_error(unsigned int reason, struct arch_esf *esf);
  * `include/arch/arm64/irq.h`.
  */
 
-void arch_irq_enable(unsigned int irq)
+void arch_irq_enable(uint32_t irq)
 {
 	arm_gic_irq_enable(irq);
 }
 
-void arch_irq_disable(unsigned int irq)
+void arch_irq_disable(uint32_t irq)
 {
 	arm_gic_irq_disable(irq);
 }
 
-int arch_irq_is_enabled(unsigned int irq)
+int arch_irq_is_enabled(uint32_t irq)
 {
 	return arm_gic_irq_is_enabled(irq);
 }
 
-void z_arm64_irq_priority_set(unsigned int irq, unsigned int prio, uint32_t flags)
+void z_arm64_irq_priority_set(uint32_t irq, unsigned int prio, uint32_t flags)
 {
 	arm_gic_irq_set_priority(irq, prio, flags);
 }
 #endif /* !CONFIG_ARM_CUSTOM_INTERRUPT_CONTROLLER */
 
 #ifdef CONFIG_DYNAMIC_INTERRUPTS
-int arch_irq_connect_dynamic(unsigned int irq, unsigned int priority,
+int arch_irq_connect_dynamic(uint32_t irq, unsigned int priority,
 			     void (*routine)(const void *parameter),
 			     const void *parameter, uint32_t flags)
 {

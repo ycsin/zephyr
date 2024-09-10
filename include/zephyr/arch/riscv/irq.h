@@ -50,12 +50,12 @@ extern "C" {
 
 #ifndef _ASMLANGUAGE
 
-extern void arch_irq_enable(unsigned int irq);
-extern void arch_irq_disable(unsigned int irq);
-extern int arch_irq_is_enabled(unsigned int irq);
+extern void arch_irq_enable(uint32_t irq);
+extern void arch_irq_disable(uint32_t irq);
+extern int arch_irq_is_enabled(uint32_t irq);
 
 #if defined(CONFIG_RISCV_HAS_PLIC) || defined(CONFIG_RISCV_HAS_CLIC)
-extern void z_riscv_irq_priority_set(unsigned int irq,
+extern void z_riscv_irq_priority_set(uint32_t irq,
 				     unsigned int prio,
 				     uint32_t flags);
 #else
@@ -63,7 +63,7 @@ extern void z_riscv_irq_priority_set(unsigned int irq,
 #endif /* CONFIG_RISCV_HAS_PLIC || CONFIG_RISCV_HAS_CLIC */
 
 #ifdef CONFIG_RISCV_HAS_CLIC
-extern void z_riscv_irq_vector_set(unsigned int irq);
+extern void z_riscv_irq_vector_set(uint32_t irq);
 #else
 #define z_riscv_irq_vector_set(i) /* Nothing */
 #endif /* CONFIG_RISCV_HAS_CLIC */

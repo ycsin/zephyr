@@ -13,7 +13,7 @@
  * Common code for arches that use software ISR tables (CONFIG_GEN_ISR_TABLES)
  */
 
-unsigned int __weak z_get_sw_isr_table_idx(unsigned int irq)
+unsigned int __weak z_get_sw_isr_table_idx(uint32_t irq)
 {
 	unsigned int table_idx = irq - CONFIG_GEN_IRQ_START_VECTOR;
 

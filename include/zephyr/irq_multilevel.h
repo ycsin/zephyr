@@ -29,7 +29,7 @@ extern "C" {
  *
  * @return 1 if IRQ level 1, 2 if IRQ level 2, 3 if IRQ level 3
  */
-static inline unsigned int irq_get_level(unsigned int irq)
+static inline unsigned int irq_get_level(uint32_t irq)
 {
 	const uint32_t mask2 = BIT_MASK(CONFIG_2ND_LEVEL_INTERRUPT_BITS) <<
 		CONFIG_1ST_LEVEL_INTERRUPT_BITS;
@@ -57,7 +57,7 @@ static inline unsigned int irq_get_level(unsigned int irq)
  *
  * @return 2nd level IRQ number
  */
-static inline unsigned int irq_from_level_2(unsigned int irq)
+static inline uint32_t irq_from_level_2(uint32_t irq)
 {
 	if (IS_ENABLED(CONFIG_3RD_LEVEL_INTERRUPTS)) {
 		return ((irq >> CONFIG_1ST_LEVEL_INTERRUPT_BITS) &
@@ -88,7 +88,7 @@ static inline unsigned int irq_from_level_2(unsigned int irq)
  *
  * @return 2nd level IRQ number
  */
-static inline unsigned int irq_to_level_2(unsigned int irq)
+static inline uint32_t irq_to_level_2(uint32_t irq)
 {
 	return IRQ_TO_L2(irq);
 }
@@ -103,7 +103,7 @@ static inline unsigned int irq_to_level_2(unsigned int irq)
  *
  * @return 2nd level IRQ parent
  */
-static inline unsigned int irq_parent_level_2(unsigned int irq)
+static inline uint32_t irq_parent_level_2(uint32_t irq)
 {
 	return irq & BIT_MASK(CONFIG_1ST_LEVEL_INTERRUPT_BITS);
 }
@@ -119,7 +119,7 @@ static inline unsigned int irq_parent_level_2(unsigned int irq)
  *
  * @return 3rd level IRQ number
  */
-static inline unsigned int irq_from_level_3(unsigned int irq)
+static inline uint32_t irq_from_level_3(uint32_t irq)
 {
 	return (irq >> (CONFIG_1ST_LEVEL_INTERRUPT_BITS + CONFIG_2ND_LEVEL_INTERRUPT_BITS)) - 1;
 }
@@ -146,7 +146,7 @@ static inline unsigned int irq_from_level_3(unsigned int irq)
  *
  * @return 3rd level IRQ number
  */
-static inline unsigned int irq_to_level_3(unsigned int irq)
+static inline uint32_t irq_to_level_3(uint32_t irq)
 {
 	return IRQ_TO_L3(irq);
 }
@@ -161,7 +161,7 @@ static inline unsigned int irq_to_level_3(unsigned int irq)
  *
  * @return 3rd level IRQ parent
  */
-static inline unsigned int irq_parent_level_3(unsigned int irq)
+static inline uint32_t irq_parent_level_3(uint32_t irq)
 {
 	return (irq >> CONFIG_1ST_LEVEL_INTERRUPT_BITS) &
 		BIT_MASK(CONFIG_2ND_LEVEL_INTERRUPT_BITS);
@@ -175,7 +175,7 @@ static inline unsigned int irq_parent_level_3(unsigned int irq)
  *
  * @return IRQ number in the level
  */
-static inline unsigned int irq_from_level(unsigned int irq, unsigned int level)
+static inline uint32_t irq_from_level(uint32_t irq, unsigned int level)
 {
 	if (level == 1) {
 		return irq;
@@ -198,7 +198,7 @@ static inline unsigned int irq_from_level(unsigned int irq, unsigned int level)
  *
  * @return Converted IRQ number in the level
  */
-static inline unsigned int irq_to_level(unsigned int irq, unsigned int level)
+static inline uint32_t irq_to_level(uint32_t irq, unsigned int level)
 {
 	if (level == 1) {
 		return irq;
@@ -221,7 +221,7 @@ static inline unsigned int irq_to_level(unsigned int irq, unsigned int level)
  *
  * @return IRQ parent of the given level
  */
-static inline unsigned int irq_parent_level(unsigned int irq, unsigned int level)
+static inline uint32_t irq_parent_level(uint32_t irq, unsigned int level)
 {
 	if (level == 1) {
 		/* doesn't really make sense, but return anyway */
@@ -244,7 +244,7 @@ static inline unsigned int irq_parent_level(unsigned int irq, unsigned int level
  *
  * @return IRQ of the interrupt controller
  */
-static inline unsigned int irq_get_intc_irq(unsigned int irq)
+static inline uint32_t irq_get_intc_irq(uint32_t irq)
 {
 	const unsigned int level = irq_get_level(irq);
 

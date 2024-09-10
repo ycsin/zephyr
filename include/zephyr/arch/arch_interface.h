@@ -296,21 +296,21 @@ static inline bool arch_irq_unlocked(unsigned int key);
  *
  * @see irq_disable()
  */
-void arch_irq_disable(unsigned int irq);
+void arch_irq_disable(uint32_t irq);
 
 /**
  * Enable the specified interrupt line
  *
  * @see irq_enable()
  */
-void arch_irq_enable(unsigned int irq);
+void arch_irq_enable(uint32_t irq);
 
 /**
  * Test if an interrupt line is enabled
  *
  * @see irq_is_enabled()
  */
-int arch_irq_is_enabled(unsigned int irq);
+int arch_irq_is_enabled(uint32_t irq);
 
 /**
  * Arch-specific hook to install a dynamic interrupt.
@@ -323,7 +323,7 @@ int arch_irq_is_enabled(unsigned int irq);
  *
  * @return The vector assigned to this interrupt
  */
-int arch_irq_connect_dynamic(unsigned int irq, unsigned int priority,
+int arch_irq_connect_dynamic(uint32_t irq, unsigned int priority,
 			     void (*routine)(const void *parameter),
 			     const void *parameter, uint32_t flags);
 
@@ -341,7 +341,7 @@ int arch_irq_connect_dynamic(unsigned int irq, unsigned int priority,
  *
  * @return 0 in case of success, negative value otherwise
  */
-int arch_irq_disconnect_dynamic(unsigned int irq, unsigned int priority,
+int arch_irq_disconnect_dynamic(uint32_t irq, unsigned int priority,
 				void (*routine)(const void *parameter),
 				const void *parameter, uint32_t flags);
 
@@ -409,7 +409,7 @@ unsigned int arch_irq_allocate(void);
  *
  * @param irq the IRQ to declare being used
  */
-void arch_irq_set_used(unsigned int irq);
+void arch_irq_set_used(uint32_t irq);
 
 /**
  * @brief Arch-specific hook for checking if an IRQ is being used already
@@ -418,7 +418,7 @@ void arch_irq_set_used(unsigned int irq);
  *
  * @return true if being, false otherwise
  */
-bool arch_irq_is_used(unsigned int irq);
+bool arch_irq_is_used(uint32_t irq);
 
 #endif /* CONFIG_PCIE_CONTROLLER */
 

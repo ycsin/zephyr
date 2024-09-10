@@ -198,17 +198,17 @@ void posix_irq_full_unlock(void)
 	hw_irq_ctrl_change_lock(false);
 }
 
-void posix_irq_enable(unsigned int irq)
+void posix_irq_enable(uint32_t irq)
 {
 	hw_irq_ctrl_enable_irq(irq);
 }
 
-void posix_irq_disable(unsigned int irq)
+void posix_irq_disable(uint32_t irq)
 {
 	hw_irq_ctrl_disable_irq(irq);
 }
 
-int posix_irq_is_enabled(unsigned int irq)
+int posix_irq_is_enabled(uint32_t irq)
 {
 	return hw_irq_ctrl_is_irq_enabled(irq);
 }
@@ -254,7 +254,7 @@ void posix_isr_declare(unsigned int irq_p, int flags, void isr_p(const void *),
  *
  * Lower values take priority over higher values.
  */
-void posix_irq_priority_set(unsigned int irq, unsigned int prio, uint32_t flags)
+void posix_irq_priority_set(uint32_t irq, unsigned int prio, uint32_t flags)
 {
 	hw_irq_ctrl_prio_set(irq, prio);
 }

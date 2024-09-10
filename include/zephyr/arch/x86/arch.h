@@ -31,7 +31,7 @@ extern "C" {
 #ifdef CONFIG_PCIE_MSI
 
 struct x86_msi_vector {
-	unsigned int irq;
+	uint32_t irq;
 	uint8_t vector;
 #ifdef CONFIG_INTEL_VTD_ICTL
 	bool remap;
@@ -244,8 +244,8 @@ extern "C" {
 
 #ifndef _ASMLANGUAGE
 
-void arch_irq_enable(unsigned int irq);
-void arch_irq_disable(unsigned int irq);
+void arch_irq_enable(uint32_t irq);
+void arch_irq_disable(uint32_t irq);
 
 uint32_t sys_clock_cycle_get_32(void);
 

@@ -28,6 +28,6 @@
 
 extern void z_soc_irq_enable(uint32_t irq);
 extern void z_soc_irq_disable(uint32_t irq);
-extern int z_soc_irq_is_enabled(unsigned int irq);
+extern int z_soc_irq_is_enabled(uint32_t irq);
 
 #endif /* __INC_IMX_SOC_H */

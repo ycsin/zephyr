@@ -58,7 +58,7 @@ static const char *smsc_chip_ids[16] = {
 
 struct smsc_data {
 	mm_reg_t smsc_reg;
-	unsigned int irq;
+	uint32_t irq;
 	unsigned int smsc_chip;
 	unsigned int smsc_rev;
 	unsigned int smsc_mask;

@@ -172,7 +172,7 @@ static const struct device *const vtd = DEVICE_DT_GET_ONE(intel_vt_d);
 #define MSI_MAP_DESTINATION_ID_SHIFT 12
 #define MSI_RH BIT(3)
 
-uint32_t pcie_msi_map(unsigned int irq,
+uint32_t pcie_msi_map(uint32_t irq,
 		      msi_vector_t *vector,
 		      uint8_t n_vector)
 {
@@ -195,7 +195,7 @@ uint32_t pcie_msi_map(unsigned int irq,
 	return 0xFEE00000U | dest_id | MSI_RH;
 }
 
-uint16_t pcie_msi_mdr(unsigned int irq,
+uint16_t pcie_msi_mdr(uint32_t irq,
 		      msi_vector_t *vector)
 {
 	if (vector != NULL) {

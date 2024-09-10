@@ -97,8 +97,8 @@ static ALWAYS_INLINE bool arch_irq_unlocked(unsigned int key)
 	return key & 1;
 }
 
-void arch_irq_enable(unsigned int irq);
-void arch_irq_disable(unsigned int irq);
+void arch_irq_enable(uint32_t irq);
+void arch_irq_disable(uint32_t irq);
 
 FUNC_NORETURN void z_SysFatalErrorHandler(unsigned int reason,
 					 const struct arch_esf *esf);

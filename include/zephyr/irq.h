@@ -62,7 +62,7 @@ extern "C" {
  * @return The vector assigned to this interrupt
  */
 static inline int
-irq_connect_dynamic(unsigned int irq, unsigned int priority,
+irq_connect_dynamic(uint32_t irq, unsigned int priority,
 		    void (*routine)(const void *parameter),
 		    const void *parameter, uint32_t flags)
 {
@@ -87,7 +87,7 @@ irq_connect_dynamic(unsigned int irq, unsigned int priority,
  * @return 0 in case of success, negative value otherwise
  */
 static inline int
-irq_disconnect_dynamic(unsigned int irq, unsigned int priority,
+irq_disconnect_dynamic(uint32_t irq, unsigned int priority,
 		       void (*routine)(const void *parameter),
 		       const void *parameter, uint32_t flags)
 {

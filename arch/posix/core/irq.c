@@ -16,17 +16,17 @@ void arch_irq_offload(irq_offload_routine_t routine, const void *parameter)
 }
 #endif
 
-void arch_irq_enable(unsigned int irq)
+void arch_irq_enable(uint32_t irq)
 {
 	posix_irq_enable(irq);
 }
 
-void arch_irq_disable(unsigned int irq)
+void arch_irq_disable(uint32_t irq)
 {
 	posix_irq_disable(irq);
 }
 
-int arch_irq_is_enabled(unsigned int irq)
+int arch_irq_is_enabled(uint32_t irq)
 {
 	return posix_irq_is_enabled(irq);
 }
@@ -45,7 +45,7 @@ int arch_irq_is_enabled(unsigned int irq)
  *
  * @return The vector assigned to this interrupt
  */
-int arch_irq_connect_dynamic(unsigned int irq, unsigned int priority,
+int arch_irq_connect_dynamic(uint32_t irq, unsigned int priority,
 			     void (*routine)(const void *parameter),
 			     const void *parameter, uint32_t flags)
 {

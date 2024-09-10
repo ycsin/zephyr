@@ -200,7 +200,7 @@ static void idt_vector_install(int vector, void *irq_handler)
 	irq_unlock(key);
 }
 
-int arch_irq_connect_dynamic(unsigned int irq, unsigned int priority,
+int arch_irq_connect_dynamic(uint32_t irq, unsigned int priority,
 			     void (*routine)(const void *parameter),
 			     const void *parameter, uint32_t flags)
 {

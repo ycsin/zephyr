@@ -34,7 +34,7 @@ static const uint64_t cpu_mpid_list[] = {
 BUILD_ASSERT(ARRAY_SIZE(cpu_mpid_list) >= CONFIG_MP_MAX_NUM_CPUS,
 		"The count of CPU Cores nodes in dts is less than CONFIG_MP_MAX_NUM_CPUS\n");
 
-void arm_gic_irq_enable(unsigned int irq)
+void arm_gic_irq_enable(uint32_t irq)
 {
 	int int_grp, int_off;
 
@@ -44,7 +44,7 @@ void arm_gic_irq_enable(unsigned int irq)
 	sys_write32((1 << int_off), (GICD_ISENABLERn + int_grp * 4));
 }
 
-void arm_gic_irq_disable(unsigned int irq)
+void arm_gic_irq_disable(uint32_t irq)
 {
 	int int_grp, int_off;
 
@@ -54,7 +54,7 @@ void arm_gic_irq_disable(unsigned int irq)
 	sys_write32((1 << int_off), (GICD_ICENABLERn + int_grp * 4));
 }
 
-bool arm_gic_irq_is_enabled(unsigned int irq)
+bool arm_gic_irq_is_enabled(uint32_t irq)
 {
 	int int_grp, int_off;
 	unsigned int enabler;
@@ -67,7 +67,7 @@ bool arm_gic_irq_is_enabled(unsigned int irq)
 	return (enabler & (1 << int_off)) != 0;
 }
 
-bool arm_gic_irq_is_pending(unsigned int irq)
+bool arm_gic_irq_is_pending(uint32_t irq)
 {
 	int int_grp, int_off;
 	unsigned int enabler;
@@ -80,7 +80,7 @@ bool arm_gic_irq_is_pending(unsigned int irq)
 	return (enabler & (1 << int_off)) != 0;
 }
 
-void arm_gic_irq_set_pending(unsigned int irq)
+void arm_gic_irq_set_pending(uint32_t irq)
 {
 	int int_grp, int_off;
 
@@ -90,7 +90,7 @@ void arm_gic_irq_set_pending(unsigned int irq)
 	sys_write32((1 << int_off), (GICD_ISPENDRn + int_grp * 4));
 }
 
-void arm_gic_irq_clear_pending(unsigned int irq)
+void arm_gic_irq_clear_pending(uint32_t irq)
 {
 	int int_grp, int_off;
 
@@ -101,7 +101,7 @@ void arm_gic_irq_clear_pending(unsigned int irq)
 }
 
 void arm_gic_irq_set_priority(
-	unsigned int irq, unsigned int prio, uint32_t flags)
+	uint32_t irq, unsigned int prio, uint32_t flags)
 {
 	int int_grp, int_off;
 	uint32_t val;
@@ -124,7 +124,7 @@ void arm_gic_irq_set_priority(
 
 unsigned int arm_gic_get_active(void)
 {
-	unsigned int irq;
+	uint32_t irq;
 
 	/*
 	 * "ARM Generic Interrupt Controller Architecture version 2.0" states that
@@ -141,7 +141,7 @@ unsigned int arm_gic_get_active(void)
 	return irq;
 }
 
-void arm_gic_eoi(unsigned int irq)
+void arm_gic_eoi(uint32_t irq)
 {
 	/*
 	 * Ensure the write to peripheral registers are *complete* before the write

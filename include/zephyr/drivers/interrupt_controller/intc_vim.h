@@ -294,7 +294,7 @@ unsigned int z_vim_irq_get_active(void);
  *
  * @param irq interrupt ID.
  */
-void z_vim_irq_eoi(unsigned int irq);
+void z_vim_irq_eoi(uint32_t irq);
 
 /**
  * @brief Interrupt controller initialization.
@@ -308,21 +308,21 @@ void z_vim_irq_init(void);
  * @param prio interrupt priority.
  * @param flags interrupt flags.
  */
-void z_vim_irq_priority_set(unsigned int irq, unsigned int prio, uint32_t flags);
+void z_vim_irq_priority_set(uint32_t irq, unsigned int prio, uint32_t flags);
 
 /**
  * @brief Enable Interrupt.
  *
  * @param irq interrupt ID.
  */
-void z_vim_irq_enable(unsigned int irq);
+void z_vim_irq_enable(uint32_t irq);
 
 /**
  * @brief Disable Interrupt.
  *
  * @param irq interrupt ID.
  */
-void z_vim_irq_disable(unsigned int irq);
+void z_vim_irq_disable(uint32_t irq);
 
 /**
  * @brief Check if an interrupt is enabled.
@@ -332,7 +332,7 @@ void z_vim_irq_disable(unsigned int irq);
  * @retval 0 If interrupt is disabled.
  * @retval 1 If interrupt is enabled.
  */
-int z_vim_irq_is_enabled(unsigned int irq);
+int z_vim_irq_is_enabled(uint32_t irq);
 
 /**
  * @brief Raise a software interrupt.

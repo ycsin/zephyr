@@ -96,7 +96,7 @@ void ite_intc_restore_interrupts(void)
 	irq_unlock(key);
 }
 
-void ite_intc_isr_clear(unsigned int irq)
+void ite_intc_isr_clear(uint32_t irq)
 {
 	uint32_t g, i;
 	volatile uint8_t *isr;
@@ -110,7 +110,7 @@ void ite_intc_isr_clear(unsigned int irq)
 	*isr = BIT(i);
 }
 
-void __soc_ram_code ite_intc_irq_enable(unsigned int irq)
+void __soc_ram_code ite_intc_irq_enable(uint32_t irq)
 {
 	uint32_t g, i;
 	volatile uint8_t *en;
@@ -128,7 +128,7 @@ void __soc_ram_code ite_intc_irq_enable(unsigned int irq)
 	irq_unlock(key);
 }
 
-void __soc_ram_code ite_intc_irq_disable(unsigned int irq)
+void __soc_ram_code ite_intc_irq_disable(uint32_t irq)
 {
 	uint32_t g, i;
 	volatile uint8_t *en;
@@ -152,7 +152,7 @@ void __soc_ram_code ite_intc_irq_disable(unsigned int irq)
 	irq_unlock(key);
 }
 
-void ite_intc_irq_polarity_set(unsigned int irq, unsigned int flags)
+void ite_intc_irq_polarity_set(uint32_t irq, unsigned int flags)
 {
 	uint32_t g, i;
 	volatile uint8_t *tri;
@@ -176,7 +176,7 @@ void ite_intc_irq_polarity_set(unsigned int irq, unsigned int flags)
 	}
 }
 
-int __soc_ram_code ite_intc_irq_is_enable(unsigned int irq)
+int __soc_ram_code ite_intc_irq_is_enable(uint32_t irq)
 {
 	uint32_t g, i;
 	volatile uint8_t *en;

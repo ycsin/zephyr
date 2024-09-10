@@ -31,7 +31,7 @@ FUNC_NORETURN void z_irq_spurious(const void *unused)
 }
 
 
-void arch_irq_enable(unsigned int irq)
+void arch_irq_enable(uint32_t irq)
 {
 	uint32_t ienable;
 	unsigned int key;
@@ -47,7 +47,7 @@ void arch_irq_enable(unsigned int irq)
 
 
 
-void arch_irq_disable(unsigned int irq)
+void arch_irq_disable(uint32_t irq)
 {
 	uint32_t ienable;
 	unsigned int key;
@@ -61,7 +61,7 @@ void arch_irq_disable(unsigned int irq)
 	irq_unlock(key);
 };
 
-int arch_irq_is_enabled(unsigned int irq)
+int arch_irq_is_enabled(uint32_t irq)
 {
 	uint32_t ienable;
 
@@ -111,7 +111,7 @@ void _enter_irq(uint32_t ipending)
 }
 
 #ifdef CONFIG_DYNAMIC_INTERRUPTS
-int arch_irq_connect_dynamic(unsigned int irq, unsigned int priority,
+int arch_irq_connect_dynamic(uint32_t irq, unsigned int priority,
 			     void (*routine)(const void *parameter),
 			     const void *parameter, uint32_t flags)
 {

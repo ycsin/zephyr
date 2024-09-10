@@ -101,7 +101,7 @@ void z_soc_irq_disable(uint32_t irq)
 	}
 }
 
-int z_soc_irq_is_enabled(unsigned int irq)
+int z_soc_irq_is_enabled(uint32_t irq)
 {
 	const struct device *dev_cavs;
 	int ret = 0;
@@ -139,7 +139,7 @@ out:
 }
 
 #ifdef CONFIG_DYNAMIC_INTERRUPTS
-int z_soc_irq_connect_dynamic(unsigned int irq, unsigned int priority,
+int z_soc_irq_connect_dynamic(uint32_t irq, unsigned int priority,
 			      void (*routine)(const void *parameter),
 			      const void *parameter, uint32_t flags)
 {

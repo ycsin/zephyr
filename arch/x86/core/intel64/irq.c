@@ -83,7 +83,7 @@ int z_x86_allocate_vector(unsigned int priority, int prev_vector)
 	return -1;
 }
 
-void z_x86_irq_connect_on_vector(unsigned int irq,
+void z_x86_irq_connect_on_vector(uint32_t irq,
 				 uint8_t vector,
 				 void (*func)(const void *arg),
 				 const void *arg)
@@ -99,7 +99,7 @@ void z_x86_irq_connect_on_vector(unsigned int irq,
  * allocated. Whether it should simply __ASSERT instead is up for debate.
  */
 
-int arch_irq_connect_dynamic(unsigned int irq, unsigned int priority,
+int arch_irq_connect_dynamic(uint32_t irq, unsigned int priority,
 			     void (*routine)(const void *parameter),
 			     const void *parameter, uint32_t flags)
 {
@@ -178,7 +178,7 @@ unsigned int arch_irq_allocate(void)
 	return UINT_MAX;
 }
 
-void arch_irq_set_used(unsigned int irq)
+void arch_irq_set_used(uint32_t irq)
 {
 	unsigned int key = irq_lock();
 
@@ -187,7 +187,7 @@ void arch_irq_set_used(unsigned int irq)
 	irq_unlock(key);
 }
 
-bool arch_irq_is_used(unsigned int irq)
+bool arch_irq_is_used(uint32_t irq)
 {
 	return atomic_test_bit(irq_reserved, irq);
 }

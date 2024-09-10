@@ -189,7 +189,7 @@ static int swerv_pic_init(const struct device *dev)
 	return 0;
 }
 
-void arch_irq_enable(unsigned int irq)
+void arch_irq_enable(uint32_t irq)
 {
 	uint32_t mie;
 
@@ -207,7 +207,7 @@ void arch_irq_enable(unsigned int irq)
 			  : "r" (1 << irq));
 }
 
-void arch_irq_disable(unsigned int irq)
+void arch_irq_disable(uint32_t irq)
 {
 	uint32_t mie;
 
@@ -225,7 +225,7 @@ void arch_irq_disable(unsigned int irq)
 			  : "r" (1 << irq));
 };
 
-int arch_irq_is_enabled(unsigned int irq)
+int arch_irq_is_enabled(uint32_t irq)
 {
 	uint32_t mie;
 

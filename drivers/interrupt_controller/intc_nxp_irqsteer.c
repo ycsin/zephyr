@@ -369,7 +369,7 @@ void z_soc_irq_disable(uint32_t irq)
 	z_soc_irq_enable_disable(irq, false);
 }
 
-int z_soc_irq_is_enabled(unsigned int irq)
+int z_soc_irq_is_enabled(uint32_t irq)
 {
 	uint32_t parent_irq;
 	int i, system_irq, level2_irq;

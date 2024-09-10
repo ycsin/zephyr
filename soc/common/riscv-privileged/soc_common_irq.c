@@ -17,27 +17,27 @@
 
 #if defined(CONFIG_RISCV_HAS_CLIC)
 
-void arch_irq_enable(unsigned int irq)
+void arch_irq_enable(uint32_t irq)
 {
 	riscv_clic_irq_enable(irq);
 }
 
-void arch_irq_disable(unsigned int irq)
+void arch_irq_disable(uint32_t irq)
 {
 	riscv_clic_irq_disable(irq);
 }
 
-int arch_irq_is_enabled(unsigned int irq)
+int arch_irq_is_enabled(uint32_t irq)
 {
 	return riscv_clic_irq_is_enabled(irq);
 }
 
-void z_riscv_irq_priority_set(unsigned int irq, unsigned int prio, uint32_t flags)
+void z_riscv_irq_priority_set(uint32_t irq, unsigned int prio, uint32_t flags)
 {
 	riscv_clic_irq_priority_set(irq, prio, flags);
 }
 
-void z_riscv_irq_vector_set(unsigned int irq)
+void z_riscv_irq_vector_set(uint32_t irq)
 {
 #if defined(CONFIG_CLIC_SMCLICSHV_EXT)
 	riscv_clic_irq_vector_set(irq);
@@ -48,7 +48,7 @@ void z_riscv_irq_vector_set(unsigned int irq)
 
 #else /* PLIC + HLINT/CLINT or HLINT/CLINT only */
 
-void arch_irq_enable(unsigned int irq)
+void arch_irq_enable(uint32_t irq)
 {
 	uint32_t mie;
 
@@ -68,7 +68,7 @@ void arch_irq_enable(unsigned int irq)
 	mie = csr_read_set(mie, 1 << irq);
 }
 
-void arch_irq_disable(unsigned int irq)
+void arch_irq_disable(uint32_t irq)
 {
 	uint32_t mie;
 
@@ -88,7 +88,7 @@ void arch_irq_disable(unsigned int irq)
 	mie = csr_read_clear(mie, 1 << irq);
 }
 
-int arch_irq_is_enabled(unsigned int irq)
+int arch_irq_is_enabled(uint32_t irq)
 {
 	uint32_t mie;
 
@@ -106,7 +106,7 @@ int arch_irq_is_enabled(unsigned int irq)
 }
 
 #if defined(CONFIG_RISCV_HAS_PLIC)
-void z_riscv_irq_priority_set(unsigned int irq, unsigned int prio, uint32_t flags)
+void z_riscv_irq_priority_set(uint32_t irq, unsigned int prio, uint32_t flags)
 {
 	unsigned int level = irq_get_level(irq);
 

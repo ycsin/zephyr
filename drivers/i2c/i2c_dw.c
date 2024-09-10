@@ -1183,7 +1183,7 @@ static int i2c_dw_initialize(const struct device *dev)
 		BUILD_ASSERT(IS_ENABLED(CONFIG_DYNAMIC_INTERRUPTS),           \
 			     "DW I2C PCI needs CONFIG_DYNAMIC_INTERRUPTS");   \
 		const struct i2c_dw_rom_config * const dev_cfg = port->config;\
-		unsigned int irq = pcie_alloc_irq(dev_cfg->pcie->bdf);        \
+		uint32_t irq = pcie_alloc_irq(dev_cfg->pcie->bdf);        \
 		if (irq == PCIE_CONF_INTR_IRQ_NONE) {                         \
 			return;                                               \
 		}                                                             \

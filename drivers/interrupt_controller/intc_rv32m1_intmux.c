@@ -85,7 +85,7 @@ static uint32_t rv32m1_intmux_get_state(const struct device *dev)
 }
 
 static int rv32m1_intmux_get_line_state(const struct device *dev,
-					unsigned int irq)
+					uint32_t irq)
 {
 	INTMUX_Type *regs = DEV_REGS(dev);
 	uint32_t channel = rv32m1_intmux_channel(irq);

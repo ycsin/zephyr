@@ -25,7 +25,7 @@ BUILD_ASSERT(CONFIG_MAX_IRQ_PER_AGGREGATOR < BIT(CONFIG_3RD_LEVEL_INTERRUPT_BITS
  *
  * @return Aggregator entry, NULL if irq is level 1 or not found.
  */
-static const struct _irq_parent_entry *get_intc_entry_for_irq(unsigned int irq)
+static const struct _irq_parent_entry *get_intc_entry_for_irq(uint32_t irq)
 {
 	const unsigned int level = irq_get_level(irq);
 
@@ -46,7 +46,7 @@ static const struct _irq_parent_entry *get_intc_entry_for_irq(unsigned int irq)
 	return NULL;
 }
 
-const struct device *z_get_sw_isr_device_from_irq(unsigned int irq)
+const struct device *z_get_sw_isr_device_from_irq(uint32_t irq)
 {
 	const struct _irq_parent_entry *intc = get_intc_entry_for_irq(irq);
 
@@ -69,7 +69,7 @@ unsigned int z_get_sw_isr_irq_from_device(const struct device *dev)
 	return 0;
 }
 
-unsigned int z_get_sw_isr_table_idx(unsigned int irq)
+unsigned int z_get_sw_isr_table_idx(uint32_t irq)
 {
 	unsigned int table_idx, local_irq;
 	const struct _irq_parent_entry *intc = get_intc_entry_for_irq(irq);

@@ -27,7 +27,7 @@ FUNC_NORETURN void z_irq_spurious(const void *unused)
 	z_mips_fatal_error(K_ERR_SPURIOUS_IRQ, NULL);
 }
 
-void arch_irq_enable(unsigned int irq)
+void arch_irq_enable(uint32_t irq)
 {
 	unsigned int key;
 	uint32_t irq_mask;
@@ -41,7 +41,7 @@ void arch_irq_enable(unsigned int irq)
 	irq_unlock(key);
 }
 
-void arch_irq_disable(unsigned int irq)
+void arch_irq_disable(uint32_t irq)
 {
 	unsigned int key;
 	uint32_t irq_mask;
@@ -55,7 +55,7 @@ void arch_irq_disable(unsigned int irq)
 	irq_unlock(key);
 };
 
-int arch_irq_is_enabled(unsigned int irq)
+int arch_irq_is_enabled(uint32_t irq)
 {
 	return read_c0_status() & (ST0_IP0 << irq);
 }
@@ -96,7 +96,7 @@ void z_mips_enter_irq(uint32_t ipending)
 }
 
 #ifdef CONFIG_DYNAMIC_INTERRUPTS
-int arch_irq_connect_dynamic(unsigned int irq, unsigned int priority,
+int arch_irq_connect_dynamic(uint32_t irq, unsigned int priority,
 			     void (*routine)(const void *parameter),
 			     const void *parameter, uint32_t flags)
 {

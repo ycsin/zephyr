@@ -65,7 +65,7 @@ static void dw_ictl_isr(const struct device *dev)
 }
 
 static inline void dw_ictl_intr_enable(const struct device *dev,
-				       unsigned int irq)
+				       uint32_t irq)
 {
 	const struct dw_ictl_config *config = dev->config;
 	volatile struct dw_ictl_registers * const regs =
@@ -79,7 +79,7 @@ static inline void dw_ictl_intr_enable(const struct device *dev,
 }
 
 static inline void dw_ictl_intr_disable(const struct device *dev,
-					unsigned int irq)
+					uint32_t irq)
 {
 	const struct dw_ictl_config *config = dev->config;
 	volatile struct dw_ictl_registers * const regs =
@@ -111,7 +111,7 @@ static inline unsigned int dw_ictl_intr_get_state(const struct device *dev)
 }
 
 static int dw_ictl_intr_get_line_state(const struct device *dev,
-				       unsigned int irq)
+				       uint32_t irq)
 {
 	const struct dw_ictl_config *config = dev->config;
 	volatile struct dw_ictl_registers * const regs =

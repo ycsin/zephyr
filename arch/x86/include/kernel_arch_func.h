@@ -103,7 +103,7 @@ int z_x86_allocate_vector(unsigned int priority, int prev_vector);
 /*
  * Connect a vector
  */
-void z_x86_irq_connect_on_vector(unsigned int irq,
+void z_x86_irq_connect_on_vector(uint32_t irq,
 				 uint8_t vector,
 				 void (*func)(const void *arg),
 				 const void *arg);

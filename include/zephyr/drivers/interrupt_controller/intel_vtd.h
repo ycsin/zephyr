@@ -33,10 +33,10 @@ typedef uint16_t (*vtd_get_irte_vector_f)(const struct device *dev,
 
 typedef int (*vtd_set_irte_irq_f)(const struct device *dev,
 				  uint8_t irte_idx,
-				  unsigned int irq);
+				  uint32_t irq);
 
 typedef int (*vtd_get_irte_by_irq_f)(const struct device *dev,
-				     unsigned int irq);
+				     uint32_t irq);
 
 typedef void (*vtd_set_irte_msi_f)(const struct device *dev,
 				   uint8_t irte_idx,
@@ -183,7 +183,7 @@ static inline uint16_t vtd_get_irte_vector(const struct device *dev,
  */
 static inline int vtd_set_irte_irq(const struct device *dev,
 				   uint8_t irte_idx,
-				   unsigned int irq)
+				   uint32_t irq)
 {
 	const struct vtd_driver_api *api =
 		(const struct vtd_driver_api *)dev->api;
@@ -200,7 +200,7 @@ static inline int vtd_set_irte_irq(const struct device *dev,
  * @return 0 or positive value on success, a negative errno otherwise
  */
 static inline int vtd_get_irte_by_irq(const struct device *dev,
-				      unsigned int irq)
+				      uint32_t irq)
 {
 	const struct vtd_driver_api *api =
 		(const struct vtd_driver_api *)dev->api;

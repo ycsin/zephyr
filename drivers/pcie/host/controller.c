@@ -412,14 +412,14 @@ void pcie_generic_ctrl_enumerate(const struct device *ctrl_dev, pcie_bdf_t bdf_s
 }
 
 #ifdef CONFIG_PCIE_MSI
-uint32_t pcie_msi_map(unsigned int irq, msi_vector_t *vector, uint8_t n_vector)
+uint32_t pcie_msi_map(uint32_t irq, msi_vector_t *vector, uint8_t n_vector)
 {
 	ARG_UNUSED(irq);
 
 	return vector->arch.address;
 }
 
-uint16_t pcie_msi_mdr(unsigned int irq, msi_vector_t *vector)
+uint16_t pcie_msi_mdr(uint32_t irq, msi_vector_t *vector)
 {
 	ARG_UNUSED(irq);
 

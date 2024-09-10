@@ -1811,7 +1811,7 @@ static const struct uart_driver_api uart_ns16550_driver_api = {
 		BUILD_ASSERT(IS_ENABLED(CONFIG_DYNAMIC_INTERRUPTS),           \
 			     "NS16550 PCIe requires dynamic interrupts");     \
 		const struct uart_ns16550_device_config *dev_cfg = dev->config;\
-		unsigned int irq = pcie_alloc_irq(dev_cfg->pcie->bdf);        \
+		uint32_t irq = pcie_alloc_irq(dev_cfg->pcie->bdf);            \
 		if (irq == PCIE_CONF_INTR_IRQ_NONE) {                         \
 			return;                                               \
 		}                                                             \

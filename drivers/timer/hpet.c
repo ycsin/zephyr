@@ -320,7 +320,7 @@ static void hpet_isr(const void *arg)
 }
 
 __pinned_func
-static void config_timer0(unsigned int irq)
+static void config_timer0(uint32_t irq)
 {
 	uint32_t val = hpet_timer_conf_get();
 

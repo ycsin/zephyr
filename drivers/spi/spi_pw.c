@@ -835,7 +835,7 @@ static int spi_pw_init(const struct device *dev)
 	static void spi_##n##_irq_init(const struct device *dev)	     \
 	{								     \
 		const struct spi_pw_config *info = dev->config;		     \
-		unsigned int irq;					     \
+		uint32_t irq;					             \
 		if (DT_INST_IRQN(n) == PCIE_IRQ_DETECT) {		     \
 			irq = pcie_alloc_irq(info->pcie->bdf);		     \
 			if (irq == PCIE_CONF_INTR_IRQ_NONE) {		     \

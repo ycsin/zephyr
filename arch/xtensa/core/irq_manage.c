@@ -31,7 +31,7 @@ LOG_MODULE_DECLARE(os, CONFIG_KERNEL_LOG_LEVEL);
  * interrupts are locked system-wide, so care must be taken when using them.
  * ISR installed with priority 0 interrupts cannot make kernel calls.
  */
-void z_irq_priority_set(unsigned int irq, unsigned int prio, uint32_t flags)
+void z_irq_priority_set(uint32_t irq, unsigned int prio, uint32_t flags)
 {
 	__ASSERT(prio < XCHAL_EXCM_LEVEL + 1,
 		 "invalid priority %d! values must be less than %d\n",
@@ -43,7 +43,7 @@ void z_irq_priority_set(unsigned int irq, unsigned int prio, uint32_t flags)
 
 #ifdef CONFIG_DYNAMIC_INTERRUPTS
 #ifndef CONFIG_MULTI_LEVEL_INTERRUPTS
-int z_arch_irq_connect_dynamic(unsigned int irq, unsigned int priority,
+int z_arch_irq_connect_dynamic(uint32_t irq, unsigned int priority,
 			       void (*routine)(const void *parameter),
 			       const void *parameter, uint32_t flags)
 {
@@ -54,7 +54,7 @@ int z_arch_irq_connect_dynamic(unsigned int irq, unsigned int priority,
 	return irq;
 }
 #else /* !CONFIG_MULTI_LEVEL_INTERRUPTS */
-int z_arch_irq_connect_dynamic(unsigned int irq, unsigned int priority,
+int z_arch_irq_connect_dynamic(uint32_t irq, unsigned int priority,
 			       void (*routine)(const void *parameter),
 			       const void *parameter, uint32_t flags)
 {
@@ -77,7 +77,7 @@ void z_irq_spurious(const void *arg)
 	xtensa_fatal_error(K_ERR_SPURIOUS_IRQ, NULL);
 }
 
-int xtensa_irq_is_enabled(unsigned int irq)
+int xtensa_irq_is_enabled(uint32_t irq)
 {
 	uint32_t ie;
 

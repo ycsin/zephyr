@@ -36,7 +36,7 @@ void z_soc_irq_init(void)
 	custom_init_called = true;
 }
 
-void z_soc_irq_enable(unsigned int irq)
+void z_soc_irq_enable(uint32_t irq)
 {
 	if (irq == sw_irq_number) {
 		custom_enable_called = true;
@@ -44,7 +44,7 @@ void z_soc_irq_enable(unsigned int irq)
 	NVIC_EnableIRQ((IRQn_Type)irq);
 }
 
-void z_soc_irq_disable(unsigned int irq)
+void z_soc_irq_disable(uint32_t irq)
 {
 	if (irq == sw_irq_number) {
 		custom_disable_called = true;
@@ -52,12 +52,12 @@ void z_soc_irq_disable(unsigned int irq)
 	NVIC_DisableIRQ((IRQn_Type)irq);
 }
 
-int z_soc_irq_is_enabled(unsigned int irq)
+int z_soc_irq_is_enabled(uint32_t irq)
 {
 	return NVIC->ISER[REG_FROM_IRQ(irq)] & BIT(BIT_FROM_IRQ(irq));
 }
 
-void z_soc_irq_eoi(unsigned int irq)
+void z_soc_irq_eoi(uint32_t irq)
 {
 	if (irq == sw_irq_number) {
 		custom_eoi_called = true;
@@ -69,7 +69,7 @@ inline __attribute__((always_inline)) unsigned int z_soc_irq_get_active(void)
 	return __get_IPSR();
 }
 
-void z_soc_irq_priority_set(unsigned int irq, unsigned int prio, uint32_t flags)
+void z_soc_irq_priority_set(uint32_t irq, unsigned int prio, uint32_t flags)
 {
 	if (irq == sw_irq_number) {
 		custom_set_priority_called = true;
