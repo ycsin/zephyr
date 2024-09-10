@@ -206,7 +206,7 @@ intlist_header_fmt = "<II"
 
 # struct genidt_entry_s {
 #	uint32_t isr;
-#	int32_t irq;
+#	uint32_t irq;
 #	int32_t priority;
 #	int32_t vector_id;
 #	int32_t dpl;

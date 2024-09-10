@@ -138,7 +138,7 @@ struct _irq_parent_entry {
  */
 struct _isr_list {
 	/** IRQ line number */
-	int32_t irq;
+	uint32_t irq;
 	/** Flags for this IRQ, see ISR_FLAG_* definitions */
 	int32_t flags;
 	/** ISR to call */
@@ -158,7 +158,7 @@ struct _isr_list {
  */
 struct _isr_list_sname {
 	/** IRQ line number */
-	int32_t irq;
+	uint32_t irq;
 	/** Flags for this IRQ, see ISR_FLAG_* definitions */
 	int32_t flags;
 	/** The section name */

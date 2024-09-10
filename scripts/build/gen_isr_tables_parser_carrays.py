@@ -56,7 +56,7 @@ typedef void (* ISR)(const void *);
 
         struct _isr_list {
             /** IRQ line number */
-            int32_t irq;
+            uint32_t irq;
             /** Flags for this IRQ, see ISR_FLAG_* definitions */
             int32_t flags;
             /** ISR to call */

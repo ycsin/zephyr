@@ -70,7 +70,7 @@ BUILD_ASSERT(offsetof(struct _isr_table_entry, isr)
 
         struct _isr_list_sname {
            /** IRQ line number */
-           int32_t irq;
+           uint32_t irq;
            /** Flags for this IRQ, see ISR_FLAG_* definitions */
            int32_t flags;
            /** The section name */
