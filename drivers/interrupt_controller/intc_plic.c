@@ -39,6 +39,7 @@
 #define CONTEXT_CLAIM 0x04
 #define CONTEXT_ENABLE_BASE 0x2000
 #define CONTEXT_ENABLE_SIZE 0x80
+#define CONTEXT_PENDING_BASE 0x1000
 /*
  * Trigger type is mentioned, but not defined in the RISCV PLIC specs.
  * However, it is defined and supported by at least the Andes & Telink datasheet, and supported
@@ -88,6 +89,7 @@ struct plic_config {
 	mem_addr_t irq_en;
 	mem_addr_t reg;
 	mem_addr_t trig;
+	mem_addr_t pend;
 	uint32_t max_prio;
 	/* Number of IRQs that the PLIC physically supports */
 	uint32_t riscv_ndev;
@@ -190,6 +192,13 @@ static inline mem_addr_t get_threshold_priority_addr(const struct device *dev, u
 #endif
 
 	return config->reg + (get_hart_context(dev, hartid) * CONTEXT_SIZE);
+}
+
+static ALWAYS_INLINE uint32_t *plic_get_pend_reg(const struct device *dev, uint32_t local_irq)
+{
+	const struct plic_config *config = dev->config;
+
+	return (uint32_t *)(config->pend + local_irq_to_reg_offset(local_irq));
 }
 
 static ALWAYS_INLINE uint32_t local_irq_to_irq(const struct device *dev, uint32_t local_irq)
@@ -413,6 +422,15 @@ void riscv_plic_irq_set_affinity(uint32_t irq, uint32_t mask)
 	ARG_UNUSED(irq);
 	ARG_UNUSED(mask);
 #endif /* CONFIG_PLIC_IRQ_AFFINITY */
+}
+
+void riscv_plic_irq_set_pending(uint32_t irq)
+{
+	const struct device *dev = get_plic_dev_from_irq(irq);
+	const uint32_t local_irq = irq_from_level_2(irq);
+	uint32_t *pend = plic_get_pend_reg(dev, local_irq);
+
+	WRITE_BIT(*pend, local_irq & PLIC_REG_MASK, true);
 }
 
 static void plic_irq_handler(const struct device *dev)
@@ -733,6 +751,37 @@ static int cmd_affinity_get(const struct shell *sh, size_t argc, char **argv)
 }
 #endif /* CONFIG_PLIC_SHELL_IRQ_AFFINITY */
 
+static int cmd_set_pending(const struct shell *sh, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc);
+
+	uint32_t local_irq, irq;
+	const struct device *dev;
+	int rc = parse_device(sh, argc, argv, &dev);
+	const struct plic_config *config = dev->config;
+
+	if (rc != 0) {
+		return rc;
+	}
+
+	local_irq = (uint32_t)shell_strtol(argv[2], 10, &rc);
+	if (rc != 0) {
+		shell_error(sh, "Failed to parse %s: %d", argv[2], rc);
+	}
+
+	if (local_irq >= config->nr_irqs) {
+		shell_error(sh, "local_irq (%d) > nr_irqs (%d)", local_irq, config->nr_irqs);
+		return -EINVAL;
+	}
+
+	irq = local_irq_to_irq(dev, local_irq);
+	riscv_plic_irq_set_pending(irq);
+
+	shell_print(sh, "Set IRQ %d as pending", local_irq);
+
+	return 0;
+}
+
 /* Device name autocompletion support */
 static void device_name_get(size_t idx, struct shell_static_entry *entry)
 {
@@ -780,6 +829,10 @@ SHELL_STATIC_SUBCMD_SET_CREATE(plic_cmds,
 #ifdef CONFIG_PLIC_SHELL_IRQ_AFFINITY
 	SHELL_CMD(affinity, &plic_affinity_cmds, "IRQ affinity", NULL),
 #endif /* CONFIG_PLIC_SHELL_IRQ_AFFINITY */
+	SHELL_CMD_ARG(ping, &dsub_device_name,
+		      "Ping IRQ.\n"
+		      "Usage: plic ping <device> <local_irq>",
+		      cmd_set_pending, 3, 0),
 	SHELL_SUBCMD_SET_END
 );
 
@@ -845,6 +898,7 @@ SHELL_CMD_REGISTER(plic, &plic_cmds, "PLIC shell commands", NULL);
 		.reg = PLIC_BASE_ADDR(n) + CONTEXT_BASE,                                           \
 		IF_ENABLED(PLIC_SUPPORTS_TRIG_TYPE,                                                \
 			   (.trig = PLIC_BASE_ADDR(n) + PLIC_REG_TRIG_TYPE_OFFSET,))               \
+		.pend = DT_INST_REG_ADDR(n) + CONTEXT_PENDING_BASE,                                \
 		.max_prio = DT_INST_PROP(n, riscv_max_priority),                                   \
 		.riscv_ndev = DT_INST_PROP(n, riscv_ndev),                                         \
 		.nr_irqs = PLIC_MIN_IRQ_NUM(n),                                                    \

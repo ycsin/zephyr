@@ -1267,6 +1267,8 @@ static void uart_ns16550_isr(const struct device *dev)
 {
 	struct uart_ns16550_dev_data * const dev_data = dev->data;
 
+	printk(".");
+
 	if (dev_data->cb) {
 		dev_data->cb(dev, dev_data->cb_data);
 	}

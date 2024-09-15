@@ -52,6 +52,8 @@ void riscv_plic_set_priority(uint32_t irq, uint32_t prio);
  */
 void riscv_plic_irq_set_affinity(uint32_t irq, uint32_t mask);
 
+void riscv_plic_irq_set_pending(uint32_t irq);
+
 /**
  * @brief Get active interrupt ID
  *
