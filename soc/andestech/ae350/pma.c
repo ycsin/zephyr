@@ -194,7 +194,7 @@ static void configure_nocache_region(void)
  * We should configure CSRs of all CPUs to make memory attribute
  * (e.g. uncacheable) affects all CPUs.
  */
-void pma_init_per_core(void)
+static void pma_init_per_core(void)
 {
 #ifdef CONFIG_NOCACHE_MEMORY
 	configure_nocache_region();
@@ -219,9 +219,12 @@ static int pma_init(void)
 		return -ENODEV;
 	}
 
-	pma_init_per_core();
-
 	return 0;
+}
+
+void z_soc_per_core_init(void)
+{
+	pma_init_per_core();
 }
 
 SYS_INIT(pma_init, PRE_KERNEL_2, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT);
