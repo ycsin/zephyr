@@ -105,6 +105,17 @@ int arch_irq_is_enabled(unsigned int irq)
 	return !!(mie & (1 << irq));
 }
 
+void arch_irq_set_pending(unsigned int irq)
+{
+#if defined(CONFIG_RISCV_HAS_PLIC)
+	unsigned int level = irq_get_level(irq);
+
+	if (level == 2) {
+		riscv_plic_irq_set_pending(irq);
+	}
+#endif
+}
+
 #if defined(CONFIG_RISCV_HAS_PLIC)
 void z_riscv_irq_priority_set(unsigned int irq, unsigned int prio, uint32_t flags)
 {
