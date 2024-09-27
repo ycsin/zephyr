@@ -1,0 +1,15 @@
+# Copyright (c) 2023 Meta
+# SPDX-License-Identifier: Apache-2.0
+
+description: IPI PLIC
+
+compatible: "zephyr,ipi-plic"
+
+include: [base.yaml]
+
+properties:
+  interrupt-parent:
+    required: true
+
+  interrupts:
+    required: true
