@@ -45,6 +45,9 @@ LOG_MODULE_REGISTER(os, CONFIG_KERNEL_LOG_LEVEL);
 __pinned_bss
 struct z_kernel _kernel;
 
+/* TODO: can we borrow idle / main stack? */
+K_KERNEL_STACK_ARRAY_DEFINE(_tls_stacks, CONFIG_MP_MAX_NUM_CPUS, 256);
+
 #ifdef CONFIG_PM
 __pinned_bss atomic_t _cpus_active;
 #endif

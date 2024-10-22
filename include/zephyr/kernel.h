@@ -667,7 +667,13 @@ static inline k_tid_t k_current_get(void)
 	/* Thread-local cache of current thread ID, set in z_thread_entry() */
 	extern Z_THREAD_LOCAL k_tid_t z_tls_current;
 
-	return z_tls_current;
+	while (z_tls_current != _kernel.cpus->current) {
+	};
+
+	// if (__builtin_thread_pointer() != NULL)
+		return z_tls_current;
+
+	// return k_sched_current_thread_query();
 #else
 	return k_sched_current_thread_query();
 #endif

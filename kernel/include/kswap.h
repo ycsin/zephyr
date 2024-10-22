@@ -136,6 +136,10 @@ static ALWAYS_INLINE unsigned int do_swap(unsigned int key,
 		z_sched_switch_spin(new_thread);
 		_current_cpu->current = new_thread;
 
+		// extern Z_THREAD_LOCAL k_tid_t z_tls_current;
+
+		// z_tls_current = new_thread;
+
 #ifdef CONFIG_TIMESLICING
 		z_reset_time_slice(new_thread);
 #endif /* CONFIG_TIMESLICING */
@@ -261,5 +265,9 @@ static inline void z_dummy_thread_init(struct k_thread *dummy_thread)
 #endif /* CONFIG_TIMESLICE_PER_THREAD */
 
 	_current_cpu->current = dummy_thread;
+
+	extern Z_THREAD_LOCAL k_tid_t z_tls_current;
+
+	z_tls_current = dummy_thread;
 }
 #endif /* ZEPHYR_KERNEL_INCLUDE_KSWAP_H_ */

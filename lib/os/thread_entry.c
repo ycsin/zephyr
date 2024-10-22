@@ -36,7 +36,8 @@ FUNC_NORETURN void z_thread_entry(k_thread_entry_t entry,
 				 void *p1, void *p2, void *p3)
 {
 #ifdef CONFIG_CURRENT_THREAD_USE_TLS
-	z_tls_current = k_sched_current_thread_query();
+	__ASSERT_NO_MSG(z_tls_current == k_sched_current_thread_query());
+	// z_tls_current = k_sched_current_thread_query();
 #endif
 #ifdef CONFIG_STACK_CANARIES_TLS
 	uintptr_t stack_guard;

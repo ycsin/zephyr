@@ -23,11 +23,18 @@ extern "C" {
 #endif
 
 #ifndef _ASMLANGUAGE
-
+K_KERNEL_STACK_ARRAY_DECLARE(_tls_stacks, CONFIG_MP_MAX_NUM_CPUS, 256);
+extern struct k_thread _thread_dummy;
 static ALWAYS_INLINE void arch_kernel_init(void)
 {
 #ifdef CONFIG_THREAD_LOCAL_STORAGE
-	__asm__ volatile ("li tp, 0");
+	/* we need to set the TLS & z_tls_current ASAP so that k_current_get() always works (before
+	 * anything calls _current) */
+	_thread_dummy.tls = POINTER_TO_UINT(&_tls_stacks[0][0]);
+	__asm__("mv tp, %0" : : "r" (POINTER_TO_UINT(&_tls_stacks[0][0])));
+	extern Z_THREAD_LOCAL k_tid_t z_tls_current;
+
+	z_tls_current = &_thread_dummy;
 #endif
 #if defined(CONFIG_SMP) || defined(CONFIG_USERSPACE)
 	csr_write(mscratch, &_kernel.cpus[0]);

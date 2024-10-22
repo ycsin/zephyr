@@ -873,6 +873,10 @@ static inline void set_current(struct k_thread *new_thread)
 {
 	z_thread_mark_switched_out();
 	_current_cpu->current = new_thread;
+
+	// extern Z_THREAD_LOCAL k_tid_t z_tls_current;
+
+	// z_tls_current = new_thread;
 }
 
 /**

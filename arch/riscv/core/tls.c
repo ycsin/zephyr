@@ -31,5 +31,22 @@ size_t arch_tls_stack_setup(struct k_thread *new_thread, char *stack_ptr)
 	 */
 	new_thread->tls = POINTER_TO_UINT(stack_ptr);
 
+	/* make sure that `z_tls_current` already has the correct value when a thread starts */
+
+	// temporarily set tp to new_thread->tls, and set the current thread
+
+	// unsigned int k = arch_irq_lock();
+	// save current tp, to be restored later
+	const uintptr_t curr_tp = POINTER_TO_UINT(__builtin_thread_pointer());
+
+	__asm__("mv tp, %0" : : "r" (new_thread->tls));
+	extern Z_THREAD_LOCAL k_tid_t z_tls_current;
+
+	z_tls_current = new_thread;
+
+	// restore tp
+	__asm__("mv tp, %0" : : "r" (curr_tp));
+	// arch_irq_unlock(k);
+
 	return z_tls_data_size();
 }
