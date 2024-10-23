@@ -251,6 +251,13 @@ extern struct z_kernel _kernel;
 
 extern atomic_t _cpus_active;
 
+static inline struct k_thread *arch_current_thread(void)
+{
+	register unsigned long riscv_gp_reg __asm__("gp");
+
+	return (struct k_thread *)(riscv_gp_reg);
+}
+
 #ifdef CONFIG_SMP
 
 /* True if the current context can be preempted and migrated to
@@ -260,11 +267,11 @@ bool z_smp_cpu_mobile(void);
 
 #define _current_cpu ({ __ASSERT_NO_MSG(!z_smp_cpu_mobile()); \
 			arch_curr_cpu(); })
-#define _current k_sched_current_thread_query()
+#define _current arch_current_thread()
 
 #else
 #define _current_cpu (&_kernel.cpus[0])
-#define _current _kernel.cpus[0].current
+#define _current arch_current_thread()
 #endif
 
 /* kernel wait queue record */

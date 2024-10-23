@@ -671,6 +671,7 @@ check_reschedule:
 
 #ifdef CONFIG_MULTITHREADING
 
+	/* How to use GP? */
 	/* Get pointer to current thread on this CPU */
 	lr a1, ___cpu_t_current_OFFSET(s0)
 
