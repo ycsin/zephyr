@@ -28,6 +28,15 @@ extern struct k_spinlock _sched_spinlock;
  */
 void z_smp_release_global_lock(struct k_thread *thread);
 
+/* Update the currently scheduled thread for the current CPU */
+static ALWAYS_INLINE void z_set_current(struct k_thread *thread)
+{
+	_current_cpu->current = thread;
+#ifdef CONFIG_ARCH_HAS_CUSTOM_CURRENT_IMPL
+	arch_set_current_thread(thread);
+#endif /* CONFIG_ARCH_HAS_CUSTOM_CURRENT_IMPL */
+}
+
 /* context switching and scheduling-related routines */
 #ifdef CONFIG_USE_SWITCH
 
@@ -134,7 +143,7 @@ static ALWAYS_INLINE unsigned int do_swap(unsigned int key,
 #endif /* CONFIG_SMP */
 		z_thread_mark_switched_out();
 		z_sched_switch_spin(new_thread);
-		_current_cpu->current = new_thread;
+		z_set_current(new_thread);
 
 #ifdef CONFIG_TIMESLICING
 		z_reset_time_slice(new_thread);
@@ -260,6 +269,6 @@ static inline void z_dummy_thread_init(struct k_thread *dummy_thread)
 	dummy_thread->base.slice_ticks = 0;
 #endif /* CONFIG_TIMESLICE_PER_THREAD */
 
-	_current_cpu->current = dummy_thread;
+	z_set_current(dummy_thread);
 }
 #endif /* ZEPHYR_KERNEL_INCLUDE_KSWAP_H_ */
