@@ -14,7 +14,7 @@
 
 static ALWAYS_INLINE uint32_t arch_proc_id(void)
 {
-	return csr_read(mhartid) & ((uintptr_t)CONFIG_RISCV_HART_MASK);
+	return csr_read(mhartid);
 }
 
 static ALWAYS_INLINE _cpu_t *arch_curr_cpu(void)
