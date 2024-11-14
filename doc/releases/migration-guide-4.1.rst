@@ -110,3 +110,9 @@ Modem
 
 Architectures
 *************
+
+RISC V
+======
+
+* The :kconfig:option:`CONFIG_RISCV_HART_MASK` Kconfig has been removed. For ``arch_proc_id()`` calls
+  that expects the return processor ID to start 0, use ``arch_curr_proc()->id`` instead.
