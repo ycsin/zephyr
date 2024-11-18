@@ -8,58 +8,75 @@
 #include <zephyr/kernel.h>
 #include <zephyr/debug/coredump.h>
 
-#ifndef CONFIG_64BIT
 #define ARCH_HDR_VER 1
+
+#ifdef CONFIG_64BIT
+#define RV_REG_T uint64_t
+#else /* 32BIT */
+#define RV_REG_T uint32_t
+#endif /* CONFIG_64BIT */
+
+#ifdef CONFIG_RISCV_ISA_RV32E
+#define RV_E(reg) RV_REG_T reg
+#define RV_I(reg) /* unavailable */
 #else
-#define ARCH_HDR_VER 2
-#endif
+#define RV_E(reg) RV_REG_T reg
+#define RV_I(reg) RV_REG_T reg
+#endif /* CONFIG_RISCV_ISA_RV32E */
+
+enum riscv_cpu_code {
+	RISCV_CPU_RV64,
+	RISCV_CPU_RV32,
+	RISCV_CPU_RV32E,
+};
+
+uintptr_t z_riscv_get_sp_before_exc(const struct arch_esf *esf);
 
 struct riscv_arch_block {
-#ifdef CONFIG_64BIT
+	uint8_t cpu;
+	union {
+		uint8_t flags;
+		struct {
+			uint8_t extra_exception_info: 1;
+			uint8_t unused: 7;
+		};
+	};
+
 	struct {
-		uint64_t ra;
-		uint64_t tp;
-		uint64_t t0;
-		uint64_t t1;
-		uint64_t t2;
-		uint64_t a0;
-		uint64_t a1;
-		uint64_t a2;
-		uint64_t a3;
-		uint64_t a4;
-		uint64_t a5;
-		uint64_t a6;
-		uint64_t a7;
-		uint64_t t3;
-		uint64_t t4;
-		uint64_t t5;
-		uint64_t t6;
-		uint64_t pc;
+		RV_E(ra);
+		RV_E(tp);
+		RV_E(t0);
+		RV_E(t1);
+		RV_E(t2);
+		RV_E(a0);
+		RV_E(a1);
+		RV_E(a2);
+		RV_E(a3);
+		RV_E(a4);
+		RV_E(a5);
+		RV_I(a6);
+		RV_I(a7);
+		RV_I(t3);
+		RV_I(t4);
+		RV_I(t5);
+		RV_I(t6);
+		RV_E(pc);
+		RV_E(sp);
+#ifdef CONFIG_EXTRA_EXCEPTION_INFO
+		RV_E(s0);
+		RV_E(s1);
+		RV_I(s2);
+		RV_I(s3);
+		RV_I(s4);
+		RV_I(s5);
+		RV_I(s6);
+		RV_I(s7);
+		RV_I(s8);
+		RV_I(s9);
+		RV_I(s10);
+		RV_I(s11);
+#endif /* CONFIG_EXTRA_EXCEPTION_INFO */
 	} r;
-#else /* !CONFIG_64BIT */
-	struct {
-		uint32_t ra;
-		uint32_t tp;
-		uint32_t t0;
-		uint32_t t1;
-		uint32_t t2;
-		uint32_t a0;
-		uint32_t a1;
-		uint32_t a2;
-		uint32_t a3;
-		uint32_t a4;
-		uint32_t a5;
-#if !defined(CONFIG_RISCV_ISA_RV32E)
-		uint32_t a6;
-		uint32_t a7;
-		uint32_t t3;
-		uint32_t t4;
-		uint32_t t5;
-		uint32_t t6;
-#endif /* !CONFIG_RISCV_ISA_RV32E */
-		uint32_t pc;
-	} r;
-#endif /* CONFIG_64BIT */
 } __packed;
 
 /*
@@ -82,6 +99,18 @@ void arch_coredump_info_dump(const struct arch_esf *esf)
 	}
 
 	(void)memset(&arch_blk, 0, sizeof(arch_blk));
+
+	sizeof(arch_blk.r);
+
+	if (IS_ENABLED(CONFIG_64BIT)) {
+		arch_blk.cpu = RISCV_CPU_RV64;
+	} else if (IS_ENABLED(CONFIG_RISCV_ISA_RV32I)) {
+		arch_blk.cpu = RISCV_CPU_RV32;
+	} else {
+		arch_blk.cpu = RISCV_CPU_RV32E;
+	}
+
+	arch_blk.extra_exception_info = IS_ENABLED(CONFIG_EXTRA_EXCEPTION_INFO);
 
 	/*
 	 * 33 registers expected by GDB. Not all are in ESF but the GDB stub will need
@@ -107,6 +136,28 @@ void arch_coredump_info_dump(const struct arch_esf *esf)
 	arch_blk.r.a7 = esf->a7;
 #endif /* !CONFIG_RISCV_ISA_RV32E */
 	arch_blk.r.pc = esf->mepc;
+	arch_blk.r.sp = z_riscv_get_sp_before_exc(esf);
+
+#ifdef CONFIG_EXTRA_EXCEPTION_INFO
+	if (esf->csf != NULL) {
+		_callee_saved_t *csf = esf->csf;
+
+		arch_blk.r.s0 = csf->s0;
+		arch_blk.r.s1 = csf->s1;
+#ifndef CONFIG_RISCV_ISA_RV32E
+		arch_blk.r.s2 = csf->s2;
+		arch_blk.r.s3 = csf->s3;
+		arch_blk.r.s4 = csf->s4;
+		arch_blk.r.s5 = csf->s5;
+		arch_blk.r.s6 = csf->s6;
+		arch_blk.r.s7 = csf->s7;
+		arch_blk.r.s8 = csf->s8;
+		arch_blk.r.s9 = csf->s9;
+		arch_blk.r.s10 = csf->s10;
+		arch_blk.r.s11 = csf->s11;
+#endif /* CONFIG_RISCV_ISA_RV32E */
+	}
+#endif /* CONFIG_EXTRA_EXCEPTION_INFO */
 
 	/* Send for output */
 	coredump_buffer_output((uint8_t *)&hdr, sizeof(hdr));
