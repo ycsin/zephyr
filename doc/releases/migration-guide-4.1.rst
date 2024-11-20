@@ -124,3 +124,8 @@ Architectures
   * For the native_sim target :kconfig:option:`CONFIG_NATIVE_SIM_NATIVE_POSIX_COMPAT` has been
     switched to ``n`` by default, and this option has been deprecated. Ensure your code does not
     use the :kconfig:option:`CONFIG_BOARD_NATIVE_POSIX` option anymore (:github:`81232`).
+
+* RISC-V
+
+  * :kconfig:option:`CONFIG_EXTRA_EXCEPTION_INFO` has been removed. The ``_callee_saved_t *csf``
+    will be available in the `struct arch_esf` if :kconfig:option:`CONFIG_EXCEPTION_DEBUG` is enabled.

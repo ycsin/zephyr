@@ -458,15 +458,9 @@ do_fault:
 
 	/* Save callee-saved registers to be passed as 3rd arg */
 	STORE_CALLEE_SAVED()		;
-	mv a2, sp
 
-#ifdef CONFIG_EXTRA_EXCEPTION_INFO
 	/* Store csf's addr into esf (a1 still holds the pointer to the esf at this point) */
-	sr a2 __struct_arch_esf_csf_OFFSET(a1)
-#endif /* CONFIG_EXTRA_EXCEPTION_INFO */
-#else
-	/* Pass NULL to csf */
-	mv a2, zero
+	sr sp __struct_arch_esf_csf_OFFSET(a1)
 #endif /* CONFIG_EXCEPTION_DEBUG */
 	tail z_riscv_fatal_error
 
