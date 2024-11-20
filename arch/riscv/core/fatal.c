@@ -193,7 +193,7 @@ static bool bad_stack_pointer(struct arch_esf *esf)
 	return false;
 }
 
-void _Fault(struct arch_esf *esf)
+void _Fault(struct arch_esf *esf, const _callee_saved_t *csf)
 {
 #ifdef CONFIG_USERSPACE
 	/*
@@ -224,7 +224,7 @@ void _Fault(struct arch_esf *esf)
 		reason = K_ERR_STACK_CHK_FAIL;
 	}
 
-	z_riscv_fatal_error(reason, esf);
+	z_riscv_fatal_error_csf(reason, esf, csf);
 }
 
 #ifdef CONFIG_USERSPACE

@@ -374,12 +374,39 @@ no_fp:	/* increment _current->arch.exception_depth */
 
 	/*
 	 * Call _Fault to handle exception.
-	 * Stack pointer is pointing to a struct_arch_esf structure, pass it
+	 * Stack pointer is pointing to a struct arch_esf structure, pass it
 	 * to _Fault (via register a0).
+	 * If CONFIG_EXCEPTION_DEBUG is enabled, store csf to _callee_saved_t, pass it
+	 * to _Fault (via register a1).
 	 * If _Fault shall return, set return address to
 	 * no_reschedule to restore stack.
 	 */
 	mv a0, sp
+
+#ifdef CONFIG_EXCEPTION_DEBUG
+	/*
+	 * Restore the s0 we saved early in ISR entry
+	 * so it shows up properly in the CSF.
+	 */
+	lr s0, __struct_arch_esf_s0_OFFSET(sp)
+
+	/* Allocate space for caller-saved registers on current thread stack */
+	addi sp, sp, -__callee_saved_t_SIZEOF
+
+	/* Save callee-saved registers to be passed as 3rd arg */
+	STORE_CALLEE_SAVED()		;
+	mv a1, sp
+
+#ifdef CONFIG_EXTRA_EXCEPTION_INFO
+	/* Store csf's addr into esf (a1 holds the pointer to the esf at this point) */
+	sr a1 __struct_arch_esf_csf_OFFSET(a0)
+#endif /* CONFIG_EXTRA_EXCEPTION_INFO */
+
+#else
+	/* set csf to NULL */
+	mv a1, zero
+#endif /* CONFIG_EXCEPTION_DEBUG */
+
 	la ra, no_reschedule
 	tail _Fault
 
