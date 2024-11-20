@@ -56,6 +56,20 @@
 	RV_I(	sr s9, ___callee_saved_t_s9_OFFSET(sp)		);\
 	RV_I(	sr s10, ___callee_saved_t_s10_OFFSET(sp)	);\
 	RV_I(	sr s11, ___callee_saved_t_s11_OFFSET(sp)	)
+
+/**
+ * Convenience macro to store the caller-saved registers (CSF) on stack,
+ * and link it to the `struct arch_esf`.
+ *  1. Restore the `s0` we saved early in ISR entry so it shows up properly in the CSF.
+ *  2. Allocate space for CSF on current thread stack
+ *  3. Save CSF to the allocated stack
+ *  4. Link the saved CSF to the `struct arch_esf`
+ */
+#define PREP_CSF_IN_ESF(_esf)                                                                      \
+	lr s0, __struct_arch_esf_s0_OFFSET(sp);                                                    \
+	addi sp, sp, -__callee_saved_t_SIZEOF;                                                     \
+	STORE_CALLEE_SAVED();                                                                      \
+	sr sp __struct_arch_esf_csf_OFFSET(_esf)
 #endif /* CONFIG_EXCEPTION_DEBUG */
 
 	.macro get_current_cpu dst
@@ -376,6 +390,9 @@ no_fp:	/* increment _current->arch.exception_depth */
 	 * no_reschedule to restore stack.
 	 */
 	mv a0, sp
+#ifdef CONFIG_EXCEPTION_DEBUG
+	PREP_CSF_IN_ESF(a0)
+#endif /* CONFIG_EXCEPTION_DEBUG */
 	la ra, no_reschedule
 	tail _Fault
 
@@ -447,20 +464,7 @@ do_fault:
 1:	mv a1, sp
 
 #ifdef CONFIG_EXCEPTION_DEBUG
-	/*
-	 * Restore the s0 we saved early in ISR entry
-	 * so it shows up properly in the CSF.
-	 */
-	lr s0, __struct_arch_esf_s0_OFFSET(sp)
-
-	/* Allocate space for caller-saved registers on current thread stack */
-	addi sp, sp, -__callee_saved_t_SIZEOF
-
-	/* Save callee-saved registers to be passed as 3rd arg */
-	STORE_CALLEE_SAVED()		;
-
-	/* Store csf's addr into esf (a1 still holds the pointer to the esf at this point) */
-	sr sp __struct_arch_esf_csf_OFFSET(a1)
+	PREP_CSF_IN_ESF(a1)
 #endif /* CONFIG_EXCEPTION_DEBUG */
 	tail z_riscv_fatal_error
 
