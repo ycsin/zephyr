@@ -41,7 +41,7 @@
 	RV_I(	op a7, __struct_arch_esf_a7_OFFSET(sp)	);\
 	RV_E(	op ra, __struct_arch_esf_ra_OFFSET(sp)	)
 
-#ifdef CONFIG_EXCEPTION_DEBUG
+#ifdef CONFIG_EXTRA_EXCEPTION_INFO
 /* Convenience macro for storing callee saved register [s0 - s11] states. */
 #define STORE_CALLEE_SAVED() \
 	RV_E(	sr s0, ___callee_saved_t_s0_OFFSET(sp)		);\
@@ -56,7 +56,7 @@
 	RV_I(	sr s9, ___callee_saved_t_s9_OFFSET(sp)		);\
 	RV_I(	sr s10, ___callee_saved_t_s10_OFFSET(sp)	);\
 	RV_I(	sr s11, ___callee_saved_t_s11_OFFSET(sp)	)
-#endif /* CONFIG_EXCEPTION_DEBUG */
+#endif /* CONFIG_EXTRA_EXCEPTION_INFO */
 
 	.macro get_current_cpu dst
 #if defined(CONFIG_SMP) || defined(CONFIG_USERSPACE)
@@ -78,12 +78,7 @@ GTEXT(__soc_save_context)
 GTEXT(__soc_restore_context)
 #endif /* CONFIG_RISCV_SOC_CONTEXT_SAVE */
 
-#ifdef CONFIG_EXCEPTION_DEBUG
 GTEXT(z_riscv_fatal_error_csf)
-#else
-GTEXT(z_riscv_fatal_error)
-#endif /* CONFIG_EXCEPTION_DEBUG */
-
 GTEXT(z_get_next_switch_handle)
 GTEXT(z_riscv_switch)
 GTEXT(z_riscv_thread_start)
@@ -450,7 +445,7 @@ do_fault:
 	lr a0, __struct_arch_esf_a0_OFFSET(sp)
 1:	mv a1, sp
 
-#ifdef CONFIG_EXCEPTION_DEBUG
+#ifdef CONFIG_EXTRA_EXCEPTION_INFO
 	/*
 	 * Restore the s0 we saved early in ISR entry
 	 * so it shows up properly in the CSF.
@@ -464,15 +459,13 @@ do_fault:
 	STORE_CALLEE_SAVED()		;
 	mv a2, sp
 
-#ifdef CONFIG_EXTRA_EXCEPTION_INFO
 	/* Store csf's addr into esf (a1 still holds the pointer to the esf at this point) */
 	sr a2 __struct_arch_esf_csf_OFFSET(a1)
-#endif /* CONFIG_EXTRA_EXCEPTION_INFO */
-
-	tail z_riscv_fatal_error_csf
 #else
-	tail z_riscv_fatal_error
-#endif /* CONFIG_EXCEPTION_DEBUG */
+	/* Set 3rd arg to NULL */
+	mv a2, zero
+#endif /* CONFIG_EXTRA_EXCEPTION_INFO */
+	tail z_riscv_fatal_error_csf
 
 #if defined(CONFIG_IRQ_OFFLOAD)
 do_irq_offload:

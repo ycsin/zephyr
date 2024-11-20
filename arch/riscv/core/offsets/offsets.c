@@ -118,10 +118,6 @@ GEN_OFFSET_STRUCT(arch_esf, s0);
 GEN_OFFSET_STRUCT(arch_esf, sp);
 #endif
 
-#ifdef CONFIG_EXTRA_EXCEPTION_INFO
-GEN_OFFSET_STRUCT(arch_esf, csf);
-#endif /* CONFIG_EXTRA_EXCEPTION_INFO */
-
 #if defined(CONFIG_RISCV_SOC_CONTEXT_SAVE)
 GEN_OFFSET_STRUCT(arch_esf, soc_context);
 #endif
@@ -131,9 +127,10 @@ GEN_SOC_OFFSET_SYMS();
 
 GEN_ABSOLUTE_SYM(__struct_arch_esf_SIZEOF, sizeof(struct arch_esf));
 
-#ifdef CONFIG_EXCEPTION_DEBUG
+#ifdef CONFIG_EXTRA_EXCEPTION_INFO
+GEN_OFFSET_STRUCT(arch_esf, csf);
 GEN_ABSOLUTE_SYM(__callee_saved_t_SIZEOF, ROUND_UP(sizeof(_callee_saved_t), ARCH_STACK_PTR_ALIGN));
-#endif /* CONFIG_EXCEPTION_DEBUG */
+#endif /* CONFIG_EXTRA_EXCEPTION_INFO */
 
 #ifdef CONFIG_USERSPACE
 GEN_OFFSET_SYM(_cpu_arch_t, user_exc_sp);
