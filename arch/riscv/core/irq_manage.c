@@ -42,7 +42,7 @@ FUNC_NORETURN void z_irq_spurious(const void *unused)
 		LOG_ERR("PLIC interrupt line causing the IRQ: %d (%p)", save_irq, save_dev);
 	}
 #endif
-	z_riscv_fatal_error(K_ERR_SPURIOUS_IRQ, NULL);
+	z_riscv_fatal_error(K_ERR_SPURIOUS_IRQ, NULL, NULL);
 #endif /* CONFIG_EMPTY_IRQ_SPURIOUS */
 }
 

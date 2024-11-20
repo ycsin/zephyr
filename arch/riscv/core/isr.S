@@ -78,11 +78,7 @@ GTEXT(__soc_save_context)
 GTEXT(__soc_restore_context)
 #endif /* CONFIG_RISCV_SOC_CONTEXT_SAVE */
 
-#ifdef CONFIG_EXCEPTION_DEBUG
-GTEXT(z_riscv_fatal_error_csf)
-#else
 GTEXT(z_riscv_fatal_error)
-#endif /* CONFIG_EXCEPTION_DEBUG */
 
 GTEXT(z_get_next_switch_handle)
 GTEXT(z_riscv_switch)
@@ -468,11 +464,11 @@ do_fault:
 	/* Store csf's addr into esf (a1 still holds the pointer to the esf at this point) */
 	sr a2 __struct_arch_esf_csf_OFFSET(a1)
 #endif /* CONFIG_EXTRA_EXCEPTION_INFO */
-
-	tail z_riscv_fatal_error_csf
 #else
-	tail z_riscv_fatal_error
+	/* Pass NULL to csf */
+	mv a2, zero
 #endif /* CONFIG_EXCEPTION_DEBUG */
+	tail z_riscv_fatal_error
 
 #if defined(CONFIG_IRQ_OFFLOAD)
 do_irq_offload:

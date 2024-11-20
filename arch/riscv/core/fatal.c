@@ -77,14 +77,8 @@ const char *z_riscv_mcause_str(unsigned long cause)
 	return mcause_str[MIN(cause, ARRAY_SIZE(mcause_str) - 1)];
 }
 
-FUNC_NORETURN void z_riscv_fatal_error(unsigned int reason,
-				       const struct arch_esf *esf)
-{
-	z_riscv_fatal_error_csf(reason, esf, NULL);
-}
-
-FUNC_NORETURN void z_riscv_fatal_error_csf(unsigned int reason, const struct arch_esf *esf,
-					   const _callee_saved_t *csf)
+FUNC_NORETURN void z_riscv_fatal_error(unsigned int reason, const struct arch_esf *esf,
+				       const _callee_saved_t *csf)
 {
 	unsigned long mcause;
 
@@ -224,7 +218,7 @@ void _Fault(struct arch_esf *esf)
 		reason = K_ERR_STACK_CHK_FAIL;
 	}
 
-	z_riscv_fatal_error(reason, esf);
+	z_riscv_fatal_error(reason, esf, NULL);
 }
 
 #ifdef CONFIG_USERSPACE
@@ -242,7 +236,7 @@ void z_impl_user_fault(unsigned int reason)
 		reason != K_ERR_STACK_CHK_FAIL) {
 		reason = K_ERR_KERNEL_OOPS;
 	}
-	z_riscv_fatal_error(reason, oops_esf);
+	z_riscv_fatal_error(reason, oops_esf, NULL);
 }
 
 static void z_vrfy_user_fault(unsigned int reason)
