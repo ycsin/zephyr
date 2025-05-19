@@ -322,7 +322,7 @@ static inline int z_impl_espi_saf_flash_read(const struct device *dev,
 		(const struct espi_saf_driver_api *)dev->api;
 
 	if (!api->flash_read) {
-		return -ENOTSUP;
+		return -ENOSYS;
 	}
 
 	return api->flash_read(dev, pckt);
@@ -351,7 +351,7 @@ static inline int z_impl_espi_saf_flash_write(const struct device *dev,
 		(const struct espi_saf_driver_api *)dev->api;
 
 	if (!api->flash_write) {
-		return -ENOTSUP;
+		return -ENOSYS;
 	}
 
 	return api->flash_write(dev, pckt);
@@ -380,7 +380,7 @@ static inline int z_impl_espi_saf_flash_erase(const struct device *dev,
 		(const struct espi_saf_driver_api *)dev->api;
 
 	if (!api->flash_erase) {
-		return -ENOTSUP;
+		return -ENOSYS;
 	}
 
 	return api->flash_erase(dev, pckt);
@@ -409,7 +409,7 @@ static inline int z_impl_espi_saf_flash_unsuccess(const struct device *dev,
 		(const struct espi_saf_driver_api *)dev->api;
 
 	if (!api->flash_unsuccess) {
-		return -ENOTSUP;
+		return -ENOSYS;
 	}
 
 	return api->flash_unsuccess(dev, pckt);
@@ -515,7 +515,7 @@ static inline int espi_saf_add_callback(const struct device *dev,
 		(const struct espi_saf_driver_api *)dev->api;
 
 	if (!api->manage_callback) {
-		return -ENOTSUP;
+		return -ENOSYS;
 	}
 
 	return api->manage_callback(dev, callback, true);
@@ -544,7 +544,7 @@ static inline int espi_saf_remove_callback(const struct device *dev,
 		(const struct espi_saf_driver_api *)dev->api;
 
 	if (!api->manage_callback) {
-		return -ENOTSUP;
+		return -ENOSYS;
 	}
 
 	return api->manage_callback(dev, callback, false);

@@ -98,7 +98,7 @@ static inline int z_impl_bbram_check_invalid(const struct device *dev)
 		(const struct bbram_driver_api *)dev->api;
 
 	if (!api->check_invalid) {
-		return -ENOTSUP;
+		return -ENOSYS;
 	}
 
 	return api->check_invalid(dev);
@@ -120,7 +120,7 @@ static inline int z_impl_bbram_check_standby_power(const struct device *dev)
 		(const struct bbram_driver_api *)dev->api;
 
 	if (!api->check_standby_power) {
-		return -ENOTSUP;
+		return -ENOSYS;
 	}
 
 	return api->check_standby_power(dev);
@@ -143,7 +143,7 @@ static inline int z_impl_bbram_check_power(const struct device *dev)
 		(const struct bbram_driver_api *)dev->api;
 
 	if (!api->check_power) {
-		return -ENOTSUP;
+		return -ENOSYS;
 	}
 
 	return api->check_power(dev);
@@ -164,7 +164,7 @@ static inline int z_impl_bbram_get_size(const struct device *dev, size_t *size)
 		(const struct bbram_driver_api *)dev->api;
 
 	if (!api->get_size) {
-		return -ENOTSUP;
+		return -ENOSYS;
 	}
 
 	return api->get_size(dev, size);
@@ -189,7 +189,7 @@ static inline int z_impl_bbram_read(const struct device *dev, size_t offset,
 		(const struct bbram_driver_api *)dev->api;
 
 	if (!api->read) {
-		return -ENOTSUP;
+		return -ENOSYS;
 	}
 
 	return api->read(dev, offset, size, data);
@@ -214,7 +214,7 @@ static inline int z_impl_bbram_write(const struct device *dev, size_t offset,
 		(const struct bbram_driver_api *)dev->api;
 
 	if (!api->write) {
-		return -ENOTSUP;
+		return -ENOSYS;
 	}
 
 	return api->write(dev, offset, size, data);
