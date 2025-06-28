@@ -265,10 +265,6 @@ config SEMIHOST_CONSOLE
 	  Enable this option to use semihosting for console.
 	  See SEMIHOST for a more complete description of semihosting.
 
-module = UART_CONSOLE
-module-str = UART console
-source "subsys/logging/Kconfig.template.log_config"
-
 config EFI_CONSOLE
 	bool "Use EFI console for console output"
 	select CONSOLE_HAS_DRIVER
