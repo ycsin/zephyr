@@ -10,5 +10,11 @@ int main(void)
 {
 	printf("Hello World! %s\n", CONFIG_BOARD_TARGET);
 
+	int c;
+
+	while ((c = getc(stdin)) != EOF) {
+		putchar(c);
+	}
+
 	return 0;
 }

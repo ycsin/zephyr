@@ -38,6 +38,14 @@
 #include <zephyr/mgmt/mcumgr/transport/serial.h>
 #endif
 
+static struct k_poll_signal uart_sig = K_POLL_SIGNAL_INITIALIZER(uart_sig);
+static struct k_poll_event uart_event[] = {
+	K_POLL_EVENT_STATIC_INITIALIZER(K_POLL_TYPE_SIGNAL, K_POLL_MODE_NOTIFY_ONLY, &uart_sig, 0),
+};
+
+// static K_SEM_DEFINE(uart_rx_sem, 0, 1);
+// static unsigned char uart_byte;
+
 static const struct device *const uart_console_dev =
 	DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 
@@ -461,6 +469,9 @@ static void uart_console_isr(const struct device *unused, void *user_data)
 			return;
 		}
 
+		(void)k_poll_signal_raise(&uart_sig, (int)byte);
+		return;
+
 #ifdef CONFIG_UART_CONSOLE_DEBUG_SERVER_HOOKS
 		if (debug_hook_in != NULL && debug_hook_in(byte) != 0) {
 			/*
@@ -584,6 +595,21 @@ void uart_register_input(struct k_fifo *avail, struct k_fifo *lines,
 }
 #endif
 
+unsigned char console_in(void)
+{
+	int signaled, result;
+
+	k_poll_signal_reset(&uart_sig);
+	(void)k_poll(uart_event, 1, K_FOREVER);
+
+	k_poll_signal_check(&uart_sig, &signaled, &result);
+	if (signaled) {
+		return (unsigned char)result;
+	}
+
+	return EOF;
+}
+
 /**
  * @brief Install printk/stdout hook for UART console output
  */
@@ -592,6 +618,8 @@ static void uart_console_hook_install(void)
 {
 #if defined(CONFIG_STDOUT_CONSOLE)
 	__stdout_hook_install(console_out);
+	console_input_init();
+	__stdin_hook_install(console_in);
 #endif
 #if defined(CONFIG_PRINTK)
 	__printk_hook_install(console_out);

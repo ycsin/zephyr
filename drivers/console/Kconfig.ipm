@@ -1,0 +1,42 @@
+# Copyright (c) 2025 The Zephyr Project Contributors
+# SPDX-License-Identifier: Apache-2.0
+
+config IPM_CONSOLE_SENDER
+	bool "Inter-processor Mailbox console sender"
+	select CONSOLE_HAS_DRIVER
+	help
+	  Enable the sending side of IPM console
+
+config IPM_CONSOLE_RECEIVER
+	bool "Inter-processor Mailbox console receiver"
+	select RING_BUFFER
+	help
+	  Enable the receiving side of IPM console
+
+config IPM_CONSOLE_STACK_SIZE
+	int "Stack size for IPM console receiver thread"
+	depends on IPM_CONSOLE_RECEIVER
+	default 2048 if COVERAGE_GCOV
+	default 512
+	help
+	  Each instance of the IPM console receiver driver creates a worker
+	  thread to print out incoming messages from the remote CPU. Specify the
+	  stack size for these threads here.
+
+menuconfig IPM_CONSOLE
+	bool "Inter-processor Mailbox console"
+	depends on IPM
+	select CONSOLE_HAS_DRIVER
+	help
+	  Enable console over Inter-processor Mailbox.
+
+if IPM_CONSOLE
+
+config IPM_CONSOLE_LINE_BUF_LEN
+	int "IPM console line buffer length"
+	default 128
+	help
+	  IPM console line buffer length specify amount of the buffer
+	  where characters are stored before sending the whole line.
+
+endif # IPM_CONSOLE

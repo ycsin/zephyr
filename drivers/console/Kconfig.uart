@@ -1,0 +1,59 @@
+# Copyright (c) 2025 The Zephyr Project Contributors
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig UART_CONSOLE
+	bool "Use UART for console"
+	depends on SERIAL && SERIAL_HAS_DRIVER
+	select CONSOLE_HAS_DRIVER
+	help
+	  Enable this option to use one UART for console.
+
+if UART_CONSOLE
+
+config CONSOLE_HANDLER
+	bool "Console input handler"
+	depends on SERIAL_SUPPORT_INTERRUPT
+	select UART_INTERRUPT_DRIVEN
+	help
+	  This option enables console input handler allowing to write simple
+	  interaction between serial console and the OS.
+
+config UART_CONSOLE_DEBUG_SERVER_HOOKS
+	bool "Debug server hooks in debug console"
+	help
+	  This option allows a debug server agent such as GDB to take over the
+	  handling of traffic that goes through the console logic. The debug
+	  server looks at characters received and decides to handle them itself if
+	  they are some sort of control characters, or let the regular console
+	  code handle them if they are of no special significance to it.
+
+config UART_CONSOLE_MCUMGR
+	bool "UART console mcumgr passthrough"
+	help
+	  Enables the UART console to receive mcumgr frames for image upgrade
+	  and device management.  When enabled, the UART console does not
+	  process mcumgr frames, but it hands them up to a higher level module
+	  (e.g., the shell).  If unset, incoming mcumgr frames are dropped.
+
+config UART_CONSOLE_INPUT_EXPIRED
+	bool "Support for UART console input expired mechanism"
+	default y
+	depends on PM
+	help
+	  This option allows a notification to the power management module that
+	  the module for UART console is in use now. If the interval of console
+	  module doesn't receive any input message exceeds expired timeout, such
+	  as UART_CONSOLE_INPUT_EXPIRED_TIMEOUT, the power management module is
+	  allowed to enter sleep/deep sleep state and turn off the clock of UART
+	  console module. This mechanism gives a window in which the users can
+	  organize input message if CONFIG_PM is enabled.
+
+config UART_CONSOLE_INPUT_EXPIRED_TIMEOUT
+	int "Fixed amount of time to keep the UART console in use flag true"
+	default 15000
+	depends on UART_CONSOLE_INPUT_EXPIRED
+	help
+	  Fixed amount of time which unit is milliseconds to keep the UART
+	  console in use flag true.
+
+endif # UART_CONSOLE
