@@ -11,6 +11,7 @@
 #define DT_DRV_COMPAT ambiq_bt_hci_spi
 
 #include <zephyr/init.h>
+#include <zephyr/intc2.h>
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -302,7 +303,7 @@ int bt_hci_transport_setup(const struct device *dev)
 	/* Configure the interrupt edge for IRQ pin */
 	gpio_pin_interrupt_configure_dt(&irq_gpio, GPIO_INT_EDGE_RISING);
 #elif (CONFIG_SOC_SERIES_APOLLO3X)
-	IRQ_CONNECT(DT_IRQN(SPI_DEV_NODE), DT_IRQ(SPI_DEV_NODE, priority), bt_packet_irq_isr, 0, 0);
+	INTC2_DT_CONNECT_INLINE(SPI_DEV_NODE, DT_IRQ(SPI_DEV_NODE, priority), bt_packet_irq_isr, 0, 0);
 #endif /* CONFIG_SOC_SERIES_APOLLO4X */
 
 	return ret;
@@ -335,7 +336,7 @@ int bt_apollo_controller_init(spi_transmit_fun transmit)
 		LOG_ERR("BT controller initialization fail");
 	}
 
-	irq_enable(DT_IRQN(SPI_DEV_NODE));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(SPI_DEV_NODE));
 #endif /* CONFIG_SOC_SERIES_APOLLO4X */
 
 	return ret;
@@ -360,7 +361,7 @@ int bt_apollo_controller_deinit(void)
 	gpio_remove_callback(clkreq_gpio.port, &clkreq_gpio_cb);
 	gpio_remove_callback(irq_gpio.port, &irq_gpio_cb);
 #elif (CONFIG_SOC_SERIES_APOLLO3X)
-	irq_disable(DT_IRQN(SPI_DEV_NODE));
+	intc2_disable((struct intc2_spec)INTC2_DT_SPEC_GET(SPI_DEV_NODE));
 
 	ret = am_apollo3_bt_controller_deinit();
 	if (ret == AM_HAL_STATUS_SUCCESS) {

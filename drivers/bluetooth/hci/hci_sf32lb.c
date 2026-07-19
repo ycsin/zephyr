@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/arch/cpu.h>
 
 #include <zephyr/init.h>
@@ -130,7 +131,7 @@ static int zbt_config_mailbox(const struct device *dev)
 		q_cfg.rx_ind = mbox_rx_ind;
 	}
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), mbox_sf32lb_isr,
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), mbox_sf32lb_isr,
 		    DEVICE_DT_INST_GET(0), 0);
 	hci->ipc_port = ipc_queue_init(&q_cfg);
 	if (IPC_QUEUE_INVALID_HANDLE == hci->ipc_port || ipc_queue_open(hci->ipc_port) != 0) {

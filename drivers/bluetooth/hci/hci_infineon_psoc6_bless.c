@@ -14,6 +14,7 @@
 #include <string.h>
 
 #include <zephyr/arch/cpu.h>
+#include <zephyr/intc2.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/hci.h>
 #include <zephyr/drivers/bluetooth.h>
@@ -217,7 +218,7 @@ static int psoc6_bless_hci_init(const struct device *dev)
 	ARG_UNUSED(dev);
 
 	/* Connect BLE interrupt to ISR */
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), psoc6_bless_isr_handler, 0, 0);
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), psoc6_bless_isr_handler, 0, 0);
 
 	/* Registers the generic callback functions.  */
 	Cy_BLE_RegisterEventCallback(psoc6_bless_events_handler);
