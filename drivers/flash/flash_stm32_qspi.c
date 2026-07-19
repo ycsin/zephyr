@@ -10,6 +10,7 @@
 
 #include <errno.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/toolchain.h>
 #include <zephyr/arch/common/ffs.h>
 #include <zephyr/sys/__assert.h>
@@ -1841,9 +1842,9 @@ DEVICE_DT_INST_DEFINE(0, &flash_stm32_qspi_init, NULL,
 
 static void flash_stm32_qspi_irq_config_func(const struct device *dev)
 {
-	IRQ_CONNECT(DT_IRQN(STM32_QSPI_NODE), DT_IRQ(STM32_QSPI_NODE, priority),
+	INTC2_DT_CONNECT_INLINE(STM32_QSPI_NODE, DT_IRQ(STM32_QSPI_NODE, priority),
 		    flash_stm32_qspi_isr, DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_IRQN(STM32_QSPI_NODE));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(STM32_QSPI_NODE));
 }
 
 #endif

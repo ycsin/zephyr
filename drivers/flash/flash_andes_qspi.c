@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/flash.h>
 #include <zephyr/init.h>
@@ -987,7 +988,7 @@ static DEVICE_API(flash, flash_andes_qspi_api) = {
 									\
 	static void flash_andes_qspi_configure_##n(void)		\
 	{								\
-		IRQ_CONNECT(DT_IRQN(DT_INST_BUS(n)),			\
+		INTC2_DT_CONNECT_INLINE(DT_INST_BUS(n),			\
 			DT_IRQ(DT_INST_BUS(n), priority),		\
 			qspi_andes_irq_handler,				\
 			DEVICE_DT_INST_GET(n),				\

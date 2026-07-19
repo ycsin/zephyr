@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/flash.h>
+#include <zephyr/intc2.h>
 #include <zephyr/init.h>
 #include <zephyr/pm/device.h>
 #include <zephyr/pm/device_runtime.h>
@@ -1147,7 +1148,7 @@ static int qspi_nor_init(const struct device *dev)
 		return rc;
 	}
 
-	IRQ_CONNECT(DT_IRQN(QSPI_NODE), DT_IRQ(QSPI_NODE, priority),
+	INTC2_DT_CONNECT_INLINE(QSPI_NODE, DT_IRQ(QSPI_NODE, priority),
 		    nrfx_isr, nrfx_qspi_irq_handler, 0);
 
 	qspi_clock_div_change(dev);

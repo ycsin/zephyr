@@ -11,6 +11,7 @@
 
 #include <errno.h>
 #include <zephyr/devicetree.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/toolchain.h>
 #include <zephyr/arch/common/ffs.h>
@@ -1136,9 +1137,9 @@ static int flash_max32_spixf_nor_check_jedec_id(const struct device *dev)
 
 static void flash_max32_spixf_nor_irq_config(const struct device *dev)
 {
-	IRQ_CONNECT(DT_IRQN(MAX32_QSPI_NODE), DT_IRQ(MAX32_QSPI_NODE, priority),
+	INTC2_DT_CONNECT_INLINE(MAX32_QSPI_NODE, DT_IRQ(MAX32_QSPI_NODE, priority),
 		    flash_max32_spixf_nor_isr, DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_IRQN(MAX32_QSPI_NODE));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(MAX32_QSPI_NODE));
 }
 
 static int flash_max32_spixf_nor_fetch_jesd216_details(const struct device *dev)

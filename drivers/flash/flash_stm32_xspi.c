@@ -15,6 +15,7 @@
 
 #include <errno.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <soc.h>
 #include <stm32_bitops.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -2501,10 +2502,10 @@ static int flash_stm32_xspi_init(const struct device *dev)
 												\
 	static void flash_stm32_xspi_irq_config_func_##inst(const struct device *dev)		\
 	{											\
-		IRQ_CONNECT(DT_IRQN(STM32_XSPI_NODE(inst)),					\
+		INTC2_DT_CONNECT_INLINE(STM32_XSPI_NODE(inst),					\
 			    DT_IRQ(STM32_XSPI_NODE(inst), priority),				\
 			    flash_stm32_xspi_isr, DEVICE_DT_INST_GET(inst), 0);			\
-		irq_enable(DT_IRQN(STM32_XSPI_NODE(inst)));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(STM32_XSPI_NODE(inst)));					\
 	}											\
 												\
 	static const struct flash_stm32_xspi_config flash_stm32_xspi_cfg_##inst = {		\
