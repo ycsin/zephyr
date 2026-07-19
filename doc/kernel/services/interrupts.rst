@@ -749,6 +749,26 @@ length of the bit masks and shift to apply when generating interrupt values, whe
 interrupts level and converting interrupts to a different level. The logic controlling
 this can be found in :file:`irq_multilevel.h`
 
+intc2: DAG-based interrupt core (experimental)
+**********************************************
+
+:kconfig:option:`CONFIG_INTC2` enables an experimental replacement for the
+encoded-IRQ-number scheme described above. Interrupt controllers become
+const graph nodes derived from the devicetree, interrupts are addressed by
+compile-time ``(node, line)`` specifiers obtained with
+:c:macro:`INTC2_DT_SPEC_GET`, and ISRs are connected at file scope with
+:c:macro:`INTC2_DT_CONNECT`. Per-controller dispatch tables are laid out at
+build time by :file:`scripts/build/gen_intc2_tables.py`; the base
+configuration is fully ROM-resident, with shared lines
+(:kconfig:option:`CONFIG_INTC2_SHARED`) and runtime connection
+(:kconfig:option:`CONFIG_INTC2_DYNAMIC`) as opt-ins. Controller drivers
+implement :c:struct:`intc2_driver_api`, declared with
+``DEVICE_API(intc2, ...)``. When :kconfig:option:`CONFIG_INTC2` is
+disabled, the consumer-facing ``INTC2_*`` constructs transparently compile
+down to the legacy machinery described in this document.
+
+.. doxygengroup:: intc2_apis
+
 Suggested Uses
 **************
 
