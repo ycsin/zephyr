@@ -9,6 +9,7 @@
 #define LOG_MODULE_NAME eth_e1000
 #define LOG_LEVEL CONFIG_ETHERNET_LOG_LEVEL
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 
 #include <sys/types.h>
@@ -322,12 +323,12 @@ static const struct ethernet_api e1000_api = {
 									\
 	static void e1000_config_##inst(const struct e1000_dev *dev)	\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(inst),				\
+		INTC2_DT_INST_CONNECT_INLINE(inst,				\
 			    DT_INST_IRQ(inst, priority),		\
 			    e1000_isr, DEVICE_DT_INST_GET(inst),	\
 			    E1000_DT_INST_IRQ_FLAGS(inst));		\
 									\
-		irq_enable(DT_INST_IRQN(inst));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));				\
 		iow32(dev, CTRL, CTRL_SLU); /* Set link up */		\
 		iow32(dev, RCTL, RCTL_EN | RCTL_MPE | DT_INST_PROP(inst, rdmts) << RDMTS_OFFSET); \
 		iow32(dev, ITR, DT_INST_PROP(inst, itr) & (uint32_t)GENMASK(15, 0)); \

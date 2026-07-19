@@ -11,6 +11,7 @@
 #define LOG_LEVEL CONFIG_ETHERNET_LOG_LEVEL
 
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 
 #include <zephyr/kernel.h>
@@ -301,10 +302,10 @@ static const struct ethernet_api eth_api = {
                                                                                                    \
 	static void eth_irq_config##n(const struct device *dev)                                    \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), eth_irq_handler,            \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), eth_irq_handler,            \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
                                                                                                    \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
                                                                                                    \
 	static struct eth_litex_dev_data eth_data##n;                                              \

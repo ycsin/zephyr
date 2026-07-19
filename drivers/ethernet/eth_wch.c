@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT wch_ethernet
 
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(ethernet_wch, CONFIG_ETHERNET_LOG_LEVEL);
 
 #include <zephyr/drivers/clock_control.h>
@@ -713,9 +714,9 @@ static const struct ethernet_api eth_api = {
 	static void eth_wch_irq_config_func_##idx(const struct device *dev)                        \
 	{                                                                                          \
 		/* IRQ 0 is core Interrupt (IRQ 1 is wakeup) */                                    \
-		IRQ_CONNECT(DT_INST_IRQN(idx), DT_INST_IRQ(idx, priority), eth_isr,                \
+		INTC2_DT_INST_CONNECT_INLINE(idx, DT_INST_IRQ(idx, priority), eth_isr,                \
 			    DEVICE_DT_INST_GET(idx), 0);                                           \
-		irq_enable(DT_INST_IRQN(idx));                                                     \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(idx));                                                     \
 	}
 
 #define ETH_WCH_DEVICE(inst)                                                                       \

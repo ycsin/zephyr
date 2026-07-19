@@ -8,6 +8,7 @@
 
 #include "eth_dwc_xgmac_priv.h"
 #include <zephyr/cache.h>
+#include <zephyr/intc2.h>
 
 #define LOG_MODULE_NAME eth_dwc_xgmac
 #define LOG_LEVEL       CONFIG_ETHERNET_LOG_LEVEL
@@ -1651,13 +1652,13 @@ static const struct ethernet_api eth_dwc_xgmac_apis = {
 	static void eth_dwc_xgmac##port##_irq_config(const struct device *dev)                     \
 	{                                                                                          \
 		ARG_UNUSED(dev);                                                                   \
-		IRQ_CONNECT(DT_INST_IRQN(port), DT_INST_IRQ(port, priority), eth_dwc_xgmac_isr,    \
+		INTC2_DT_INST_CONNECT_INLINE(port, DT_INST_IRQ(port, priority), eth_dwc_xgmac_isr,    \
 			    DEVICE_DT_INST_GET(port), 0);                                          \
 	}                                                                                          \
 	static void eth_dwc_xgmac##port##_irq_enable(const struct device *dev, bool en)            \
 	{                                                                                          \
 		ARG_UNUSED(dev);                                                                   \
-		en ? irq_enable(DT_INST_IRQN(port)) : irq_disable(DT_INST_IRQN(port));             \
+		en ? intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(port)) : intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(port));             \
 	}                                                                                          \
 	volatile uint32_t eth_dwc_xgmac##port##_dma_ch_int_status[DT_INST_PROP(port, num_dma_ch)];
 

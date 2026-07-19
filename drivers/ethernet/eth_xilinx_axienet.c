@@ -6,6 +6,7 @@
  */
 
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(eth_xilinx_axienet, CONFIG_ETHERNET_LOG_LEVEL);
 
 #include <sys/types.h>
@@ -633,10 +634,10 @@ static const struct ethernet_api xilinx_axienet_api = {
 };
 
 #define SETUP_IRQS(inst)                                                                           \
-	IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), xilinx_axienet_isr,           \
+	INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), xilinx_axienet_isr,           \
 		    DEVICE_DT_INST_GET(inst), 0);                                                  \
                                                                                                    \
-	irq_enable(DT_INST_IRQN(inst))
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst))
 
 #define XILINX_AXIENET_INIT(inst)                                                                  \
                                                                                                    \

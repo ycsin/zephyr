@@ -13,6 +13,7 @@
 #define LOG_LEVEL CONFIG_ETHERNET_LOG_LEVEL
 
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 
 #include <soc.h>
@@ -660,7 +661,7 @@ done:
 
 int eth_init(const struct device *dev)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    eth_smsc911x_isr, DEVICE_DT_INST_GET(0), 0);
 
@@ -671,7 +672,7 @@ int eth_init(const struct device *dev)
 		return -ENODEV;
 	}
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	return ret;
 }

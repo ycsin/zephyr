@@ -10,6 +10,7 @@
 #define LOG_MODULE_NAME eth_stellaris
 #define LOG_LEVEL CONFIG_ETHERNET_LOG_LEVEL
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 
 #include <zephyr/net/ethernet.h>
@@ -337,10 +338,10 @@ static int eth_stellaris_dev_init(const struct device *dev)
 static void eth_stellaris_irq_config(const struct device *dev)
 {
 	/* Enable Interrupt. */
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    eth_stellaris_isr, DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 
 struct eth_stellaris_config eth_cfg = {

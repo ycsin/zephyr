@@ -4,6 +4,7 @@
  */
 
 #include <zephyr/net/ethernet.h>
+#include <zephyr/intc2.h>
 #include <zephyr/net/phy.h>
 #include <zephyr/arch/cpu.h>
 #include <zephyr/sys_clock.h>
@@ -809,7 +810,7 @@ int eth_init(const struct device *dev)
 
 	k_work_init(&sc->isr_work, smsc_isr_task);
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), eth_smsc_isr, DEVICE_DT_INST_GET(0),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), eth_smsc_isr, DEVICE_DT_INST_GET(0),
 		    0);
 
 	DEVICE_MMIO_MAP(dev, K_MEM_CACHE_NONE);
@@ -818,7 +819,7 @@ int eth_init(const struct device *dev)
 
 	smsc_init(sc);
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	return 0;
 }

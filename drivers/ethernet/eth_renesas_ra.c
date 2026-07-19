@@ -12,6 +12,7 @@
 #define LOG_LEVEL       CONFIG_ETHERNET_LOG_LEVEL
 
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(LOG_MODULE_NAME, LOG_LEVEL);
 
 #include <soc.h>
@@ -416,14 +417,14 @@ int renesas_ra_eth_init(const struct device *dev)
 
 	R_ICU->IELSR[DT_INST_IRQN(0)] = EVENT_EDMAC_EINT(0);
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), renesas_ra_eth_isr,
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), renesas_ra_eth_isr,
 		    DEVICE_DT_INST_GET(0), 0);
 
 	k_thread_create(&ctx->thread, ctx->thread_stack, CONFIG_ETH_RA_RX_THREAD_STACK_SIZE,
 			renesas_ra_eth_thread, (void *)dev, NULL, NULL,
 			K_PRIO_COOP(CONFIG_ETH_RA_RX_THREAD_PRIORITY), 0, K_NO_WAIT);
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	return 0;
 }

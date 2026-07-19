@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_enet_qos_mac
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 
 #include <zephyr/logging/log.h>
@@ -960,9 +961,9 @@ static const struct ethernet_api api_funcs = {
 
 #define NXP_ENET_QOS_CONNECT_IRQS(node_id, prop, idx)                                              \
 	do {                                                                                       \
-		IRQ_CONNECT(DT_IRQN_BY_IDX(node_id, idx), DT_IRQ_BY_IDX(node_id, idx, priority),   \
+		INTC2_DT_CONNECT_INLINE_BY_IDX(node_id, idx, DT_IRQ_BY_IDX(node_id, idx, priority),   \
 			    eth_nxp_enet_qos_mac_isr, DEVICE_DT_GET(node_id), 0);                  \
-		irq_enable(DT_IRQN_BY_IDX(node_id, idx));                                          \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_IDX(node_id, idx));                                          \
 	} while (false);
 
 #define NXP_ENET_QOS_IRQ_CONFIG_FUNC(n)                                                            \

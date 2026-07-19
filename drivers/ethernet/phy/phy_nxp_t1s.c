@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_t1s_phy
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/net/phy.h>
 #include "fsl_tenbaset_phy.h"
 
@@ -190,11 +191,11 @@ static DEVICE_API(ethphy, nxp_t1s_phy_api) = {
 #define NXP_T1S_PHY_IRQ_CONFIG_FUNC(n)                              \
 	static void phy_nxp_t1s_##n##_irq_config_func(void)             \
 	{                                                               \
-		IRQ_CONNECT(DT_IRQN_BY_IDX(DT_DRV_INST(n), 0),              \
+		INTC2_DT_CONNECT_INLINE_BY_IDX(DT_DRV_INST(n), 0,              \
 					DT_IRQ_BY_IDX(DT_DRV_INST(n), 0, priority),     \
 					phy_nxp_t1s_isr,                                \
 					DEVICE_DT_INST_GET(n), 0);                      \
-		irq_enable(DT_IRQN_BY_IDX(DT_DRV_INST(n), 0));              \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_IDX(DT_DRV_INST(n), 0));              \
 	}
 
 #define NXP_T1S_PHY_INIT_DRIVER(n)                                  \

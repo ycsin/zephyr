@@ -12,6 +12,7 @@
 #define LOG_MODULE_NAME eth_cyclonev
 #define LOG_LEVEL	CONFIG_ETHERNET_LOG_LEVEL
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 
 #define DT_DRV_COMPAT snps_ethernet_cyclonev
@@ -1166,9 +1167,9 @@ const struct ethernet_api eth_cyclonev_api = {.iface_api.init = eth_cyclonev_ifa
  \
 	static void eth_cyclonev_##inst##_irq_config(void) \
 	{ \
-		IRQ_CONNECT(DT_INST_IRQN(inst), \
+		INTC2_DT_INST_CONNECT_INLINE(inst, \
 			    DT_INST_IRQ(inst, priority), eth_cyclonev_isr, \
 			    DEVICE_DT_INST_GET(inst), \
 			    0); \
-		irq_enable(DT_INST_IRQN(inst)); \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst)); \
 DT_INST_FOREACH_STATUS_OKAY(CYCLONEV_ETH_INIT)
