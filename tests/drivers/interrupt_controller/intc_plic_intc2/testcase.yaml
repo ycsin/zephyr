@@ -1,0 +1,19 @@
+common:
+  platform_allow:
+    - qemu_riscv32
+    - qemu_riscv64
+  tags:
+    - drivers
+    - interrupt
+    - plic
+    - intc2
+
+tests:
+  drivers.interrupt_controller.intc_plic_intc2.legacy: {}
+  drivers.interrupt_controller.intc_plic_intc2.bridge:
+    extra_configs:
+      - CONFIG_INTC2=y
+  drivers.interrupt_controller.intc_plic_intc2.bridge_dynamic:
+    extra_configs:
+      - CONFIG_INTC2=y
+      - CONFIG_INTC2_DYNAMIC=y
