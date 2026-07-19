@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ti_cc13xx_cc26xx_watchdog
 
 #include <zephyr/drivers/watchdog.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <soc.h>
 #include <errno.h>
@@ -216,10 +217,10 @@ static DEVICE_API(wdt, wdt_cc13xx_cc26xx_api) = {
 		if (DT_INST_PROP(index, interrupt_nmi)) {			 \
 			return; /* NMI interrupt is used */			 \
 		}								 \
-		IRQ_CONNECT(DT_INST_IRQN(index),				 \
+		INTC2_DT_INST_CONNECT_INLINE(index,				 \
 			DT_INST_IRQ(index, priority),				 \
 			wdt_cc13xx_cc26xx_isr, DEVICE_DT_INST_GET(index), 0);	 \
-		irq_enable(DT_INST_IRQN(index));				 \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(index));				 \
 	}									 \
 	static struct wdt_cc13xx_cc26xx_data wdt_cc13xx_cc26xx_data_##index = {	 \
 		.reload = 0,							 \

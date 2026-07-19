@@ -20,6 +20,7 @@
  */
 
 #include <zephyr/drivers/watchdog.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <soc.h>
 
@@ -237,10 +238,10 @@ static const struct wdt_sam_dev_cfg wdt_sam_cfg = {
 
 static void wdt_sam_irq_config(void)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority), wdt_sam_isr,
 		    DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 
 static int wdt_sam_init(const struct device *dev)

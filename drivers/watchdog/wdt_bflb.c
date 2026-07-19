@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT bflb_wdt
 
 #include <zephyr/drivers/watchdog.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/logging/log.h>
@@ -220,9 +221,9 @@ static DEVICE_API(wdt, wdt_bflb_api) = {
 #define WDT_BFLB_INIT(n)                                                                           \
 	static void wdt_bflb_irq_config_##n(void)                                                  \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), wdt_bflb_isr,               \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), wdt_bflb_isr,               \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
                                                                                                    \
 	static struct wdt_bflb_data wdt_bflb_data_##n;                                             \

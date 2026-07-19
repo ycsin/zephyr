@@ -8,6 +8,7 @@
 #define DT_DRV_COMPAT nxp_kinetis_wdog
 
 #include <zephyr/drivers/watchdog.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/irq.h>
 #include <fsl_wdog.h>
@@ -184,9 +185,9 @@ DEVICE_DT_INST_DEFINE(0,
 
 static void mcux_wdog_config_func_0(const struct device *dev)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    mcux_wdog_isr, DEVICE_DT_INST_GET(0), 0);
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }

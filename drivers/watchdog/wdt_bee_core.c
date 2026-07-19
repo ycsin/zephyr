@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT realtek_bee_core_wdt
 
 #include <zephyr/drivers/watchdog.h>
+#include <zephyr/intc2.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys_clock.h>
 
@@ -193,9 +194,9 @@ static struct core_wdt_bee_data core_wdt_bee_dev_data;
 
 static void core_wdt_bee_cfg_func(void)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), core_wdt_bee_isr,
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), core_wdt_bee_isr,
 		    DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 
 static const struct core_wdt_bee_config core_wdt_bee_dev_config = {

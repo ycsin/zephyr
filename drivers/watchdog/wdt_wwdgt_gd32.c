@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT gd_gd32_wwdgt
 
 #include <zephyr/drivers/clock_control.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control/gd32.h>
 #include <zephyr/drivers/reset.h>
 #include <zephyr/drivers/watchdog.h>
@@ -187,9 +188,9 @@ static void gd32_wwdgt_irq_config(const struct device *dev)
 {
 	ARG_UNUSED(dev);
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), gd32_wwdgt_isr,
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), gd32_wwdgt_isr,
 		    DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 
 static DEVICE_API(wdt, wwdgt_gd32_api) = {

@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ambiq_watchdog
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/watchdog.h>
 
 #include <errno.h>
@@ -199,7 +200,7 @@ static DEVICE_API(wdt, wdt_ambiq_driver_api) = {
 	static void ambiq_wdt_cfg_func_##n(void)                                                   \
 	{                                                                                          \
                                                                                                    \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), wdt_ambiq_isr,              \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), wdt_ambiq_isr,              \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
 	};                                                                                         \
 	static const struct wdt_ambiq_config wdt_ambiq_config##n = {                               \

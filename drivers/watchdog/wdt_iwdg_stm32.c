@@ -10,6 +10,7 @@
 #define DT_DRV_COMPAT st_stm32_watchdog
 
 #include <zephyr/drivers/watchdog.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control/stm32_clock_control.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys_clock.h>
@@ -71,10 +72,10 @@ static void iwdg_stm32_irq_config(const struct device *dev)
 {
 	IWDG_TypeDef *idg = ((const struct iwdg_stm32_config *)dev->config)->instance;
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), iwdg_stm32_isr,
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), iwdg_stm32_isr,
 		    DEVICE_DT_INST_GET(0), 0);
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	LL_IWDG_ClearFlag_EWIF(idg);
 

@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT st_stm32_window_watchdog
 
 #include <zephyr/drivers/watchdog.h>
+#include <zephyr/intc2.h>
 #include <soc.h>
 #include <stm32_ll_bus.h>
 #include <stm32_ll_wwdg.h>
@@ -318,10 +319,10 @@ static void wwdg_stm32_irq_config(const struct device *dev)
 {
 	WWDG_TypeDef *wwdg = WWDG_STM32_STRUCT(dev);
 
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    wwdg_stm32_isr, DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	LL_WWDG_ClearFlag_EWKUP(wwdg);
 	LL_WWDG_EnableIT_EWKUP(wwdg);

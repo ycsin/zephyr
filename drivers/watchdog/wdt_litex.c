@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT litex_watchdog
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/watchdog.h>
 #include <zephyr/device.h>
 #include <zephyr/sys_clock.h>
@@ -226,9 +227,9 @@ static DEVICE_API(wdt, wdt_api) = {
                                                                                                    \
 	static void wdt_litex_cfg_func_##n(void)                                                   \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), wdt_litex_isr,              \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), wdt_litex_isr,              \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(LITEX_WDT_INIT)

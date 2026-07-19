@@ -9,6 +9,7 @@
  */
 
 #include <zephyr/irq.h>
+#include <zephyr/intc2.h>
 #include <zephyr/dt-bindings/interrupt-controller/mchp-xec-ecia.h>
 #define LOG_LEVEL CONFIG_WDT_LOG_LEVEL
 #include <zephyr/logging/log.h>
@@ -184,10 +185,10 @@ static int wdt_xec_init(const struct device *dev)
 
 	soc_ecia_girq_ctrl(cfg->girq, cfg->girq_pos, 1);
 
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    wdt_xec_isr, DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	return 0;
 }

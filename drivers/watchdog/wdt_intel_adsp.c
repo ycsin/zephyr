@@ -31,6 +31,7 @@
 #define DT_DRV_COMPAT intel_adsp_watchdog
 
 #include <zephyr/drivers/watchdog.h>
+#include <zephyr/intc2.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys_clock.h>
 #include <zephyr/math/ilog2.h>
@@ -163,9 +164,9 @@ static int intel_adsp_wdt_init(const struct device *dev)
 	}
 
 #if WDT_INTEL_ADSP_INTERRUPT_SUPPORT
-	IRQ_CONNECT(DT_IRQN(DEV_NODE), DT_IRQ(DEV_NODE, priority), intel_adsp_wdt_isr,
+	INTC2_DT_CONNECT_INLINE(DEV_NODE, DT_IRQ(DEV_NODE, priority), intel_adsp_wdt_isr,
 		    DEVICE_DT_GET(DEV_NODE), DT_IRQ(DEV_NODE, flags));
-	irq_enable(DT_IRQN(DEV_NODE));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DEV_NODE));
 #endif
 
 	return 0;

@@ -14,6 +14,7 @@
 #include "cy_sysclk.h"
 
 #include <zephyr/devicetree.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/watchdog.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -390,7 +391,7 @@ static int ifx_cat1_wdt_setup(const struct device *dev, uint8_t options)
 #ifdef IFX_WDT_IS_IRQ_EN
 	if (dev_data->callback) {
 		Cy_WDT_UnmaskInterrupt();
-		irq_enable(DT_INST_IRQN(0));
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	}
 #endif
 
@@ -403,7 +404,7 @@ static int ifx_cat1_wdt_disable(const struct device *dev)
 
 #ifdef IFX_WDT_IS_IRQ_EN
 	Cy_WDT_MaskInterrupt();
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 #endif
 
 #if defined(CY_IP_S8SRSSLT)
@@ -476,7 +477,7 @@ static int ifx_cat1_wdt_init(const struct device *dev)
 	struct ifx_cat1_wdt_data *data = dev->data;
 #ifdef IFX_WDT_IS_IRQ_EN
 	/* Connect WDT interrupt to ISR */
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), ifx_cat1_wdt_isr_handler,
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), ifx_cat1_wdt_isr_handler,
 		    DEVICE_DT_INST_GET(0), 0);
 #endif
 

@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nordic_nrf_wdt
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/sys/math_extras.h>
 #include <nrfx_wdt.h>
 #include <zephyr/drivers/watchdog.h>
@@ -203,7 +204,7 @@ static void wdt_event_handler(const struct device *dev, nrf_wdt_event_t event_ty
 #define WDT_NRFX_WDT_IRQ(inst)						       \
 	COND_CODE_1(CONFIG_WDT_NRFX_NO_IRQ,				       \
 		(),							       \
-		(IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority),  \
+		(INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority),  \
 			nrfx_wdt_irq_handler, &wdt_##inst##_data.wdt, 0)))
 
 #define WDT_NRFX_WDT_DEVICE(inst)					       \

@@ -11,6 +11,7 @@
 #define DT_DRV_COMPAT nxp_lpc_wwdt
 
 #include <zephyr/drivers/watchdog.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/dt-bindings/clock/mcux_lpc_syscon_clock.h>
 #include <zephyr/irq.h>
@@ -325,13 +326,13 @@ static DEVICE_API(wdt, mcux_wwdt_api) = {
                                                                                                    \
 	static void mcux_wwdt_config_func_##id(const struct device *dev)                           \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(id), DT_INST_IRQ(id, priority), mcux_wwdt_isr,            \
+		INTC2_DT_INST_CONNECT_INLINE(id, DT_INST_IRQ(id, priority), mcux_wwdt_isr,            \
 			    DEVICE_DT_INST_GET(id), 0);                                            \
 		/* Defensive: clear any peripheral status and NVIC pending */                      \
 		WWDT_ClearStatusFlags((WWDT_Type *)DT_INST_REG_ADDR(id),                           \
 			      WWDT_GetStatusFlags((WWDT_Type *)DT_INST_REG_ADDR(id)));             \
 		NVIC_ClearPendingIRQ(DT_INST_IRQN(id));                                            \
-		irq_enable(DT_INST_IRQN(id));                                                      \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(id));                                                      \
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(MCUX_WWDT_INIT_CONFIG)

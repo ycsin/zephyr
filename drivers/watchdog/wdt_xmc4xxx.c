@@ -11,6 +11,7 @@
 
 #include <soc.h>
 #include <zephyr/drivers/watchdog.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 
 #include <xmc_scu.h>
@@ -156,9 +157,9 @@ static struct wdt_xmc4xxx_dev_data wdt_xmc4xxx_data;
 
 static void wdt_xmc4xxx_irq_config(void)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), wdt_xmc4xxx_isr,
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), wdt_xmc4xxx_isr,
 		    DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 
 static int wdt_xmc4xxx_init(const struct device *dev)

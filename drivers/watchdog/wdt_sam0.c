@@ -9,6 +9,7 @@
 
 #include <soc.h>
 #include <zephyr/drivers/watchdog.h>
+#include <zephyr/intc2.h>
 
 #define LOG_LEVEL CONFIG_WDT_LOG_LEVEL
 #include <zephyr/logging/log.h>
@@ -269,10 +270,10 @@ static int wdt_sam0_init(const struct device *dev)
 		| GCLK_CLKCTRL_CLKEN;
 #endif
 
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority), wdt_sam0_isr,
 		    DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	return 0;
 }

@@ -20,6 +20,7 @@
  */
 
 #include <zephyr/drivers/watchdog.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control/atmel_sam_pmc.h>
 #include <zephyr/irq.h>
 #include <soc.h>
@@ -318,11 +319,11 @@ static int wdt_sam4l_init(const struct device *dev)
 #define WDT_SAM4L_INIT(n)						\
 	static void wdt##n##_sam4l_irq_cfg(const struct device *dev)	\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n),				\
+		INTC2_DT_INST_CONNECT_INLINE(n,				\
 			    DT_INST_IRQ(n, priority),			\
 			    wdt_sam4l_isr,				\
 			    DEVICE_DT_INST_GET(n), 0);			\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}								\
 									\
 	static const struct wdt_sam4l_dev_cfg wdt##n##_sam4l_cfg = {	\

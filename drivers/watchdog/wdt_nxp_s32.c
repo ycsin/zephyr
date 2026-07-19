@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_s32_swt
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/watchdog.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/irq.h>
@@ -406,11 +407,11 @@ static DEVICE_API(wdt, swt_nxp_s32_driver_api) = {
 			return err;							\
 		}									\
 											\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),			\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),			\
 			    swt_nxp_s32_isr, DEVICE_DT_INST_GET(n),			\
 			    COND_CODE_1(DT_INST_IRQ_HAS_CELL(n, flags),			\
 					(DT_INST_IRQ(n, flags)), (0)));			\
-		irq_enable(DT_INST_IRQN(n));						\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));						\
 											\
 		return 0;								\
 	}										\

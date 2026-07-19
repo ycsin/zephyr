@@ -9,6 +9,7 @@
 #include <soc.h>
 #include <errno.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/watchdog.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/clock_control_rts5912.h>
@@ -79,7 +80,7 @@ static int wdt_rts5912_setup(const struct device *dev, uint8_t options)
 		return -ENOTSUP;
 	}
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	wdt_reg->INTEN = WDT_INTEN_WDTINTEN;
 	wdt_reg->CTRL |= (WDT_CTRL_CLRRSTFLAG | WDT_CTRL_RELOAD);
@@ -227,8 +228,8 @@ static int wdt_rts5912_init(const struct device *dev)
 	wdt_reg->CTRL |= WDT_CTRL_CLRRSTFLAG;
 	NVIC_ClearPendingIRQ(DT_INST_IRQN(0));
 
-	IRQ_CONNECT(DT_INST_IRQN(0), 0, wdt_rts5912_isr, DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	INTC2_DT_INST_CONNECT_INLINE(0, 0, wdt_rts5912_isr, DEVICE_DT_INST_GET(0), 0);
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	return 0;
 }

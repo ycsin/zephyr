@@ -9,6 +9,7 @@
 
 #include <soc.h>
 #include <zephyr/drivers/watchdog.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <em_wdog.h>
 #include <em_cmu.h>
@@ -356,11 +357,11 @@ static DEVICE_API(wdt, wdt_gecko_driver_api) = {
 	static void wdt_gecko_cfg_func_##index(void)                                               \
 	{                                                                                          \
 		IF_ENABLED(DT_INST_IRQ_HAS_IDX(index, 0), (		\
-			IRQ_CONNECT(DT_INST_IRQN(index),		\
+			INTC2_DT_INST_CONNECT_INLINE(index,		\
 				DT_INST_IRQ(index, priority),		\
 				wdt_gecko_isr,				\
 				DEVICE_DT_INST_GET(index), 0);		\
-			irq_enable(DT_INST_IRQN(index));		\
+			intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(index));		\
 		))                                     \
 	}
 

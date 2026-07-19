@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT renesas_rz_wdt
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/drivers/watchdog.h>
 #include "r_wdt.h"
@@ -427,9 +428,9 @@ static wdt_extended_cfg_t g_wdt_extend_cfg = {
                                                                                                    \
 		k_mutex_init(&data->inst_lock);                                                    \
 		WDT_RZ_INIT_WORK_QUEUE;                                                            \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), wdt_rz_isr_adapter,   \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), wdt_rz_isr_adapter,   \
 			    DEVICE_DT_INST_GET(inst), DT_INST_IRQ(inst, flags));                   \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
                                                                                                    \
 		return 0;                                                                          \
 	}                                                                                          \

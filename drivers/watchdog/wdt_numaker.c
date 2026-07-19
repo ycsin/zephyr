@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nuvoton_numaker_wdt
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/reset.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/clock_control_numicro.h>
@@ -131,7 +132,7 @@ static int wdt_numaker_disable(const struct device *dev)
 	config->wdt_base->CTL &= ~WDT_CTL_WDTEN_Msk;
 	SYS_LockReg();
 
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	data->setup_done = false;
 	data->timeout_valid = false;
@@ -165,7 +166,7 @@ static int wdt_numaker_setup(const struct device *dev, uint8_t options)
 		dbg_mask = 0U;
 	}
 
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	SYS_UnlockReg();
 
@@ -183,7 +184,7 @@ static int wdt_numaker_setup(const struct device *dev, uint8_t options)
 
 	SYS_LockReg();
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	data->setup_done = true;
 
@@ -246,7 +247,7 @@ static int wdt_numaker_init(const struct device *dev)
 
 	SYS_LockReg();
 
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	/* CLK controller */
 	memset(&scc_subsys, 0x00, sizeof(scc_subsys));
 	scc_subsys.subsys_id = NUMICRO_SCC_SUBSYS_ID_PCC;
@@ -267,9 +268,9 @@ static int wdt_numaker_init(const struct device *dev)
 	}
 
 	/* Enable NVIC */
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		    wdt_numaker_isr, DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	return 0;
 }

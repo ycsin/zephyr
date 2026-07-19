@@ -11,6 +11,7 @@
 #include <ameba_soc.h>
 
 #include <zephyr/drivers/watchdog.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 
 #include <zephyr/logging/log.h>
@@ -165,9 +166,9 @@ static DEVICE_API(wdt, wdt_ameba_api) = {
 #define WDT_IRQ_CONFIG(n)                                                                          \
 	static void irq_config_##n(const struct device *dev)                                       \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), wdt_ameba_isr,              \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), wdt_ameba_isr,              \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}
 
 #define AMEBA_WDT_INIT(n)                                                                          \

@@ -11,6 +11,7 @@
 #define DT_DRV_COMPAT nxp_wdog32
 
 #include <zephyr/drivers/watchdog.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/sys/device_mmio.h>
 #include <fsl_wdog32.h>
@@ -291,9 +292,9 @@ static DEVICE_API(wdt, mcux_wdog32_api) = {
                                                                                                    \
 	static void mcux_wdog32_config_func_##id(const struct device *dev)                         \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(id), DT_INST_IRQ(id, priority), mcux_wdog32_isr,          \
+		INTC2_DT_INST_CONNECT_INLINE(id, DT_INST_IRQ(id, priority), mcux_wdog32_isr,          \
 			    DEVICE_DT_INST_GET(id), 0);                                            \
-		irq_enable(DT_INST_IRQN(id));                                                      \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(id));                                                      \
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(MCUX_WDOG32_INIT_CONFIG)

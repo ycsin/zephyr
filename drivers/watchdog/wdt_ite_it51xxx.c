@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <soc.h>
 #include <zephyr/drivers/watchdog.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 
 #include <zephyr/logging/log.h>
@@ -121,7 +122,7 @@ static int wdt_it51xxx_setup(const struct device *dev, uint8_t options)
 	uint8_t reg_val;
 
 	/* disable pre-warning timer1 interrupt */
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	if (!data->timeout_installed) {
 		LOG_ERR("No valid WDT timeout installed");
@@ -146,7 +147,7 @@ static int wdt_it51xxx_setup(const struct device *dev, uint8_t options)
 	ite_intc_isr_clear(DT_INST_IRQN(0));
 
 	/* enable pre-warning timer1 interrupt */
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	/* don't stop watchdog timer counting */
 	reg_val = sys_read8(base + REG_ETWCTRL);
@@ -211,7 +212,7 @@ static int wdt_it51xxx_feed(const struct device *dev, int channel_id)
 		ite_intc_isr_clear(DT_INST_IRQN(0));
 
 		/* enable timer1 interrupt */
-		irq_enable(DT_INST_IRQN(0));
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	}
 
 	LOG_DBG("WDT Kicking");
@@ -242,7 +243,7 @@ static int wdt_it51xxx_disable(const struct device *dev)
 	sys_write8(reg_val & ~WDT_LEWDCNTL, base + REG_ETWCFG);
 
 	/* disable pre-warning timer1 interrupt */
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	LOG_DBG("WDT Disabled");
 
@@ -323,7 +324,7 @@ static int wdt_it51xxx_init(const struct device *dev)
 	reg_val = sys_read8(base + REG_ETWCTRL);
 	sys_write8(reg_val | WDT_EWDSCMS, base + REG_ETWCTRL);
 
-	IRQ_CONNECT(DT_INST_IRQN(0), 0, wdt_it51xxx_isr, DEVICE_DT_INST_GET(0), 0);
+	INTC2_DT_INST_CONNECT_INLINE(0, 0, wdt_it51xxx_isr, DEVICE_DT_INST_GET(0), 0);
 	return 0;
 }
 
