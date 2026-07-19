@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/clock_control/adi_max32_clock_control.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/sys/util_macro.h>
@@ -202,10 +203,10 @@ static int pwm_max32_init(const struct device *dev)
 	IF_ENABLED(CONFIG_PWM_EVENT, (                                      \
 		static void max32_pwm_irq_init_##_num(const struct device *dev) \
 		{                                                               \
-			IRQ_CONNECT(DT_IRQN(DT_INST_PARENT(_num)),                  \
+			INTC2_DT_CONNECT_INLINE(DT_INST_PARENT(_num),                  \
 					DT_IRQ(DT_INST_PARENT(_num), priority),             \
 					pwm_max32_isr, DEVICE_DT_INST_GET(_num), 0);        \
-			irq_enable(DT_IRQN(DT_INST_PARENT(_num)));                  \
+			intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_INST_PARENT(_num)));                  \
 		};                                                              \
 	)) /* CONFIG_PWM_EVENT */                                           \
 	static struct max32_pwm_data max32_pwm_data_##_num;                                        \

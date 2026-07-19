@@ -4,6 +4,7 @@
  */
 
 #include <zephyr/drivers/syscon.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/drivers/clock_control.h>
@@ -572,9 +573,9 @@ static DEVICE_API(pwm, ti_ehrpwm_api) = {
 #define TI_EHRPWM_IRQ_INIT(n)                                                                      \
 	static void ti_ehrpwm_irq_config_##n(void)                                                 \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), ti_ehrpwm_isr,              \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), ti_ehrpwm_isr,              \
 			    DEVICE_DT_INST_GET(n), DT_INST_IRQ(n, flags));                         \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}
 #else
 #define TI_EHRPWM_IRQ_INIT(n)

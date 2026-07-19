@@ -14,6 +14,7 @@
 #include <stm32_ll_rcc.h>
 #include <stm32_ll_tim.h>
 #include <zephyr/drivers/pwm.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/reset.h>
 #include <zephyr/device.h>
@@ -855,10 +856,10 @@ static int pwm_stm32_init(const struct device *dev)
 
 #define IRQ_CONNECT_AND_ENABLE_DEFAULT(index)					\
 	{									\
-		IRQ_CONNECT(DT_IRQN(PWM(index)),				\
+		INTC2_DT_CONNECT_INLINE(PWM(index),				\
 			    DT_IRQ(PWM(index), priority),			\
 			    pwm_stm32_isr, DEVICE_DT_INST_GET(index), 0);	\
-		irq_enable(DT_IRQN(PWM(index)));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(PWM(index)));				\
 	}
 
 #define IRQ_CONFIG_FUNC(index)                                                  \

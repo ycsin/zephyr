@@ -11,6 +11,7 @@
 #include <fsl_ctimer.h>
 #include <fsl_clock.h>
 #include <zephyr/drivers/pwm.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/dt-bindings/clock/mcux_lpc_syscon_clock.h>
@@ -538,9 +539,9 @@ static DEVICE_API(pwm, pwm_mcux_ctimer_driver_api) = {
 #define PWM_MCUX_CTIMER_IRQ_FUNC_DEFINE(n)                                                         \
 	static void pwm_mcux_ctimer_irq_config_##n(const struct device *dev)                       \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), mcux_ctimer_pwm_isr,        \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), mcux_ctimer_pwm_isr,        \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}
 #define PWM_MCUX_CTIMER_INPUTMUX_ENTRY(node_id, prop, idx)                                         \
 	{                                                                                          \

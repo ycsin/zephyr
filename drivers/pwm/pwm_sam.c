@@ -8,6 +8,7 @@
 #define DT_DRV_COMPAT atmel_sam_pwm
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <errno.h>
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -251,8 +252,8 @@ static DEVICE_API(pwm, sam_pwm_driver_api) = {
 #define SAM_PWM_INTERRUPT_INIT(inst)                                                               \
 	static void sam_pwm_irq_config_##inst(void)                                                \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), 0, sam_pwm_isr, DEVICE_DT_INST_GET(inst), 0);      \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		INTC2_DT_INST_CONNECT_INLINE(inst, 0, sam_pwm_isr, DEVICE_DT_INST_GET(inst), 0);      \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 	}
 
 #define SAM_INST_INIT(inst)						\

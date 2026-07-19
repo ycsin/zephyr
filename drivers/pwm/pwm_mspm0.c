@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ti_mspm0_timer_pwm
 
 #include <zephyr/drivers/clock_control.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control/mspm0_clock_control.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/pwm.h>
@@ -471,10 +472,10 @@ static void mspm0_cc_isr(const struct device *dev)
 		if (!config->is_capture) {					\
 			return;							\
 		}								\
-		IRQ_CONNECT(DT_IRQN(DT_INST_PARENT(n)),				\
+		INTC2_DT_CONNECT_INLINE(DT_INST_PARENT(n),				\
 			    DT_IRQ(DT_INST_PARENT(n), priority), mspm0_cc_isr,	\
 			    DEVICE_DT_INST_GET(n), 0);				\
-		irq_enable(DT_IRQN(DT_INST_PARENT(n)));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_INST_PARENT(n)));				\
 	}
 #else
 #define MSP_CC_IRQ_REGISTER(n)

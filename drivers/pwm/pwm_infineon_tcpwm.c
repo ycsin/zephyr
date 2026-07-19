@@ -12,6 +12,7 @@
 #define DT_DRV_COMPAT infineon_tcpwm_pwm
 
 #include <zephyr/drivers/pwm.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 
 #include <infineon_kconfig.h>
@@ -292,9 +293,9 @@ static DEVICE_API(pwm, ifx_tcpwm_pwm_api) = {
 		if (ret < 0) {                                                                     \
 			return ret;                                                                \
 		}                                                                                  \
-		IRQ_CONNECT(DT_IRQN(DT_INST_PARENT(n)), DT_IRQ(DT_INST_PARENT(n), priority),       \
+		INTC2_DT_CONNECT_INLINE(DT_INST_PARENT(n), DT_IRQ(DT_INST_PARENT(n), priority),       \
 			    ifx_tcpwm_pwm_isr, DEVICE_DT_INST_GET(n), 0);                          \
-		irq_enable(DT_IRQN(DT_INST_PARENT(n)));                                            \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_INST_PARENT(n)));                                            \
 		return 0;                                                                          \
 	}
 

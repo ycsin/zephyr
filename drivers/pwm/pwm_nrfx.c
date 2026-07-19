@@ -8,6 +8,7 @@
 
 #include <nrfx_pwm.h>
 #include <zephyr/drivers/pwm.h>
+#include <zephyr/intc2.h>
 #include <zephyr/pm/device.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <soc.h>
@@ -73,7 +74,7 @@ void anomaly_109_egu_handler(void)
 
 #define ANOMALY_109_EGU_IRQ_CONNECT(idx) _EGU_IRQ_CONNECT(idx)
 #define _EGU_IRQ_CONNECT(idx)				       \
-	IRQ_CONNECT(DT_IRQN(DT_NODELABEL(egu##idx)),	       \
+	INTC2_DT_CONNECT_INLINE(DT_NODELABEL(egu##idx),	       \
 		    DT_IRQ(DT_NODELABEL(egu##idx), priority),  \
 		    anomaly_109_egu_handler, 0, 0)
 #else
@@ -445,7 +446,7 @@ static int pwm_nrfx_init(const struct device *dev)
 	};									     \
 	static int pwm_nrfx_init##inst(const struct device *dev)		     \
 	{									     \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority),	     \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority),	     \
 			    nrfx_pwm_irq_handler, &pwm_nrfx_##inst##_data.pwm, 0);   \
 		return pwm_nrfx_init(dev);					     \
 	};									     \

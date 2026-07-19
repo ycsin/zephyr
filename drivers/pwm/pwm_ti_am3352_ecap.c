@@ -4,6 +4,7 @@
  */
 
 #include <zephyr/irq.h>
+#include <zephyr/intc2.h>
 #include <zephyr/dt-bindings/pwm/pwm.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/pwm.h>
@@ -320,9 +321,9 @@ static DEVICE_API(pwm, ti_ecap_api) = {
 	PINCTRL_DT_INST_DEFINE(n);                                                                 \
 	static void ti_ecap_irq_config_func_##n(void)                                              \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), ti_ecap_isr,                \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), ti_ecap_isr,                \
 			    DEVICE_DT_INST_GET(n), DT_INST_IRQ(n, flags));                         \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
 	static struct ti_ecap_cfg ti_ecap_config_##n = {                                           \
 		DEVICE_MMIO_ROM_INIT(DT_DRV_INST(n)),                                              \
