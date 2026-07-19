@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/drivers/mbox.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <zephyr/spinlock.h>
 
@@ -377,7 +378,7 @@ static int rcar_mfis_init(const struct device *dev)
 	}
 
 #define RCAR_MFIS_IRQ_INIT(idx, n)				\
-	IRQ_CONNECT(DT_INST_IRQN_BY_IDX(n, idx),		\
+	INTC2_DT_INST_CONNECT_INLINE_BY_IDX(n, idx,		\
 		    DT_INST_IRQ_BY_IDX(n, idx, priority),	\
 		    rcar_mfis_isr_##n##_##idx,			\
 		    DEVICE_DT_INST_GET(n),			\

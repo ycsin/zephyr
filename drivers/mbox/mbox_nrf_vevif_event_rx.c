@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT nordic_nrf_vevif_event_rx
 
 #include <zephyr/devicetree.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/mbox.h>
 
 #include <haly/nrfy_vpr.h>
@@ -174,10 +175,10 @@ static int vevif_event_rx_init(const struct device *dev)
                                                                                                    \
 	static void irq_connect##inst(void)                                                        \
 	{                                                                                          \
-		IRQ_CONNECT(DT_IRQN(DT_DRV_INST(inst)), DT_IRQ(DT_DRV_INST(inst), priority),       \
+		INTC2_DT_CONNECT_INLINE(DT_DRV_INST(inst), DT_IRQ(DT_DRV_INST(inst), priority),       \
 			    vevif_event_rx_isr, (const void *)DEVICE_DT_GET(DT_DRV_INST(inst)),    \
 			    0);                                                                    \
-		irq_enable(DT_IRQN(DT_DRV_INST(inst)));                                            \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_DRV_INST(inst)));                                            \
 	};                                                                                         \
                                                                                                    \
 	static struct mbox_vevif_event_rx_cbs data##inst = {                                       \

@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/devicetree.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/irq.h>
 #include <zephyr/drivers/mbox.h>
@@ -354,9 +355,9 @@ static DEVICE_API(mbox, mbox_xlnx_ipi_driver_api) = {
 	};                                                                                         \
 	static void mbox_xlnx_ipi_##idx##_irq_config_func(void)                                    \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(idx), DT_INST_IRQ(idx, priority), mbox_xlnx_ipi_isr,      \
+		INTC2_DT_INST_CONNECT_INLINE(idx, DT_INST_IRQ(idx, priority), mbox_xlnx_ipi_isr,      \
 			    DEVICE_DT_INST_GET(idx), 0);                                           \
-		irq_enable(DT_INST_IRQN(idx));                                                     \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(idx));                                                     \
 	}                                                                                          \
 	DEVICE_DT_INST_DEFINE(idx, mbox_xlnx_ipi_init, NULL, NULL, &mbox_xlnx_ipi_##idx##_pconfig, \
 			      POST_KERNEL, CONFIG_MBOX_INIT_PRIORITY, NULL);

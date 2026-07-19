@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/devicetree.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/mbox.h>
 #include <zephyr/irq.h>
 #include <zephyr/spinlock.h>
@@ -217,7 +218,7 @@ static DEVICE_API(mbox, omap_mailbox_driver_api) = {
 	static int omap_mailbox_##idx##_init(const struct device *dev)				\
 	{											\
 		DEVICE_MMIO_NAMED_MAP(dev, reg_base, K_MEM_CACHE_NONE);				\
-		IRQ_CONNECT(DT_INST_IRQN(idx), DT_INST_IRQ(idx, priority), omap_mailbox_isr,	\
+		INTC2_DT_INST_CONNECT_INLINE(idx, DT_INST_IRQ(idx, priority), omap_mailbox_isr,	\
 			    DEVICE_DT_INST_GET(idx),						\
 			    COND_CODE_1(DT_INST_IRQ_HAS_CELL(idx, flags),			\
 					(DT_INST_IRQ(idx, flags)), (0)));			\

@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_s32_mru
 
 #include <zephyr/drivers/mbox.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <zephyr/sys/util_macro.h>
 #include <Mru_Ip.h>
@@ -199,12 +200,12 @@ static DEVICE_API(mbox, nxp_s32_mru_driver_api) = {
 #define MRU_INIT_IRQ_FUNC(n)					\
 	static void nxp_s32_mru_##n##_init_irq(void)		\
 	{							\
-		IRQ_CONNECT(DT_INST_IRQN(n),			\
+		INTC2_DT_INST_CONNECT_INLINE(n,			\
 			    DT_INST_IRQ(n, priority),		\
 			    nxp_s32_mru_isr,			\
 			    DEVICE_DT_INST_GET(n),		\
 			    DT_INST_IRQ(n, flags));		\
-		irq_enable(DT_INST_IRQN(n));			\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));			\
 	}
 
 #define MRU_CH_RX_CFG(i, n)								\

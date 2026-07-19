@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/drivers/mbox.h>
+#include <zephyr/intc2.h>
 
 #define LOG_LEVEL CONFIG_MBOX_LOG_LEVEL
 #include <zephyr/logging/log.h>
@@ -124,7 +125,7 @@ static DEVICE_API(mbox, mbox_plic_driver_api) = {
 #define MBOX_PLIC_ISR_FUNCTION(n)                                                                  \
 	DT_INST_FOREACH_PROP_ELEM_SEP_VARGS(n, interrupt_names, MBOX_PLIC_ISR_FUNCTION_IDX, (), n)
 #define MBOX_PLIC_IRQ_CONNECT_IDX(node, prop, idx, n)                                              \
-	IRQ_CONNECT(DT_IRQN_BY_IDX(node, idx), 1, mbox_plic_irq_handler##n##_##idx,                \
+	INTC2_DT_CONNECT_INLINE_BY_IDX(node, idx, 1, mbox_plic_irq_handler##n##_##idx,                \
 		    DEVICE_DT_INST_GET(n), 0)
 #define MBOX_PLIC_IRQ_CONNECT(n)                                                                   \
 	DT_INST_FOREACH_PROP_ELEM_SEP_VARGS(n, interrupt_names, MBOX_PLIC_IRQ_CONNECT_IDX, (;), n)

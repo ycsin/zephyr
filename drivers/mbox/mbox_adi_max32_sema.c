@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT adi_mbox_max32_sema
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/mbox.h>
 #include <zephyr/drivers/clock_control.h>
@@ -211,7 +212,7 @@ static DEVICE_API(mbox, adi_max32_sema_driver_api) = {
 #define ADI_MAX32_SEMA(n)                                                                          \
 	static void mbox_adi_max32_sema_irq_init_##n(void)                                         \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), mbox_adi_max32_sema_isr,    \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), mbox_adi_max32_sema_isr,    \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
 	}                                                                                          \
 	static const struct mbox_adi_max32_sema_config mbox_adi_max32_sema_cfg_##n = {             \

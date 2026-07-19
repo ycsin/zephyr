@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/drivers/mbox.h>
+#include <zephyr/intc2.h>
 #include <nrfx_ipc.h>
 
 #define LOG_LEVEL CONFIG_MBOX_LOG_LEVEL
@@ -125,7 +126,7 @@ static int mbox_nrf_set_enabled(const struct device *dev, uint32_t channel, bool
 	}
 
 	if (enable && data->enabled_mask == 0) {
-		irq_enable(DT_INST_IRQN(0));
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	}
 
 	if (enable) {
@@ -139,7 +140,7 @@ static int mbox_nrf_set_enabled(const struct device *dev, uint32_t channel, bool
 	}
 
 	if (data->enabled_mask == 0) {
-		irq_disable(DT_INST_IRQN(0));
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	}
 
 	return 0;
@@ -182,7 +183,7 @@ static int mbox_nrf_init(const struct device *dev)
 
 	nrfx_ipc_init(0, mbox_dispatcher, (void *) data);
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		    nrfx_isr, nrfx_ipc_irq_handler, 0);
 
 	enable_dt_channels(dev);
