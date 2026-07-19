@@ -63,12 +63,16 @@ class Node:
 
 class Model:
     def __init__(self, nodes, boot_order, shared, dynamic, entry_size,
-                 sparse_threshold=25):
+                 sparse_threshold=25, start_vector=0):
         self.nodes = nodes
         self.boot_order = boot_order
         self.shared = shared
         self.dynamic = dynamic
         self.entry_size = entry_size
+        # Legacy tables start at GEN_IRQ_START_VECTOR: the bridge alias
+        # is offset so that _sw_isr_table[vector - start] lines up with
+        # the node table indexed by raw vector number.
+        self.start_vector = start_vector
         # A node's table is laid out sparse when the fraction of used
         # lines is below the threshold (percent). Dynamic connect needs
         # every line addressable, so it forces dense tables.
@@ -130,7 +134,7 @@ def parse_intlist(data, big_endian=False):
 
 
 def build_model(node_recs, conn_recs, shared, dynamic, entry_size,
-                sparse_threshold=25):
+                sparse_threshold=25, start_vector=0):
     """Validate records and produce the layout/boot model."""
     nodes = {}
 
@@ -216,7 +220,8 @@ def build_model(node_recs, conn_recs, shared, dynamic, entry_size,
         raise GenError(f"intc2: cycle in the interrupt graph involving dep "
                        f"ordinals {cyclic}")
 
-    return Model(nodes, order, shared, dynamic, entry_size, sparse_threshold)
+    return Model(nodes, order, shared, dynamic, entry_size, sparse_threshold,
+                 start_vector)
 
 
 def line_clients(node, line):
@@ -250,7 +255,8 @@ def emit_linker(model):
         # (only materializes when referenced, harmless elsewhere)
         out.append(f"PROVIDE(___intc2_table_dts_ord_{ord_} = __intc2_table_dts_ord_{ord_});")
         if node.bridge:
-            out.append(f"_sw_isr_table = __intc2_table_dts_ord_{ord_};")
+            off = model.start_vector * model.entry_size
+            out.append(f"_sw_isr_table = __intc2_table_dts_ord_{ord_} + {off};")
             out.append(f"PROVIDE(__sw_isr_table = _sw_isr_table);")
         lines = node.used_lines if node.sparse else range(node.nlines)
         for line in lines:
@@ -433,6 +439,9 @@ def parse_args(argv):
                         help="CONFIG_INTC2_DYNAMIC is enabled")
     parser.add_argument("--entry-size", type=int, default=8, choices=(8, 16),
                         help="sizeof(struct intc2_entry) on the target")
+    parser.add_argument("--start-vector", type=int, default=0,
+                        help="CONFIG_GEN_IRQ_START_VECTOR: offset of the "
+                             "legacy table alias on a root-bridge node")
     parser.add_argument("--sparse-threshold", type=int, default=25,
                         help="Lay a node's table out sparse when fewer than "
                              "this percentage of its lines are used "
@@ -450,7 +459,8 @@ def main(argv=None):
         node_recs, conn_recs = parse_intlist(data, args.big_endian)
 
         model = build_model(node_recs, conn_recs, args.shared, args.dynamic,
-                            args.entry_size, args.sparse_threshold)
+                            args.entry_size, args.sparse_threshold,
+                            args.start_vector)
     except GenError as err:
         sys.exit(str(err))
 
