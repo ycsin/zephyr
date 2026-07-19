@@ -341,6 +341,62 @@ BUILD_ASSERT(sizeof(struct intc2_entry) == 2 * sizeof(void *), "no padding allow
 	Z_INTC2_LIST_REC(_CONCAT(__intc2_connrec_, counter_), Z_INTC2_REC_TAG_CONNECT, (ord_),     \
 			 (line_), (prio_), (flags_), 0, 0, (counter_))
 
+#ifdef CONFIG_64BIT
+#define Z_INTC2_ASM_PTR   ".8byte"
+#define Z_INTC2_ASM_ALIGN "8"
+#else
+#define Z_INTC2_ASM_PTR   ".4byte"
+#define Z_INTC2_ASM_ALIGN "4"
+#endif
+
+#ifdef CONFIG_INTC2_DYNAMIC
+#define Z_INTC2_ENTRY_SECT_FLAGS "aw"
+#else
+#define Z_INTC2_ENTRY_SECT_FLAGS "a"
+#endif
+
+/*
+ * Substituted asm operand printed as a bare constant (no immediate
+ * punctuation). The generic %c modifier requires CONSTANT_ADDRESS_P,
+ * which targets without absolute addressing (e.g. RISC-V) reject;
+ * their plain operand printing is already punctuation-free.
+ */
+#if defined(CONFIG_ARM) || defined(CONFIG_ARM64) || defined(CONFIG_X86)
+#define Z_INTC2_ASM_OPND(n) "%c" STRINGIFY(n)
+#else
+#define Z_INTC2_ASM_OPND(n) "%" STRINGIFY(n)
+#endif
+
+/*
+ * Function-context variant of Z_INTC2_CONNECT() whose ord/line
+ * arguments may be integer constant expressions rather than plain
+ * literals (e.g. a multilevel-encoded DT_IRQN at a legacy-bridge call
+ * site). A C section attribute would embed the unevaluated expression
+ * text in the section name, where no linker-script KEEP could match
+ * it; extended asm's %c operand modifier prints the evaluated
+ * constant instead, so the name is always plain integers and the
+ * generated KEEPs match by construction. Emission layout matches
+ * struct intc2_entry: arg first, then the ISR.
+ *
+ * Only valid in function context (extended asm), and the enclosing
+ * function must be instantiated exactly once - guaranteed by the
+ * IRQ_CONNECT() contract of one call per interrupt line; the generated
+ * linker fragment additionally asserts every table's size, so a
+ * duplicated emission fails the final link instead of shifting the
+ * layout.
+ */
+#define Z_INTC2_CONNECT_ASM(ord_, line_, prio_, isr_, arg_, flags_, counter_)                      \
+	__asm__ volatile(".pushsection \".intc2_entry." Z_INTC2_ASM_OPND(0) "." Z_INTC2_ASM_OPND(  \
+				 1) "." STRINGIFY(counter_) "\", \"" Z_INTC2_ENTRY_SECT_FLAGS      \
+			 "\"\n"                                                                    \
+			 ".balign " Z_INTC2_ASM_ALIGN "\n"                                         \
+			 Z_INTC2_ASM_PTR " " Z_INTC2_ASM_OPND(2) "\n"                              \
+			 Z_INTC2_ASM_PTR " " Z_INTC2_ASM_OPND(3) "\n"                              \
+			 ".popsection\n" ::"i"(ord_),                                              \
+			 "i"(line_), "i"(arg_), "i"(isr_));                                        \
+	Z_INTC2_LIST_REC(_CONCAT(__intc2_connrec_, counter_), Z_INTC2_REC_TAG_CONNECT, (ord_),     \
+			 (line_), (prio_), (flags_), 0, 0, (counter_))
+
 /* Extra layer so that __COUNTER__ and the DT macros expand exactly once */
 #define Z_INTC2_CONNECT_C(ord_, line_, prio_, isr_, arg_, flags_, counter_)                        \
 	Z_INTC2_CONNECT(ord_, line_, prio_, isr_, arg_, flags_, counter_)

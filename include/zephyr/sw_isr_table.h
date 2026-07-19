@@ -213,7 +213,7 @@ struct z_shared_isr_table_entry z_shared_sw_isr_table[];
 	_Z_ISR_DECLARE_C(irq, flags, func, param, counter)
 
 #define _Z_ISR_DECLARE_C(irq, flags, func, param, counter)                                         \
-	Z_INTC2_CONNECT(DT_DEP_ORD(Z_INTC2_ROOT_NODE), irq, 0, func, param, 0, counter)
+	Z_INTC2_CONNECT_ASM(DT_DEP_ORD(Z_INTC2_ROOT_NODE), irq, 0, func, param, 0, counter)
 
 #define Z_ISR_DECLARE(irq, flags, func, param)                                                     \
 	BUILD_ASSERT(((flags) & ISR_FLAG_DIRECT) == 0, "Use Z_ISR_DECLARE_DIRECT macro");          \
