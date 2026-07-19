@@ -7,6 +7,7 @@
  #define DT_DRV_COMPAT nordic_nrf_spis
 
 #include <zephyr/drivers/spi.h>
+#include <zephyr/intc2.h>
 #include "spi_rtio.h"
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/gpio.h>
@@ -471,7 +472,7 @@ static int spi_nrfx_init(const struct device *dev)
 	};								       \
 	static void irq_connect##inst(void)				       \
 	{								       \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority),   \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority),   \
 			nrfx_spis_irq_handler, &spi_##inst##_data.spis, 0);    \
 	}								       \
 	PINCTRL_DT_INST_DEFINE(inst);					       \

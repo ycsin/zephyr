@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/reset.h>
 #include <zephyr/drivers/spi.h>
@@ -1011,9 +1012,9 @@ static int spi_pl022_init(const struct device *dev)
 	IF_ENABLED(CONFIG_SPI_PL022_INTERRUPT,                                                     \
 		   (static void spi_pl022_irq_config_##idx(const struct device *dev)               \
 		    {                                                                              \
-			   IRQ_CONNECT(DT_INST_IRQN(idx), DT_INST_IRQ(idx, priority),              \
+			   INTC2_DT_INST_CONNECT_INLINE(idx, DT_INST_IRQ(idx, priority),              \
 				       spi_pl022_isr, DEVICE_DT_INST_GET(idx), 0);                 \
-			   irq_enable(DT_INST_IRQN(idx));                                          \
+			   intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(idx));                                          \
 		    }))                                                                            \
 	IF_ENABLED(CONFIG_CLOCK_CONTROL, (CLOCK_ID_DECL(idx)))                                     \
 	static struct spi_pl022_data spi_pl022_data_##idx = {                                      \

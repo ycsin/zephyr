@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT sifli_sf32lb_spi
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/spi.h>
 #include <zephyr/drivers/clock_control/sf32lb.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -802,9 +803,9 @@ static int spi_sf32lb_init(const struct device *dev)
 	IF_ENABLED(CONFIG_SPI_ASYNC,                                                               \
 		(static void spi_sf32lb_irq_config_func_##n(void)                                  \
 		{                                                                                  \
-			IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), spi_sf32lb_isr,     \
+			INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), spi_sf32lb_isr,     \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-			irq_enable(DT_INST_IRQN(n));                                               \
+			intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                               \
 		}))
 
 DT_INST_FOREACH_STATUS_OKAY(SPI_SF32LB_DEFINE)

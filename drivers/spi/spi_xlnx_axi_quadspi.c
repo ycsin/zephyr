@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT xlnx_xps_spi_2_00_a
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/spi.h>
 #include "spi_rtio.h"
 #include <zephyr/sys/sys_io.h>
@@ -627,9 +628,9 @@ static DEVICE_API(spi, xlnx_quadspi_driver_api) = {
                                                                                                    \
 	static void xlnx_quadspi_config_func_##n(const struct device *dev)                         \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), xlnx_quadspi_isr,           \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), xlnx_quadspi_isr,           \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(XLNX_QUADSPI_INIT)

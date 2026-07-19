@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_s32_spi
 
 #include <zephyr/drivers/clock_control.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include "spi_nxp_s32.h"
 
@@ -633,10 +634,10 @@ static DEVICE_API(spi, spi_nxp_s32_driver_api) = {
 #define SPI_NXP_S32_INTERRUPT_DEFINE(n)							\
 	static void spi_nxp_s32_config_func_##n(const struct device *dev)		\
 	{										\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),			\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),			\
 			spi_nxp_s32_isr, DEVICE_DT_INST_GET(n),		\
 			DT_INST_IRQ(n, flags));						\
-		irq_enable(DT_INST_IRQN(n));						\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));						\
 	}
 
 #define SPI_NXP_S32_CONFIG_CALLBACK_FUNC(n)						\

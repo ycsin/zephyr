@@ -8,6 +8,7 @@
 
 #define LOG_LEVEL CONFIG_SPI_LOG_LEVEL
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(spi_litex_litespi);
 
 #include <zephyr/sys/byteorder.h>
@@ -427,10 +428,10 @@ static DEVICE_API(spi, spi_litex_api) = {
                                                                                                    \
 	static void spi_litex_irq_config##n(const struct device *dev)                              \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), spi_litex_irq_handler,      \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), spi_litex_irq_handler,      \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
                                                                                                    \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	};
 
 #define SPI_LITEX_IRQ_CONFIG(n)									   \

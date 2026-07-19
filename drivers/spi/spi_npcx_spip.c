@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nuvoton_npcx_spip
 
 #include <zephyr/drivers/spi.h>
+#include <zephyr/intc2.h>
 #include "spi_rtio.h"
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -417,9 +418,9 @@ static DEVICE_API(spi, spi_npcx_spip_api) = {
 #define NPCX_SPIP_IRQ_HANDLER(n)                                                                   \
 	static void spi_npcx_spip_irq_cfg_func_##n(const struct device *dev)                       \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), spi_npcx_spip_isr,          \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), spi_npcx_spip_isr,          \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}
 
 #define NPCX_SPIP_IRQ_HANDLER_FUNC(n) .irq_cfg_func = spi_npcx_spip_irq_cfg_func_##n,

@@ -8,6 +8,7 @@
 
 #define LOG_LEVEL CONFIG_SPI_LOG_LEVEL
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(spi_smartbond);
 
 #include "spi_context.h"
@@ -1211,14 +1212,14 @@ static int spi_smartbond_pm_action(const struct device *dev,
 #endif
 
 #define SPI_SMARTBOND_ISR_CONNECT \
-		IRQ_CONNECT(DT_IRQN(DT_NODELABEL(spi)), DT_IRQ(DT_NODELABEL(spi), priority), \
+		INTC2_DT_CONNECT_INLINE(DT_NODELABEL(spi), DT_IRQ(DT_NODELABEL(spi), priority), \
 			spi_smartbond_isr, DEVICE_DT_GET(DT_NODELABEL(spi)), 0); \
-		irq_enable(DT_IRQN(DT_NODELABEL(spi)));
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_NODELABEL(spi)));
 
 #define SPI2_SMARTBOND_ISR_CONNECT \
-		IRQ_CONNECT(DT_IRQN(DT_NODELABEL(spi2)), DT_IRQ(DT_NODELABEL(spi2), priority), \
+		INTC2_DT_CONNECT_INLINE(DT_NODELABEL(spi2), DT_IRQ(DT_NODELABEL(spi2), priority), \
 			spi_smartbond_isr, DEVICE_DT_GET(DT_NODELABEL(spi2)), 0); \
-		irq_enable(DT_IRQN(DT_NODELABEL(spi2)));
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_NODELABEL(spi2)));
 
 #if defined(CONFIG_SPI_ASYNC) || defined(CONFIG_SPI_SMARTBOND_DMA)
 static int spi_smartbond_isr_connect(const struct device *dev)

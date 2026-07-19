@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ite_it51xxx_spi
 
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(spi_it51xxx, CONFIG_SPI_LOG_LEVEL);
 
 #include <zephyr/irq.h>
@@ -783,8 +784,8 @@ static DEVICE_API(spi, spi_it51xxx_driver_api) = {
 	PINCTRL_DT_INST_DEFINE(n);                                                                 \
 	static void it51xxx_spi_config_func_##n(void)                                              \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), 0, it51xxx_spi_isr, DEVICE_DT_INST_GET(n), 0);        \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		INTC2_DT_INST_CONNECT_INLINE(n, 0, it51xxx_spi_isr, DEVICE_DT_INST_GET(n), 0);        \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	};                                                                                         \
 	static const struct spi_it51xxx_config spi_it51xxx_cfg_##n = {                             \
 		.base = DT_INST_REG_ADDR(n),                                                       \

@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/drivers/spi.h>
+#include <zephyr/intc2.h>
 #include "spi_rtio.h"
 #include <zephyr/pm/device.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -441,7 +442,7 @@ static int spi_nrfx_init(const struct device *dev)
 	};								       \
 	static void irq_connect##idx(void)				       \
 	{								       \
-		IRQ_CONNECT(DT_INST_IRQN(idx), DT_INST_IRQ(idx, priority),     \
+		INTC2_DT_INST_CONNECT_INLINE(idx, DT_INST_IRQ(idx, priority),     \
 			    nrfx_spi_irq_handler, &spi_##idx##_data.spi, 0);   \
 	}								       \
 	PINCTRL_DT_INST_DEFINE(idx);					       \

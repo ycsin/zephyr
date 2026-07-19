@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT bflb_spi
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/spi.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -684,12 +685,12 @@ static DEVICE_API(spi, spi_bflb_driver_api) = {
 #define SPI_BFLB_IRQ_HANDLER(n)						\
 	static void spi_bflb_config_func_##n(const struct device *dev)	\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n),				\
+		INTC2_DT_INST_CONNECT_INLINE(n,				\
 			    DT_INST_IRQ(n, priority),			\
 			    spi_bflb_isr,				\
 			    DEVICE_DT_INST_GET(n),			\
 			    0);						\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}
 
 #define SPI_BFLB_INIT(n)                                                                           \

@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_imx_ecspi
 
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(spi_mcux_ecspi, CONFIG_SPI_LOG_LEVEL);
 
 #include <zephyr/device.h>
@@ -344,10 +345,10 @@ static DEVICE_API(spi, spi_mcux_driver_api) = {
 												\
 	static void spi_mcux_config_func_##n(const struct device *dev)				\
 	{											\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),				\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),				\
 			    spi_mcux_isr, DEVICE_DT_INST_GET(n), 0);				\
 												\
-		irq_enable(DT_INST_IRQN(n));							\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));							\
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(SPI_MCUX_ECSPI_INIT)

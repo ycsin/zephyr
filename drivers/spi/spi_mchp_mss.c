@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT microchip_mpfs_spi
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/spi.h>
 #include "spi_rtio.h"
 #include <zephyr/sys/sys_io.h>
@@ -468,10 +469,10 @@ static DEVICE_API(spi, mss_spi_driver_api) = {
 	{                                                                                          \
 		mss_spi_init(dev);                                                                 \
                                                                                                    \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), mss_spi_interrupt,          \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), mss_spi_interrupt,          \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
                                                                                                    \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
                                                                                                    \
 		return 0;                                                                          \
 	}                                                                                          \

@@ -12,6 +12,7 @@
 
 #define LOG_LEVEL CONFIG_SPI_LOG_LEVEL
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(spi_dw);
 
 #include <errno.h>
@@ -663,11 +664,11 @@ int spi_dw_init(const struct device *dev)
 void spi_dw_irq_config_##inst(void)                                \
 {                                                                  \
 COND_CODE_1(IS_EQ(DT_NUM_IRQS(DT_DRV_INST(inst)), 1),              \
-	(IRQ_CONNECT(DT_INST_IRQN(inst),                           \
+	(INTC2_DT_INST_CONNECT_INLINE(inst,                           \
 		DT_INST_IRQ(inst, priority),                       \
 		spi_dw_isr, DEVICE_DT_INST_GET(inst),              \
 		0);                                                \
-	irq_enable(DT_INST_IRQN(inst));),                          \
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));),                          \
 	(COND_CODE_1(IS_EQ(DT_NUM_IRQS(DT_DRV_INST(inst)), 3),     \
 		(SPI_CFG_IRQS_SINGLE_ERR_LINE(inst)),		   \
 		(SPI_CFG_IRQS_MULTIPLE_ERR_LINES(inst)))))	   \

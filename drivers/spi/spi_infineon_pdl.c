@@ -8,6 +8,7 @@
 #define DT_DRV_COMPAT infineon_spi
 
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(cat1_spi, CONFIG_SPI_LOG_LEVEL);
 
 #include <infineon_kconfig.h>
@@ -760,7 +761,7 @@ static int ifx_cat1_spi_init(const struct device *dev)
                                                                                                    \
 	static void ifx_cat1_spi_irq_config_func_##n(const struct device *dev)                     \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), spi_irq_handler,            \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), spi_irq_handler,            \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
 	}                                                                                          \
                                                                                                    \

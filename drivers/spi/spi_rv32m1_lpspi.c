@@ -10,6 +10,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/spi.h>
+#include <zephyr/intc2.h>
 #include "spi_rtio.h"
 #include <zephyr/drivers/clock_control.h>
 #include <fsl_lpspi.h>
@@ -339,10 +340,10 @@ static DEVICE_API(spi, spi_mcux_driver_api) = {
 									\
 	static void spi_mcux_config_func_##n(const struct device *dev)	\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n),				\
+		INTC2_DT_INST_CONNECT_INLINE(n,				\
 			    0,						\
 			    spi_mcux_isr, DEVICE_DT_INST_GET(n), 0);	\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(SPI_RV32M1_INIT)

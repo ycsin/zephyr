@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT intel_sedi_spi
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/spi.h>
 #include "spi_rtio.h"
 #include <zephyr/pm/device.h>
@@ -394,10 +395,10 @@ static int spi_sedi_device_ctrl(const struct device *dev,
 #define CREATE_SEDI_SPI_INSTANCE(num)					       \
 	static void spi_##num##_irq_init(void)			               \
 	{								       \
-		IRQ_CONNECT(DT_INST_IRQN(num),				       \
+		INTC2_DT_INST_CONNECT_INLINE(num,				       \
 			    DT_INST_IRQ(num, priority),			       \
 			    spi_isr, num, SPI_SEDI_IRQ_FLAGS(num));	       \
-		irq_enable(DT_INST_IRQN(num));				       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(num));				       \
 	}								       \
 	static struct spi_sedi_data spi_##num##_data = {		       \
 		SPI_CONTEXT_INIT_LOCK(spi_##num##_data, ctx),	               \
