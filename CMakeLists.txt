@@ -1702,6 +1702,8 @@ else()
     LIBRARIES_POST_SCRIPT ""
     DEPENDENCIES          ${CODE_RELOCATION_DEP}
   )
+  target_link_libraries_ifdef(CONFIG_NATIVE_LIBRARY ${ZEPHYR_FINAL_EXECUTABLE}
+                              $<TARGET_PROPERTY:linker,partial_linking>)
   target_link_libraries_ifdef(CONFIG_LLEXT_EXPORT_BUILTINS_BY_SLID ${ZEPHYR_FINAL_EXECUTABLE}
                             $<TARGET_PROPERTY:linker,no_check_sections>)
   set_property(TARGET   ${ZEPHYR_FINAL_EXECUTABLE} PROPERTY LINK_DEPENDS ${PROJECT_BINARY_DIR}/linker.cmd)
