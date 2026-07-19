@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_s32_psi5
 
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 
 LOG_MODULE_REGISTER(nxp_s32_psi5, CONFIG_PSI5_LOG_LEVEL);
 
@@ -457,7 +458,7 @@ static const Psi5_Ip_ConfigType psi5_nxp_s32_controller_config = {
 		IRQ_CONNECT(DT_IRQ_BY_IDX(node_id, 0, irq), DT_IRQ_BY_IDX(node_id, 0, priority),   \
 			    _CONCAT(psi5_nxp_s32_channel_isr, node_id), DEVICE_DT_INST_GET(n),     \
 			    DT_IRQ_BY_IDX(node_id, 0, flags));                                     \
-		irq_enable(DT_IRQN(node_id));                                                      \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(node_id));                                                      \
 	} while (false);
 
 #define PSI5_NXP_S32_IRQ_CONFIG(n)                                                                 \
