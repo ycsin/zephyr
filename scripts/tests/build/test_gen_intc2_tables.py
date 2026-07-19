@@ -36,8 +36,8 @@ def conn_rec(ord_, line, prio=0, flags=0, order=0):
     return (gen.TAG_CONNECT, ord_, line, prio, flags, 0, 0, order)
 
 
-def build(nodes, conns, shared=False, dynamic=False, entry_size=8):
-    return gen.build_model(nodes, conns, shared, dynamic, entry_size)
+def build(nodes, conns, shared=False, dynamic=False, entry_size=8, sparse=0):
+    return gen.build_model(nodes, conns, shared, dynamic, entry_size, sparse)
 
 
 class TestParse:
@@ -188,6 +188,35 @@ class TestEmitLinker:
         # priority application follows the same order: 4 first, 9 last
         src = gen.emit_source(model)
         assert src.index(".prio = 4") < src.index(".prio = 9")
+
+    def test_sparse_layout(self):
+        # 2 of 32 lines used, threshold 25% -> sparse: no gaps, entries
+        # contiguous in ascending line order, plus a lines directory
+        model = build([node_rec(5, 32)],
+                      [conn_rec(5, 20, order=1), conn_rec(5, 4, order=0)],
+                      sparse=25)
+        assert model.nodes[5].sparse
+        ld = gen.emit_linker(model)
+        assert ". = . + " not in ld
+        tbl = ld[ld.index("__intc2_table_dts_ord_5"):]
+        assert tbl.index("KEEP(*(.intc2_entry.5.4.0))") < \
+            tbl.index("KEEP(*(.intc2_entry.5.20.1))")
+        src = gen.emit_source(model)
+        assert "const uint16_t __intc2_lines_dts_ord_5[] = {" in src
+        assert "2, 4, 20" in src
+
+    def test_sparse_stays_dense_above_threshold(self):
+        model = build([node_rec(5, 4)], [conn_rec(5, 1)], sparse=25)
+        assert not model.nodes[5].sparse
+
+    def test_dynamic_forces_dense(self):
+        model = build([node_rec(5, 32)], [conn_rec(5, 20)],
+                      dynamic=True, sparse=25)
+        assert not model.nodes[5].sparse
+
+    def test_sparse_disabled_with_zero_threshold(self):
+        model = build([node_rec(5, 32)], [conn_rec(5, 20)], sparse=0)
+        assert not model.nodes[5].sparse
 
     def test_catch_all_tail(self):
         model = build([node_rec(5, 1)], [])

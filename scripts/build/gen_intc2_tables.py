@@ -59,12 +59,21 @@ class Node:
 
 
 class Model:
-    def __init__(self, nodes, boot_order, shared, dynamic, entry_size):
+    def __init__(self, nodes, boot_order, shared, dynamic, entry_size,
+                 sparse_threshold=25):
         self.nodes = nodes
         self.boot_order = boot_order
         self.shared = shared
         self.dynamic = dynamic
         self.entry_size = entry_size
+        # A node's table is laid out sparse when the fraction of used
+        # lines is below the threshold (percent). Dynamic connect needs
+        # every line addressable, so it forces dense tables.
+        for node in nodes.values():
+            used = len(set(node.chains) | set(node.connects))
+            node.sparse = (not dynamic and sparse_threshold > 0 and
+                           used * 100 < node.nlines * sparse_threshold)
+            node.used_lines = sorted(set(node.chains) | set(node.connects))
 
 
 def parse_intlist(data, big_endian=False):
@@ -111,7 +120,8 @@ def parse_intlist(data, big_endian=False):
     return node_recs, conn_recs
 
 
-def build_model(node_recs, conn_recs, shared, dynamic, entry_size):
+def build_model(node_recs, conn_recs, shared, dynamic, entry_size,
+                sparse_threshold=25):
     """Validate records and produce the layout/boot model."""
     nodes = {}
 
@@ -197,7 +207,7 @@ def build_model(node_recs, conn_recs, shared, dynamic, entry_size):
         raise GenError(f"intc2: cycle in the interrupt graph involving dep "
                        f"ordinals {cyclic}")
 
-    return Model(nodes, order, shared, dynamic, entry_size)
+    return Model(nodes, order, shared, dynamic, entry_size, sparse_threshold)
 
 
 def line_clients(node, line):
@@ -230,7 +240,8 @@ def emit_linker(model):
         # alias for toolchains that prefix C symbols with an underscore
         # (only materializes when referenced, harmless elsewhere)
         out.append(f"PROVIDE(___intc2_table_dts_ord_{ord_} = __intc2_table_dts_ord_{ord_});")
-        for line in range(node.nlines):
+        lines = node.used_lines if node.sparse else range(node.nlines)
+        for line in lines:
             count = line_clients(node, line)
             if count == 0:
                 out.append(f". = . + {model.entry_size}; /* line {line}: spurious */")
@@ -269,6 +280,18 @@ def emit_source(model):
     out.append("")
     out.append("#include <zephyr/intc2.h>")
     out.append("")
+
+    # Sparse-table line directories: lines[0] is the count, then the
+    # used line numbers ascending, matching the table layout order.
+    for ord_ in model.boot_order:
+        node = model.nodes[ord_]
+        if not node.sparse:
+            continue
+        used = ", ".join(str(line) for line in node.used_lines)
+        out.append(f"const uint16_t __intc2_lines_dts_ord_{ord_}[] = {{")
+        out.append(f"\t{len(node.used_lines)}, {used}")
+        out.append(f"}};")
+        out.append("")
 
     # Chain-dispatch slots: the child controller's dispatch entry placed
     # on its parent's input line.
@@ -377,6 +400,10 @@ def parse_args(argv):
                         help="CONFIG_INTC2_DYNAMIC is enabled")
     parser.add_argument("--entry-size", type=int, default=8, choices=(8, 16),
                         help="sizeof(struct intc2_entry) on the target")
+    parser.add_argument("--sparse-threshold", type=int, default=25,
+                        help="Lay a node's table out sparse when fewer than "
+                             "this percentage of its lines are used "
+                             "(0 disables sparse tables)")
     parser.add_argument("--debug", action="store_true",
                         help="Print debug information")
     return parser.parse_args(argv)
@@ -390,7 +417,7 @@ def main(argv=None):
         node_recs, conn_recs = parse_intlist(data, args.big_endian)
 
         model = build_model(node_recs, conn_recs, args.shared, args.dynamic,
-                            args.entry_size)
+                            args.entry_size, args.sparse_threshold)
     except GenError as err:
         sys.exit(str(err))
 
