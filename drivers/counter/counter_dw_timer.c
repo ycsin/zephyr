@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT snps_dw_timers
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/counter.h>
 #include <zephyr/spinlock.h>
 #include <zephyr/logging/log.h>
@@ -393,11 +394,11 @@ static int counter_dw_timer_init(const struct device *timer_dev)
 			&dw_timer_driver_api);					\
 	static void counter_dw_timer_irq_config_##inst(void)			\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(inst),					\
+		INTC2_DT_INST_CONNECT_INLINE(inst,					\
 				DT_INST_IRQ(inst, priority),			\
 				counter_dw_timer_irq_handler,			\
 				DEVICE_DT_INST_GET(inst), 0);			\
-		irq_enable(DT_INST_IRQN(inst));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));					\
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(CREATE_DW_TIMER_DEV);

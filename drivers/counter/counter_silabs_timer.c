@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/counter.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -324,11 +325,11 @@ static int counter_silabs_timer_init(const struct device *dev)
 	                                                                                          \
 	static void counter_silabs_timer_irq_config_##idx(void)                                   \
 	{                                                                                         \
-		IRQ_CONNECT(DT_IRQN(DT_INST_PARENT(idx)),                                         \
+		INTC2_DT_CONNECT_INLINE(DT_INST_PARENT(idx),                                         \
 					DT_IRQ(DT_INST_PARENT(idx), priority),                    \
 					counter_silabs_timer_isr,                                 \
 					DEVICE_DT_INST_GET(idx), 0);                              \
-		irq_enable(DT_IRQN(DT_INST_PARENT(idx)));                                         \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_INST_PARENT(idx)));                                         \
 	}                                                                                         \
 	                                                                                          \
 	static const struct counter_silabs_timer_config counter_silabs_timer_config_##idx = {     \

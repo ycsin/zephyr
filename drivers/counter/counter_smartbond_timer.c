@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT renesas_smartbond_timer
 
 #include <zephyr/drivers/counter.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control/smartbond_clock_control.h>
 #include <zephyr/irq.h>
 #include <zephyr/sys/atomic.h>
@@ -502,12 +503,12 @@ void counter_smartbond_irq_handler(const struct device *dev)
 										\
 	static void counter##idx##_smartbond_irq_config(const struct device *dev)\
 	{									\
-		IRQ_CONNECT(DT_IRQN(TIMERN(idx)),				\
+		INTC2_DT_CONNECT_INLINE(TIMERN(idx),				\
 			    DT_IRQ(TIMERN(idx), priority),			\
 			    counter_smartbond_irq_handler,			\
 			    DEVICE_DT_INST_GET(idx),				\
 			    0);							\
-		irq_enable(DT_IRQN(TIMERN(idx)));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(TIMERN(idx)));				\
 	}									\
 										\
 	static const struct counter_smartbond_config counter##idx##_config = {	\

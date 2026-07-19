@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT adi_max32_rtc_counter
 
 #include <zephyr/drivers/counter.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control/adi_max32_clock_control.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/irq.h>
@@ -244,9 +245,9 @@ static DEVICE_API(counter, counter_rtc_max32_driver_api) = {
 	static struct max32_rtc_data rtc_max32_data_##_num;                                        \
 	static void max32_rtc_irq_init_##_num(void)                                                \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(_num), DT_INST_IRQ(_num, priority), rtc_max32_isr,        \
+		INTC2_DT_INST_CONNECT_INLINE(_num, DT_INST_IRQ(_num, priority), rtc_max32_isr,        \
 			    DEVICE_DT_INST_GET(_num), 0);                                          \
-		irq_enable(DT_INST_IRQN(_num));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(_num));                                                    \
 		if (DT_INST_PROP(_num, wakeup_source)) {                                           \
 			MXC_LP_EnableRTCAlarmWakeup();                                             \
 		}                                                                                  \

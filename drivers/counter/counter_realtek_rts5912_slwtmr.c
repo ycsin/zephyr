@@ -23,6 +23,7 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/counter.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/clock_control_rts5912.h>
@@ -331,9 +332,9 @@ static int counter_rts5912_init(const struct device *dev)
                                                                                                    \
 	static void counter_rts5912_irq_config_##inst(void)                                        \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), counter_rts5912_isr,  \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), counter_rts5912_isr,  \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(COUNTER_RTS5912_INIT)

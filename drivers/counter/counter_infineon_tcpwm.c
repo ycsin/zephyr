@@ -10,6 +10,7 @@
 #define DT_DRV_COMPAT infineon_tcpwm_counter
 
 #include <zephyr/drivers/counter.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <infineon_kconfig.h>
 #include <zephyr/drivers/timer/ifx_tcpwm.h>
@@ -537,9 +538,9 @@ static DEVICE_API(counter, counter_api) = {
                                                                                                    \
 	static void ifx_counter_irq_enable_func_##n(const struct device *dev)                      \
 	{                                                                                          \
-		IRQ_CONNECT(DT_IRQN(DT_INST_PARENT(n)), DT_IRQ(DT_INST_PARENT(n), priority),       \
+		INTC2_DT_CONNECT_INLINE(DT_INST_PARENT(n), DT_IRQ(DT_INST_PARENT(n), priority),       \
 			    counter_isr_handler, DEVICE_DT_INST_GET(n), 0);                        \
-		irq_enable(DT_IRQN(DT_INST_PARENT(n)));                                            \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_INST_PARENT(n)));                                            \
 	}                                                                                          \
                                                                                                    \
 	static struct ifx_tcpwm_counter_data ifx_tcpwm_counter##n##_data = {                       \

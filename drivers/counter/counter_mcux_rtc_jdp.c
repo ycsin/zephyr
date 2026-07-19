@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_rtc_jdp
 
 #include <zephyr/drivers/counter.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys_clock.h>
@@ -538,10 +539,10 @@ static DEVICE_API(counter, mcux_rtc_jdp_driver_api) = {
 				CONFIG_COUNTER_INIT_PRIORITY, &mcux_rtc_jdp_driver_api);   \
 	static void mcux_rtc_jdp_irq_config_##n(const struct device *dev)      \
 	{                                                                      \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),             \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),             \
 				mcux_rtc_jdp_isr,                                          \
 				DEVICE_DT_INST_GET(n), 0);                                 \
-		irq_enable(DT_INST_IRQN(n));                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                       \
 	}
 
 #define MCUX_RTC_JDP_INIT_COND(n)					\

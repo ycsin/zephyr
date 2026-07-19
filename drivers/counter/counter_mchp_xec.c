@@ -23,6 +23,7 @@
  */
 
 #include <zephyr/irq.h>
+#include <zephyr/intc2.h>
 #include <zephyr/dt-bindings/interrupt-controller/mchp-xec-ecia.h>
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(counter_mchp_xec, CONFIG_COUNTER_LOG_LEVEL);
@@ -332,9 +333,9 @@ static int counter_xec_init(const struct device *dev)
                                                                                                    \
 	static void counter_xec_irq_config_##inst(void)                                            \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), counter_xec_isr,      \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), counter_xec_isr,      \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(COUNTER_XEC_INIT)

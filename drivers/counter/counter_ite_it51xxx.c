@@ -8,6 +8,7 @@
 
 #include <soc.h>
 #include <zephyr/drivers/counter.h>
+#include <zephyr/intc2.h>
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(counter_it51xxx, CONFIG_COUNTER_LOG_LEVEL);
@@ -338,9 +339,9 @@ static DEVICE_API(counter, counter_it51xxx_driver_api) = {
 #define COUNTER_IT51XXX_INIT(inst)                                                                 \
 	static void counter_it51xxx_cfg_func_##inst(const struct device *dev)                      \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN_BY_IDX(inst, 0), 0, counter_it51xxx_alarm_isr,            \
+		INTC2_DT_INST_CONNECT_INLINE_BY_IDX(inst, 0, 0, counter_it51xxx_alarm_isr,            \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
-		IRQ_CONNECT(DT_INST_IRQN_BY_IDX(inst, 1), 0, counter_it51xxx_top_isr,              \
+		INTC2_DT_INST_CONNECT_INLINE_BY_IDX(inst, 1, 0, counter_it51xxx_top_isr,              \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
 	}                                                                                          \
                                                                                                    \

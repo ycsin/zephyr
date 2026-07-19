@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ti_mspm0_timer_counter
 
 #include <zephyr/drivers/counter.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/mspm0_clock_control.h>
 #include <zephyr/kernel.h>
@@ -259,10 +260,10 @@ static void counter_mspm0_isr(void *arg)
 #define MSPM0_COUNTER_IRQ_REGISTER(n)							\
 	static void mspm0_ ## n ##_irq_register(void)					\
 	{										\
-		IRQ_CONNECT(DT_IRQN(DT_INST_PARENT(n)),					\
+		INTC2_DT_CONNECT_INLINE(DT_INST_PARENT(n),					\
 			    DT_IRQ(DT_INST_PARENT(n), priority),			\
 			    counter_mspm0_isr, DEVICE_DT_INST_GET(n), 0);		\
-		irq_enable(DT_IRQN(DT_INST_PARENT(n)));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_INST_PARENT(n)));					\
 	}
 
 #define MSPM0_CLK_DIV(div)		DT_CAT(DL_TIMER_CLOCK_DIVIDE_, div)

@@ -7,6 +7,7 @@
 
 #define DT_DRV_COMPAT nxp_imx_snvs_rtc
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 
 LOG_MODULE_REGISTER(mcux_snvs, CONFIG_COUNTER_LOG_LEVEL);
 
@@ -364,8 +365,8 @@ DEVICE_DT_INST_DEFINE(0, &mcux_snvs_init, NULL,
 
 static void mcux_snvs_irq_config_0(const struct device *dev)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		    mcux_snvs_isr, DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 #endif  /* DT_NODE_HAS_STATUS_OKAY(DT_DRV_INST(0)) */

@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT adi_max32_counter
 
 #include <zephyr/drivers/counter.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control/adi_max32_clock_control.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/irq.h>
@@ -351,9 +352,9 @@ static DEVICE_API(counter, counter_max32_driver_api) = {
 	PINCTRL_DT_INST_DEFINE(_num);                                                              \
 	static void max32_tmr_irq_init_##_num(const struct device *dev)                            \
 	{                                                                                          \
-		IRQ_CONNECT(DT_IRQN(TIMER(_num)), DT_IRQ(TIMER(_num), priority),                   \
+		INTC2_DT_CONNECT_INLINE(TIMER(_num), DT_IRQ(TIMER(_num), priority),                   \
 			    counter_max32_isr, DEVICE_DT_INST_GET(_num), 0);                       \
-		irq_enable(DT_IRQN(TIMER(_num)));                                                  \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(TIMER(_num)));                                                  \
 	};                                                                                         \
 	static const struct max32_tmr_config max32_tmr_config_##_num = {                           \
 		.info =                                                                            \

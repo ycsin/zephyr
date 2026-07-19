@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 #include <zephyr/drivers/counter.h>
+#include <zephyr/intc2.h>
 #include <hal/nrf_rtc.h>
 #ifdef CONFIG_CLOCK_CONTROL_NRF
 #include <zephyr/drivers/clock_control.h>
@@ -667,7 +668,7 @@ static DEVICE_API(counter, counter_nrfx_driver_api) = {
 				    DT_INST_IRQ(idx, priority),		       \
 				    counter_rtc##idx##_isr_wrapper,	       \
 				    IRQ_ZERO_LATENCY)),			       \
-		(IRQ_CONNECT(DT_INST_IRQN(idx), DT_INST_IRQ(idx, priority),    \
+		(INTC2_DT_INST_CONNECT_INLINE(idx, DT_INST_IRQ(idx, priority),    \
 			    irq_handler, DEVICE_DT_INST_GET(idx), 0))	       \
 	)
 

@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ambiq_counter
 
 #include <zephyr/drivers/counter.h>
+#include <zephyr/intc2.h>
 #include <zephyr/spinlock.h>
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
@@ -431,9 +432,9 @@ static void counter_ambiq_isr(void *arg)
 	static void counter_irq_config_func_##idx(void)                                            \
 	{                                                                                          \
 		NVIC_ClearPendingIRQ(DT_IRQN(DT_INST_PARENT(idx)));                                \
-		IRQ_CONNECT(DT_IRQN(DT_INST_PARENT(idx)), DT_IRQ(DT_INST_PARENT(idx), priority),   \
+		INTC2_DT_CONNECT_INLINE(DT_INST_PARENT(idx), DT_IRQ(DT_INST_PARENT(idx), priority),   \
 			    counter_ambiq_isr, DEVICE_DT_INST_GET(idx), 0);                        \
-		irq_enable(DT_IRQN(DT_INST_PARENT(idx)));                                          \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_INST_PARENT(idx)));                                          \
 	}
 #endif
 

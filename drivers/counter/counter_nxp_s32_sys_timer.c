@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_s32_sys_timer
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/counter.h>
 #include <zephyr/drivers/clock_control.h>
 #if defined(CONFIG_GIC)
@@ -387,11 +388,11 @@ static DEVICE_API(counter, nxp_s32_sys_timer_driver_api) = {
 #define SYS_TIMER_INIT_DEVICE(n)							\
 	static int nxp_s32_sys_timer_##n##_init(const struct device *dev)		\
 	{										\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),			\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),			\
 			    stm_isr, DEVICE_DT_INST_GET(n),				\
 			    COND_CODE_1(DT_INST_IRQ_HAS_CELL(n, flags),			\
 					(DT_INST_IRQ(n, flags)), (0)));			\
-		irq_enable(DT_INST_IRQN(n));						\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));						\
 											\
 		return nxp_s32_sys_timer_init(dev);					\
 	}										\

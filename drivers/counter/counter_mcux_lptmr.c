@@ -8,6 +8,7 @@
 #define DT_DRV_COMPAT nxp_lptmr
 
 #include <zephyr/devicetree.h>
+#include <zephyr/intc2.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/drivers/counter.h>
 #include <zephyr/irq.h>
@@ -526,9 +527,9 @@ static DEVICE_API(counter, mcux_lptmr_driver_api) = {
 #define COUNTER_MCUX_LPTMR_DEVICE_INIT(n)					\
 	static void mcux_lptmr_irq_config_##n(const struct device *dev)		\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),		\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),		\
 			mcux_lptmr_isr, DEVICE_DT_INST_GET(n), 0);		\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}									\
 										\
 	static struct mcux_lptmr_data mcux_lptmr_data_##n;			\

@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT xlnx_xps_timer_1_00_a
 
 #include <zephyr/arch/cpu.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/counter.h>
 #include <zephyr/irq.h>
@@ -349,10 +350,10 @@ static DEVICE_API(counter, xlnx_axi_timer_driver_api) = {
 									\
 	static void xlnx_axi_timer_config_func_##n(const struct device *dev) \
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),	\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),	\
 			    xlnx_axi_timer_isr,				\
 			    DEVICE_DT_INST_GET(n), 0);			\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(XLNX_AXI_TIMER_INIT)

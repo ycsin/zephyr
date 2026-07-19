@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_pit
 
 #include <zephyr/drivers/counter.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/irq.h>
 #include <fsl_pit.h>
@@ -275,7 +276,7 @@ static DEVICE_API(counter, nxp_pit_driver_api) = {
 			DT_INST_IRQ_BY_IDX(n, 0, priority),					\
 			nxp_pit_isr,								\
 			DEVICE_DT_INST_GET(n), 0);						\
-		irq_enable(DT_INST_IRQN(n));							\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));							\
 	};
 
 #define NXP_PIT_SETUP_IRQ_CONFIG(n) NXP_PIT_IRQ_CONFIG_DECLARATIONS(n);
@@ -285,11 +286,11 @@ static DEVICE_API(counter, nxp_pit_driver_api) = {
 #define NXP_PIT_IRQ_CONFIG_DECLARATIONS(n)							\
 	static void nxp_pit_irq_config_func_##n(const struct device *dev)			\
 	{											\
-		IRQ_CONNECT(DT_IRQN(n),								\
+		INTC2_DT_CONNECT_INLINE(n,								\
 			DT_IRQ(n, priority),							\
 			nxp_pit_isr,								\
 			DEVICE_DT_GET(n), 0);							\
-		irq_enable(DT_IRQN(n));								\
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(n));								\
 	};
 
 #define NXP_PIT_SETUP_IRQ_CONFIG(n)								\

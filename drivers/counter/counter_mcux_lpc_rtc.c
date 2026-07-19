@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/drivers/counter.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <fsl_rtc.h>
 #include "fsl_power.h"
@@ -249,10 +250,10 @@ static DEVICE_API(counter, mcux_rtc_driver_api) = {
 				&mcux_rtc_driver_api);					\
 	static void mcux_lpc_rtc_irq_config_##id(const struct device *dev)	\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(id),					\
+		INTC2_DT_INST_CONNECT_INLINE(id,					\
 			DT_INST_IRQ(id, priority),				\
 			mcux_lpc_rtc_isr, DEVICE_DT_INST_GET(id), 0);		\
-		irq_enable(DT_INST_IRQN(id));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(id));					\
 		IF_ENABLED(CONFIG_PM, (						\
 			if (DT_INST_PROP(id, wakeup_source)) {			\
 				NXP_ENABLE_WAKEUP_SIGNAL(DT_INST_IRQN(id));	\
@@ -426,11 +427,11 @@ static DEVICE_API(counter, mcux_rtc_highres_driver_api) = {
 
 #define COUNTER_LPC_RTC_HIGHRES_IRQ_INIT(n)							\
 	do {											\
-		IRQ_CONNECT(DT_IRQN(DT_INST_PARENT(n)),						\
+		INTC2_DT_CONNECT_INLINE(DT_INST_PARENT(n),						\
 			DT_IRQ(DT_INST_PARENT(n), priority),					\
 			mcux_lpc_rtc_isr,							\
 			DEVICE_DT_INST_GET(n), 0);						\
-		irq_enable(DT_IRQN(DT_INST_PARENT(n)));						\
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_INST_PARENT(n)));						\
 		IF_ENABLED(CONFIG_PM, (								\
 			if (DT_INST_PROP(n, wakeup_source)) {					\
 				NXP_ENABLE_WAKEUP_SIGNAL(DT_IRQN(DT_INST_PARENT(n)));		\

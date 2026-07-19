@@ -10,6 +10,7 @@
 #include <string.h>
 #include <errno.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <soc.h>
 #include <em_cmu.h>
@@ -340,7 +341,7 @@ static void counter_gecko_0_irq_config(void)
 	IRQ_DIRECT_CONNECT(DT_INST_IRQN(0),
 			   DT_INST_IRQ(0, priority),
 			   counter_gecko_isr_0, 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 
 static const struct counter_gecko_config counter_gecko_0_config = {

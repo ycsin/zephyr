@@ -11,6 +11,7 @@
 
 #include <errno.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/counter.h>
 #include <zephyr/drivers/clock_control.h>
@@ -293,7 +294,7 @@ void counter_silabs_isr_handler(const struct device *dev)
 	{                                                                                          \
 		IRQ_DIRECT_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),                      \
 				   counter_silabs_isr_##n, n);                                     \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
                                                                                                    \
 	static struct counter_silabs_data counter_silabs_data_##n;                                 \

@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT realtek_bee_counter_timer
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/bee_clock_control.h>
 #include <zephyr/drivers/counter.h>
@@ -319,9 +320,9 @@ static DEVICE_API(counter, counter_bee_timer_driver_api) = {
 #define TIMER_IRQ_HANDLER(index)                                                                   \
 	static void irq_config_##index(const struct device *dev)                                   \
 	{                                                                                          \
-		IRQ_CONNECT(DT_IRQN(PARENT_NODE(index)), DT_IRQ(PARENT_NODE(index), priority),     \
+		INTC2_DT_CONNECT_INLINE(PARENT_NODE(index), DT_IRQ(PARENT_NODE(index), priority),     \
 			    irq_handler, DEVICE_DT_INST_GET(index), 0);                            \
-		irq_enable(DT_IRQN(PARENT_NODE(index)));                                           \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(PARENT_NODE(index)));                                           \
 	}
 #elif defined(CONFIG_SOC_SERIES_RTL8752H)
 #define TIMER_IRQ_HANDLER(index)                                                                   \
@@ -330,15 +331,15 @@ static DEVICE_API(counter, counter_bee_timer_driver_api) = {
 		irq_connect_dynamic(DT_IRQN(PARENT_NODE(index)),                                   \
 				    DT_IRQ(PARENT_NODE(index), priority), (void *)irq_handler,     \
 				    DEVICE_DT_INST_GET(index), 0);                                 \
-		irq_enable(DT_IRQN(PARENT_NODE(index)));                                           \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(PARENT_NODE(index)));                                           \
 	}                                                                                          \
 	static void shared_irq_config##index(const struct device *dev)                             \
 	{                                                                                          \
-		irq_disable(DT_IRQN(PARENT_NODE(index)));                                          \
+		intc2_disable((struct intc2_spec)INTC2_DT_SPEC_GET(PARENT_NODE(index)));                                          \
 		irq_connect_dynamic(DT_IRQN(PARENT_NODE(index)),                                   \
 				    DT_IRQ(PARENT_NODE(index), priority),                          \
 				    (void *)shared_irq_handler, NULL, 0);                          \
-		irq_enable(DT_IRQN(PARENT_NODE(index)));                                           \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(PARENT_NODE(index)));                                           \
 	}
 #endif
 

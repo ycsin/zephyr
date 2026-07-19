@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ti_cc23x0_rtc
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/counter.h>
 #include <zephyr/spinlock.h>
 #include <zephyr/kernel.h>
@@ -102,10 +103,10 @@ static int counter_cc23x0_set_alarm(const struct device *dev, uint8_t chan_id,
 
 	HWREG(EVTSVT_BASE + EVTSVT_O_CPUIRQ3SEL) = EVTSVT_CPUIRQ16SEL_PUBID_AON_RTC_COMB;
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), counter_cc23x0_isr,
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), counter_cc23x0_isr,
 		    DEVICE_DT_INST_GET(0), 0);
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	data->alarm_cfg0.flags = 0;
 	data->alarm_cfg0.ticks = alarm_cfg->ticks;

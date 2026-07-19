@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/drivers/counter.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys_clock.h>
 
@@ -356,9 +357,9 @@ static int counter_npcx_lct_init(const struct device *dev)
 
 #endif
 #if defined(CONFIG_COUNTER_NPCX_NPCKN)
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), counter_npcx_lct_isr,
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), counter_npcx_lct_isr,
 		    DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 #endif
 
 	k_sem_init(&data->lock, 1, 1);

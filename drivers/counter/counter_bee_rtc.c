@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT realtek_bee_counter_rtc
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/bee_clock_control.h>
 #include <zephyr/drivers/counter.h>
@@ -293,9 +294,9 @@ static DEVICE_API(counter, counter_bee_rtc_driver_api) = {
 #define RTC_IRQ_CONFIG_FUNC(index)                                                                 \
 	static void irq_config_##index(void)                                                       \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(index), DT_INST_IRQ(index, priority),                     \
+		INTC2_DT_INST_CONNECT_INLINE(index, DT_INST_IRQ(index, priority),                     \
 			    counter_bee_rtc_isr, DEVICE_DT_INST_GET(index), 0);                    \
-		irq_enable(DT_INST_IRQN(index));                                                   \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(index));                                                   \
 	}
 #elif defined(CONFIG_SOC_SERIES_RTL8752H)
 #define RTC_IRQ_CONFIG_FUNC(index)                                                                 \

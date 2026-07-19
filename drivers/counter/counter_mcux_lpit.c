@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_lpit
 
 #include <zephyr/drivers/counter.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/irq.h>
 #include <fsl_lpit.h>
@@ -259,7 +260,7 @@ static DEVICE_API(counter, mcux_lpit_driver_api) = {
 						DT_INST_IRQ_BY_IDX(n, 0, priority),	\
 						mcux_lpit_isr,	\
 						DEVICE_DT_INST_GET(n), 0);	\
-				irq_enable(DT_INST_IRQN(n));	\
+				intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));	\
 			),	\
 			(/* multiple IRQs */	\
 				LISTIFY(DT_INST_NUM_IRQS(n),	\

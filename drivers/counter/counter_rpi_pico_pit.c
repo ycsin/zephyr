@@ -9,6 +9,7 @@
 #include <hardware/pwm.h>
 #include <hardware/structs/pwm.h>
 #include <zephyr/drivers/counter.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/irq.h>
@@ -118,9 +119,9 @@ static int counter_rpi_pico_pit_init(const struct device *dev)
 #define COUNTER_RPI_PICO_PIT(inst)                                                                 \
 	static void counter_rpi_pico_pit_##inst##_irq_config(const struct device *dev)             \
 	{                                                                                          \
-		IRQ_CONNECT(DT_IRQN(DT_DRV_INST(inst)), DT_IRQ(DT_DRV_INST(inst), priority),       \
+		INTC2_DT_CONNECT_INLINE(DT_DRV_INST(inst), DT_IRQ(DT_DRV_INST(inst), priority),       \
 			    counter_rpi_pico_pit_isr, DEVICE_DT_INST_GET(inst), 0);                \
-		irq_enable(DT_IRQN(DT_DRV_INST(inst)));                                            \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_DRV_INST(inst)));                                            \
 	}                                                                                          \
 	static const struct counter_rpi_pico_pit_config counter_##inst##_config = {                \
 		.irq_config_func = counter_rpi_pico_pit_##inst##_irq_config,                       \

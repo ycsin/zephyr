@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT arm_cmsdk_timer
 
 #include <zephyr/drivers/counter.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <errno.h>
 #include <zephyr/init.h>
@@ -243,9 +244,9 @@ static int tmr_cmsdk_apb_init(const struct device *dev)
                                                                                                    \
 	static void timer_cmsdk_apb_config_##inst(const struct device *dev)                        \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), tmr_cmsdk_apb_isr,    \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), tmr_cmsdk_apb_isr,    \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 	}
 
 #define COUNTER_TMR_CMSDK_DEVICE_INIT_COND(n)                                                      \

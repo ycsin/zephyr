@@ -8,6 +8,7 @@
 #define DT_DRV_COMPAT nxp_rtc
 
 #include <zephyr/drivers/counter.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys_clock.h>
@@ -307,8 +308,8 @@ DEVICE_DT_INST_DEFINE(0, &mcux_rtc_init, NULL,
 
 static void mcux_rtc_irq_config_0(const struct device *dev)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    mcux_rtc_isr, DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }

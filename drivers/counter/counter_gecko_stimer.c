@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/counter.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -279,7 +280,7 @@ static void counter_gecko_0_irq_config(void)
 	IRQ_DIRECT_CONNECT(DT_IRQ(DT_RTC, irq), DT_IRQ(DT_RTC, priority),
 			   CONCAT(DT_STRING_UPPER_TOKEN_BY_IDX(DT_RTC, interrupt_names, 0),
 			   _IRQHandler), 0);
-	irq_enable(DT_IRQN(DT_RTC));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_RTC));
 #endif
 }
 

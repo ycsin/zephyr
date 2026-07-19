@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT nxp_lpc_ctimer
 
 #include <zephyr/drivers/counter.h>
+#include <zephyr/intc2.h>
 #include <fsl_ctimer.h>
 #ifdef CONFIG_COUNTER_CAPTURE
 #include <fsl_inputmux.h>
@@ -615,9 +616,9 @@ static DEVICE_API(counter, mcux_ctimer_driver_api) = {
 			      CONFIG_COUNTER_INIT_PRIORITY, &mcux_ctimer_driver_api);              \
 	static void mcux_lpc_ctimer_irq_config_##id(const struct device *dev)                      \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(id), DT_INST_IRQ(id, priority), mcux_lpc_ctimer_isr,      \
+		INTC2_DT_INST_CONNECT_INLINE(id, DT_INST_IRQ(id, priority), mcux_lpc_ctimer_isr,      \
 			    DEVICE_DT_INST_GET(id), 0);                                            \
-		irq_enable(DT_INST_IRQN(id));                                                      \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(id));                                                      \
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(COUNTER_LPC_CTIMER_DEVICE)

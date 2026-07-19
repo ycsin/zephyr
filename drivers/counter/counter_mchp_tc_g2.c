@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT microchip_tc_g2_counter
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/counter.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/clock_control/atmel_sam_pmc.h>
@@ -481,9 +482,9 @@ DEVICE_DT_INST_DEFINE(n, sam_tc_init, NULL,				\
 									\
 static void counter_##n##_sam_config_func(const struct device *dev)	\
 {									\
-	IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),		\
+	INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),		\
 		    sam_tc_isr, DEVICE_DT_INST_GET(n), 0);		\
-	irq_enable(DT_INST_IRQN(n));					\
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 }
 
 DT_INST_FOREACH_STATUS_OKAY(COUNTER_SAM_TC_INIT)

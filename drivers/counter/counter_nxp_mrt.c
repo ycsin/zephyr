@@ -16,6 +16,7 @@
 #define DT_DRV_COMPAT nxp_mrt
 
 #include <zephyr/drivers/counter.h>
+#include <zephyr/intc2.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/devicetree.h>
@@ -335,9 +336,9 @@ DEVICE_API(counter, nxp_mrt_api) = {
 	/* ISR is shared between all channels */				\
 	static void nxp_mrt_##n##_irq_config_func(const struct device *dev)	\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),		\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),		\
 				nxp_mrt_isr, DEVICE_DT_INST_GET(n), 0);		\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}									\
 										\
 	/* Initialize all the data structs for active channels */		\
