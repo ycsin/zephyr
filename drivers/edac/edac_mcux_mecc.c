@@ -8,6 +8,7 @@
 
 #include <stddef.h>
 #include <zephyr/sys/util.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/toolchain.h>
 #include <zephyr/sys/barrier.h>
@@ -415,9 +416,9 @@ static int edac_nxp_mecc_init(const struct device *dev)
 #define EDAC_NXP_MECC_IRQ_CONFIG(n)						\
 	static void edac_nxp_mecc_irq_config_##n(const struct device *dev)	\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),		\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),		\
 			    edac_nxp_mecc_isr, DEVICE_DT_INST_GET(n), 0);	\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}
 
 #define EDAC_NXP_MECC_DEVICE(n)							\
