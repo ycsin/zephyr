@@ -56,8 +56,21 @@ struct intc2_spec {
 	uint32_t irqn;
 };
 
-#define INTC2_DT_SPEC_GET_BY_IDX(node_id, idx) {.irqn = DT_IRQN_BY_IDX(node_id, idx)}
-#define INTC2_DT_SPEC_GET(node_id)             INTC2_DT_SPEC_GET_BY_IDX(node_id, 0)
+#define INTC2_DT_SPEC_GET_BY_IDX(node_id, idx)   {.irqn = DT_IRQN_BY_IDX(node_id, idx)}
+#define INTC2_DT_SPEC_GET_BY_NAME(node_id, name) {.irqn = DT_IRQN_BY_NAME(node_id, name)}
+#define INTC2_DT_SPEC_GET(node_id)               INTC2_DT_SPEC_GET_BY_IDX(node_id, 0)
+
+/*
+ * Function-position connect: expands to the legacy IRQ_CONNECT()
+ * verbatim, preserving the exact semantics of the call site it
+ * replaces during migration.
+ */
+#define INTC2_DT_CONNECT_INLINE_BY_IDX(node_id, idx, prio, isr, arg, flags)                        \
+	IRQ_CONNECT(DT_IRQN_BY_IDX(node_id, idx), prio, isr, arg, flags)
+#define INTC2_DT_CONNECT_INLINE_BY_NAME(node_id, name, prio, isr, arg, flags)                     \
+	IRQ_CONNECT(DT_IRQN_BY_NAME(node_id, name), prio, isr, arg, flags)
+#define INTC2_DT_CONNECT_INLINE(node_id, prio, isr, arg, flags)                                    \
+	INTC2_DT_CONNECT_INLINE_BY_IDX(node_id, 0, prio, isr, arg, flags)
 
 /** @cond INTERNAL_HIDDEN */
 #define Z_INTC2_SHIM_CONNECT(irqn_, prio_, isr_, arg_, flags_, counter_)                           \
@@ -413,10 +426,41 @@ DT_FOREACH_STATUS_OKAY_NODE(Z_INTC2_MAYBE_NODE_DECLARE)
 			  DT_IRQ_BY_IDX(node_id, idx, irq), prio, isr, arg, flags, __COUNTER__)
 
 /**
+ * @brief Statically connect an ISR to a device's interrupt by name.
+ */
+#define INTC2_DT_CONNECT_BY_NAME(node_id, name, prio, isr, arg, flags)                             \
+	Z_INTC2_CONNECT_C(DT_DEP_ORD(DT_IRQ_INTC_BY_NAME(node_id, name)),                          \
+			  DT_IRQ_BY_NAME(node_id, name, irq), prio, isr, arg, flags, __COUNTER__)
+
+/**
  * @brief Statically connect an ISR to a device's first interrupt.
  */
 #define INTC2_DT_CONNECT(node_id, prio, isr, arg, flags)                                           \
 	INTC2_DT_CONNECT_BY_IDX(node_id, 0, prio, isr, arg, flags)
+
+/**
+ * @brief Initializer for the intc2 spec of a device's interrupt by name.
+ */
+#define INTC2_DT_SPEC_GET_BY_NAME(node_id, name)                                                   \
+	{                                                                                          \
+		.node = INTC2_NODE_DT_GET(DT_IRQ_INTC_BY_NAME(node_id, name)),                     \
+		.line = DT_IRQ_BY_NAME(node_id, name, irq),                                        \
+	}
+
+/**
+ * @brief Function-position variants of INTC2_DT_CONNECT().
+ *
+ * Identical to the file-scope forms on this backend (the emitted table
+ * entry and record are function-local statics); provided so that
+ * migrated legacy call sites inside per-instance configuration
+ * functions convert one-to-one.
+ */
+#define INTC2_DT_CONNECT_INLINE_BY_IDX(node_id, idx, prio, isr, arg, flags)                        \
+	INTC2_DT_CONNECT_BY_IDX(node_id, idx, prio, isr, arg, flags)
+#define INTC2_DT_CONNECT_INLINE_BY_NAME(node_id, name, prio, isr, arg, flags)                     \
+	INTC2_DT_CONNECT_BY_NAME(node_id, name, prio, isr, arg, flags)
+#define INTC2_DT_CONNECT_INLINE(node_id, prio, isr, arg, flags)                                    \
+	INTC2_DT_CONNECT(node_id, prio, isr, arg, flags)
 
 /**
  * @brief Spurious interrupt handler, __weak for test/SoC override.
@@ -578,6 +622,27 @@ int intc2_disconnect_dynamic(struct intc2_spec spec, void (*isr)(const void *arg
  */
 
 #endif /* CONFIG_INTC2 */
+
+/* DT_DRV_COMPAT instance conveniences (identical on both backends) */
+
+#define INTC2_DT_INST_SPEC_GET(inst)               INTC2_DT_SPEC_GET(DT_DRV_INST(inst))
+#define INTC2_DT_INST_SPEC_GET_BY_IDX(inst, idx)   INTC2_DT_SPEC_GET_BY_IDX(DT_DRV_INST(inst), idx)
+#define INTC2_DT_INST_SPEC_GET_BY_NAME(inst, name)                                                 \
+	INTC2_DT_SPEC_GET_BY_NAME(DT_DRV_INST(inst), name)
+
+#define INTC2_DT_INST_CONNECT(inst, prio, isr, arg, flags)                                         \
+	INTC2_DT_CONNECT(DT_DRV_INST(inst), prio, isr, arg, flags)
+#define INTC2_DT_INST_CONNECT_BY_IDX(inst, idx, prio, isr, arg, flags)                             \
+	INTC2_DT_CONNECT_BY_IDX(DT_DRV_INST(inst), idx, prio, isr, arg, flags)
+#define INTC2_DT_INST_CONNECT_BY_NAME(inst, name, prio, isr, arg, flags)                           \
+	INTC2_DT_CONNECT_BY_NAME(DT_DRV_INST(inst), name, prio, isr, arg, flags)
+
+#define INTC2_DT_INST_CONNECT_INLINE(inst, prio, isr, arg, flags)                                  \
+	INTC2_DT_CONNECT_INLINE(DT_DRV_INST(inst), prio, isr, arg, flags)
+#define INTC2_DT_INST_CONNECT_INLINE_BY_IDX(inst, idx, prio, isr, arg, flags)                      \
+	INTC2_DT_CONNECT_INLINE_BY_IDX(DT_DRV_INST(inst), idx, prio, isr, arg, flags)
+#define INTC2_DT_INST_CONNECT_INLINE_BY_NAME(inst, name, prio, isr, arg, flags)                    \
+	INTC2_DT_CONNECT_INLINE_BY_NAME(DT_DRV_INST(inst), name, prio, isr, arg, flags)
 
 #ifdef __cplusplus
 }
