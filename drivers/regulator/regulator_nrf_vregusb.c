@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <zephyr/drivers/regulator.h>
+#include <zephyr/intc2.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/sys_io.h>
 #include <hal/nrf_vregusb.h>
@@ -137,18 +138,18 @@ static DEVICE_API(regulator, api) = {
 #define REGULATOR_VREGUSB_DEFINE(n)						\
 	static void irq_enable_func_##n(const struct device *const dev)		\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(n),					\
+		INTC2_DT_INST_CONNECT_INLINE(n,					\
 			    DT_INST_IRQ(n, priority),				\
 			    vregusb_isr,					\
 			    DEVICE_DT_INST_GET(n),				\
 			    0);							\
 										\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}									\
 										\
 	static void irq_disable_func_##n(const struct device *const dev)	\
 	{									\
-		irq_disable(DT_INST_IRQN(n));					\
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}									\
 										\
 	static struct vregusb_data data_##n;					\
