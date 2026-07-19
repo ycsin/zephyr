@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <zephyr/drivers/espi.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -1374,7 +1375,7 @@ void npcx_espi_enable_interrupts(const struct device *dev)
 	const struct espi_npcx_config *const config = dev->config;
 
 	/* Enable eSPI bus interrupt */
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	/* Turn on all VW inputs' MIWU interrupts */
 	for (int idx = 0; idx < ARRAY_SIZE(vw_in_tbl); idx++) {
@@ -1389,7 +1390,7 @@ void npcx_espi_disable_interrupts(const struct device *dev)
 	const struct espi_npcx_config *const config = dev->config;
 
 	/* Disable eSPI bus interrupt */
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	/* Turn off all VW inputs' MIWU interrupts */
 	for (int idx = 0; idx < ARRAY_SIZE(vw_in_tbl); idx++) {
@@ -1580,13 +1581,13 @@ static int espi_npcx_init(const struct device *dev)
 #endif
 
 	/* eSPI Bus interrupt installation */
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    espi_bus_generic_isr,
 		    DEVICE_DT_INST_GET(0), 0);
 
 	/* Enable eSPI bus interrupt */
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	return 0;
 }

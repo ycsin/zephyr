@@ -9,6 +9,7 @@
 
 #include <soc.h>
 #include <zephyr/drivers/clock_control/mchp_xec_clock_control.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/espi.h>
 #include <zephyr/drivers/espi/mchp_xec_espi.h>
 #include <zephyr/drivers/interrupt_controller/intc_mchp_xec_ecia.h>
@@ -205,9 +206,9 @@ static int connect_irq_mbox0(const struct device *dev)
 {
 	xec_ecia_info_girq_src_clear(xec_mbox0_cfg.ecia_info);
 
-	IRQ_CONNECT(DT_IRQN(XEC_MBOX0_NODE), DT_IRQ(XEC_MBOX0_NODE, priority), mbox0_isr,
+	INTC2_DT_CONNECT_INLINE(XEC_MBOX0_NODE, DT_IRQ(XEC_MBOX0_NODE, priority), mbox0_isr,
 		    DEVICE_DT_GET(XEC_ESPI0_NODE), 0);
-	irq_enable(DT_IRQN(XEC_MBOX0_NODE));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(XEC_MBOX0_NODE));
 
 	/* enable GIRQ source */
 	xec_ecia_info_girq_ctrl(xec_mbox0_cfg.ecia_info, MCHP_MEC_ECIA_GIRQ_EN);
@@ -1520,9 +1521,9 @@ static int connect_irq_p80bd0(const struct device *dev)
 {
 	xec_ecia_info_girq_src_clear(xec_p80bd0_cfg.ecia_info);
 
-	IRQ_CONNECT(DT_IRQN(DT_NODELABEL(p80bd0)), DT_IRQ(DT_NODELABEL(acpi_ec1), priority),
+	INTC2_DT_CONNECT_INLINE(DT_NODELABEL(p80bd0), DT_IRQ(DT_NODELABEL(acpi_ec1), priority),
 		    p80bd0_isr, DEVICE_DT_GET(DT_NODELABEL(espi0)), 0);
-	irq_enable(DT_IRQN(DT_NODELABEL(p80bd0)));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_NODELABEL(p80bd0)));
 
 	xec_ecia_info_girq_ctrl(xec_p80bd0_cfg.ecia_info, 1u);
 

@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT microchip_xec_espi
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <soc.h>
 #include <errno.h>
 #include <zephyr/drivers/espi.h>
@@ -1570,11 +1571,11 @@ static int espi_xec_init(const struct device *dev)
 #endif
 	/* Enable aggregated interrupt block for eSPI bus events */
 	MCHP_GIRQ_BLK_SETEN(config->bus_girq_id);
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    espi_xec_bus_isr,
 		    DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	/* Enable aggregated interrupt block for eSPI VWire events */
 	MCHP_GIRQ_BLK_SETEN(config->vw_girq_ids[0]);
