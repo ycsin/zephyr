@@ -22,4 +22,11 @@
 INCLUDE intc2_tables.ld
 #else
 KEEP(*(.intc2_entry.*))
+#ifdef CONFIG_INTC2_LEGACY_BRIDGE
+/*
+ * Pass-0 placeholder for the bridged legacy table symbol; the real
+ * definition comes from the generated fragment in later passes.
+ */
+PROVIDE(_sw_isr_table = .);
+#endif
 #endif

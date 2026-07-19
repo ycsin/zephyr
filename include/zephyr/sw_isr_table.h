@@ -41,9 +41,10 @@ struct _isr_table_entry {
 	void (*isr)(const void *);
 };
 
-#if defined(CONFIG_GEN_SW_ISR_TABLE_ARRAY)
+#if defined(CONFIG_GEN_SW_ISR_TABLE_ARRAY) || defined(CONFIG_INTC2_LEGACY_BRIDGE)
 /* The software ISR table itself, an array of these structures indexed by the
- * irq line
+ * irq line. With CONFIG_INTC2_LEGACY_BRIDGE it is a linker alias of the
+ * intc2 CPU-root node's generated dispatch table.
  */
 extern
 #ifndef CONFIG_DYNAMIC_INTERRUPTS
@@ -195,7 +196,39 @@ struct z_shared_isr_table_entry z_shared_sw_isr_table[];
 #define __MK_ISR_NAME(x, y) __isr_ ## x ## _irq_ ## y
 
 
-#if defined(CONFIG_ISR_TABLES_LOCAL_DECLARATION)
+#if defined(CONFIG_INTC2_LEGACY_BRIDGE)
+
+/*
+ * The CPU-root interrupt controller is an intc2 node whose generated
+ * dispatch table aliases _sw_isr_table. Legacy connects bridge into it
+ * as pointer-free intc2 records; the architecture header provides
+ * Z_INTC2_ROOT_NODE (the root controller's devicetree node).
+ * Priorities keep flowing through the legacy runtime call embedded in
+ * ARCH_IRQ_CONNECT, so the record carries none. Direct ISRs keep the
+ * legacy vector-table path unchanged.
+ */
+#include <zephyr/intc2.h>
+
+#define Z_ISR_DECLARE_C(irq, flags, func, param, counter) \
+	_Z_ISR_DECLARE_C(irq, flags, func, param, counter)
+
+#define _Z_ISR_DECLARE_C(irq, flags, func, param, counter)                                         \
+	Z_INTC2_CONNECT(DT_DEP_ORD(Z_INTC2_ROOT_NODE), irq, 0, func, param, 0, counter)
+
+#define Z_ISR_DECLARE(irq, flags, func, param)                                                     \
+	BUILD_ASSERT(((flags) & ISR_FLAG_DIRECT) == 0, "Use Z_ISR_DECLARE_DIRECT macro");          \
+	Z_ISR_DECLARE_C(irq, flags, func, param, __COUNTER__)
+
+#define Z_ISR_DECLARE_DIRECT(irq, flags, func) \
+	Z_ISR_DECLARE_LEGACY(irq, ISR_FLAG_DIRECT | (flags), func, NULL)
+
+/* .intList record emission, still used for the vector table generator */
+#define Z_ISR_DECLARE_LEGACY(irq, flags, func, param) \
+	static Z_DECL_ALIGN(struct _isr_list) Z_GENERIC_SECTION(.intList) \
+		__used _MK_ISR_NAME(func, __COUNTER__) = \
+			{irq, flags, (void *)&func, (const void *)param}
+
+#elif defined(CONFIG_ISR_TABLES_LOCAL_DECLARATION)
 
 #define _MK_ISR_ELEMENT_NAME(func, id) __MK_ISR_ELEMENT_NAME(func, id)
 #define __MK_ISR_ELEMENT_NAME(func, id) __isr_table_entry_ ## func ## _irq_ ## id

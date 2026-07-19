@@ -138,6 +138,16 @@ static inline int intc2_connect_dynamic(struct intc2_spec spec, uint32_t prio,
 struct intc2_node;
 
 /**
+ * @brief Node flag: CPU-root controller bridging the legacy tables.
+ *
+ * The generator lays the node's table out dense and full-size, fills
+ * unconnected lines with z_irq_spurious entries, and aliases the
+ * legacy _sw_isr_table symbol to it, so legacy and intc2 connects
+ * share one dispatch table (see CONFIG_INTC2_LEGACY_BRIDGE).
+ */
+#define INTC2_NODE_ROOT_BRIDGE BIT(0)
+
+/**
  * @brief Interrupt specification: one input line of one controller node.
  *
  * Obtain with INTC2_DT_SPEC_GET(); resolvable entirely at compile time.

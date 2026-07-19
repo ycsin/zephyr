@@ -637,6 +637,8 @@ endchoice
 
 config GEN_SW_ISR_TABLE
 	bool "Generate a software ISR table"
+	# with a bridged root node the intc2 generator provides the table
+	default n if INTC2_LEGACY_BRIDGE
 	default y
 	depends on GEN_ISR_TABLES
 	help
@@ -714,6 +716,9 @@ config SRAM_VECTOR_TABLE
 
 config SRAM_SW_ISR_TABLE
 	bool "Place the software ISR table in SRAM instead of flash"
+	# with a bridged root node, _sw_isr_table is the intc2 root table,
+	# so its RAM placement is controlled by INTC2_DYNAMIC
+	select INTC2_DYNAMIC if INTC2_LEGACY_BRIDGE
 	help
 	  The option specifies that the software interrupts vector table will be
 	  placed inside SRAM instead of the flash.
@@ -738,6 +743,16 @@ config INTC2_SHARED
 	  generated const list and invoked in registration order; without
 	  this option a shared line is a build error. ROM-only: no RAM is
 	  used for static sharing.
+
+config INTC2_LEGACY_BRIDGE
+	bool
+	depends on INTC2
+	help
+	  Selected by an architecture whose CPU-root interrupt controller
+	  is converted to an intc2 node. The root node's generated dispatch
+	  table takes over the _sw_isr_table symbol, and legacy
+	  IRQ_CONNECT()/Z_ISR_DECLARE() call sites bridge into it as
+	  pointer-free intc2 records, so both APIs share one table.
 
 config INTC2_DYNAMIC
 	bool "intc2 runtime interrupt connection"
