@@ -1459,6 +1459,10 @@ if(CONFIG_GEN_ISR_TABLES)
     list(APPEND GEN_ISR_TABLE_EXTRA_ARG --sw-isr-table)
   endif()
 
+  if(CONFIG_INTC2_LEGACY_BRIDGE)
+    list(APPEND GEN_ISR_TABLE_EXTRA_ARG --external-sw-isr-table)
+  endif()
+
   if(CONFIG_GEN_IRQ_VECTOR_TABLE)
     list(APPEND GEN_ISR_TABLE_EXTRA_ARG --vector-table)
   endif()

@@ -56,7 +56,7 @@ Z_GENERIC_SECTION(.irq_info) __used struct int_list_header _iheader = {
  * otherwise, populate the IRQ vector table with z_irq_spurious so that all
  * un-connected IRQ vectors end up in the spurious IRQ handler.
  */
-#ifdef CONFIG_GEN_SW_ISR_TABLE
+#if defined(CONFIG_GEN_SW_ISR_TABLE) || defined(CONFIG_INTC2_LEGACY_BRIDGE)
 #define IRQ_VECTOR_TABLE_DEFAULT_ISR	_isr_wrapper
 #else
 #define IRQ_VECTOR_TABLE_DEFAULT_ISR	z_irq_spurious

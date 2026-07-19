@@ -67,8 +67,10 @@ class gen_isr_config:
         self.__syms = syms
         self.__log = log
 
-        # Select the default interrupt vector handler
-        if self.args.sw_isr_table:
+        # Select the default interrupt vector handler. An external
+        # software ISR table (e.g. the intc2 root-bridge table) also
+        # routes unpopulated vectors through the common wrapper.
+        if self.args.sw_isr_table or self.args.external_sw_isr_table:
             self.__vt_default_handler = self.__vt_irq_handler
         else:
             self.__vt_default_handler = self.__vt_spurious_handler
@@ -309,6 +311,9 @@ def parse_args():
     )
     parser.add_argument("-k", "--kernel", required=True, help="Zephyr kernel image")
     parser.add_argument("-s", "--sw-isr-table", action="store_true", help="Generate SW ISR table")
+    parser.add_argument("--external-sw-isr-table", action="store_true",
+                        help="A software ISR table is provided externally "
+                             "(route unpopulated vectors to the common wrapper)")
     parser.add_argument("-V", "--vector-table", action="store_true", help="Generate vector table")
     parser.add_argument(
         "-i",
