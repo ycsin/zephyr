@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/drivers/dai.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
 #include <zephyr/pm/device_runtime.h>
@@ -964,7 +965,7 @@ static const struct dai_properties sai_rx_props_##inst = {			\
 										\
 void irq_config_##inst(void)							\
 {										\
-	IRQ_CONNECT(DT_INST_IRQN(inst),						\
+	INTC2_DT_INST_CONNECT_INLINE(inst,						\
 		    0,								\
 		    sai_isr,							\
 		    DEVICE_DT_INST_GET(inst),					\
