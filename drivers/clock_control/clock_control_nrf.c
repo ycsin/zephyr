@@ -7,6 +7,7 @@
 
 #include <soc.h>
 #include <zephyr/sys/onoff.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/nrf_clock_control.h>
 #include "nrf_clock_calibration.h"
@@ -794,7 +795,7 @@ static int clk_init(const struct device *dev)
 	IRQ_CONNECT(LFRC_IRQn, DT_INST_IRQ(0, priority), nrfx_isr, nrfx_power_clock_irq_handler, 0);
 #endif
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		    nrfx_isr, nrfx_power_clock_irq_handler, 0);
 
 	if (nrfx_clock_init(clock_event_handler) != 0) {
