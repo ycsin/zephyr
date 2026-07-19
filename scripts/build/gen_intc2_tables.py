@@ -1,0 +1,420 @@
+#!/usr/bin/env python3
+#
+# Copyright (c) 2026 Yong Cong Sin <yongcong.sin@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+"""Generate the intc2 per-node dispatch tables.
+
+This script runs between the two link passes (same slot as
+gen_isr_tables.py). It reads pointer-free records collected in the
+.intc2_list section of the pass-1 ELF and produces:
+
+- a linker fragment (--output-linker) laying out each interrupt
+  controller node's dispatch table by KEEPing the per-callsite
+  .intc2_entry.<ord>.<line>.<n> input sections in line order, defining
+  the __intc2_table_dts_ord_<N> symbols, and reserving zero-filled gaps
+  (= spurious entries) for unconnected lines;
+- a companion C file (--output-source) containing only symbol-name
+  references: chain-dispatch slots for child controllers, fan-in slots
+  and client directories for shared lines, and the topologically sorted
+  boot directory with per-node priority records.
+
+No addresses are ever read from the pass-1 ELF, so pass-1/pass-2 layout
+differences are harmless and the scheme is LTO-compatible.
+"""
+
+import argparse
+import struct
+import sys
+
+INFO_MAGIC = 0x32636E69  # "inc2"
+INFO_VERSION = 1
+
+TAG_NODE = 1
+TAG_CONNECT = 2
+NO_PARENT = 0xFFFFFFFF
+
+REC_FIELDS = 8
+REC_SIZE = REC_FIELDS * 4
+INFO_SIZE = 8
+
+
+class GenError(Exception):
+    """Fatal input/consistency error, reported as a build error."""
+
+
+class Node:
+    def __init__(self, ord_, nlines, flags, parent_ord, parent_line, parent_prio):
+        self.ord = ord_
+        self.nlines = nlines
+        self.flags = flags
+        self.parent_ord = parent_ord if parent_ord != NO_PARENT else None
+        self.parent_line = parent_line
+        self.parent_prio = parent_prio
+        # children on each of our input lines: line -> [child ord]
+        self.chains = {}
+        # user connects on each of our input lines: line -> [(prio, flags)]
+        self.connects = {}
+
+
+class Model:
+    def __init__(self, nodes, boot_order, shared, dynamic, entry_size):
+        self.nodes = nodes
+        self.boot_order = boot_order
+        self.shared = shared
+        self.dynamic = dynamic
+        self.entry_size = entry_size
+
+
+def parse_intlist(data, big_endian=False):
+    """Parse the raw .intc2_list section into node/connect record lists."""
+    fmt = (">" if big_endian else "<") + "II"
+
+    if len(data) < INFO_SIZE:
+        raise GenError("intc2: .intc2_list section too small (no header)")
+
+    magic, version = struct.unpack_from(fmt, data, 0)
+    if magic != INFO_MAGIC:
+        raise GenError(f"intc2: bad .intc2_info magic 0x{magic:08x}")
+    if version != INFO_VERSION:
+        raise GenError(f"intc2: unsupported record version {version}")
+
+    # The compiler may over-align the record objects (e.g. 32-byte data
+    # alignment on x86-64), so the section can contain zero padding
+    # between the header and records. A record never starts with a zero
+    # word (tags start at 1), so zero words are unambiguously padding.
+    rec_fmt = (">" if big_endian else "<") + "8I"
+    word_fmt = (">" if big_endian else "<") + "I"
+    node_recs = []
+    conn_recs = []
+    off = INFO_SIZE
+    while off < len(data):
+        if len(data) - off >= 4:
+            (word,) = struct.unpack_from(word_fmt, data, off)
+            if word == 0:
+                off += 4
+                continue
+        if len(data) - off < REC_SIZE:
+            raise GenError(f"intc2: truncated record at offset {off} of "
+                           f".intc2_list ({len(data) - off} bytes left)")
+        rec = struct.unpack_from(rec_fmt, data, off)
+        tag = rec[0]
+        if tag == TAG_NODE:
+            node_recs.append(rec)
+        elif tag == TAG_CONNECT:
+            conn_recs.append(rec)
+        else:
+            raise GenError(f"intc2: unknown record tag {tag} at offset {off}")
+        off += REC_SIZE
+
+    return node_recs, conn_recs
+
+
+def build_model(node_recs, conn_recs, shared, dynamic, entry_size):
+    """Validate records and produce the layout/boot model."""
+    nodes = {}
+
+    for (_, ord_, nlines, prio, flags, pord, pline, _r) in node_recs:
+        if ord_ in nodes:
+            raise GenError(f"intc2: duplicate node definition for dep "
+                           f"ordinal {ord_}")
+        if nlines == 0:
+            raise GenError(f"intc2: node {ord_} has zero input lines")
+        nodes[ord_] = Node(ord_, nlines, flags, pord, pline, prio)
+
+    for node in nodes.values():
+        if node.parent_ord is None:
+            continue
+        parent = nodes.get(node.parent_ord)
+        if parent is None:
+            raise GenError(f"intc2: node {node.ord} chains to unknown "
+                           f"controller (dep ordinal {node.parent_ord})")
+        if node.parent_line >= parent.nlines:
+            raise GenError(f"intc2: node {node.ord} chains to line "
+                           f"{node.parent_line} of node {parent.ord}, which "
+                           f"only has {parent.nlines} lines")
+        if node.parent_prio > 0xFF:
+            raise GenError(f"intc2: node {node.ord} parent priority "
+                           f"{node.parent_prio} exceeds 255")
+        parent.chains.setdefault(node.parent_line, []).append(node.ord)
+
+    for (_, ord_, line, prio, flags, _po, _pl, order) in conn_recs:
+        node = nodes.get(ord_)
+        if node is None:
+            raise GenError(f"intc2: INTC2_DT_CONNECT targets unknown "
+                           f"controller (dep ordinal {ord_})")
+        if line >= node.nlines:
+            raise GenError(f"intc2: connect to line {line} of node "
+                           f"{node.ord}, which only has {node.nlines} lines")
+        if prio > 0xFF or flags > 0xFF:
+            raise GenError(f"intc2: connect on node {node.ord} line {line}: "
+                           f"priority/flags must fit in 8 bits")
+        node.connects.setdefault(line, []).append((order, prio, flags))
+
+    # Registration order within a translation unit is the __COUNTER__
+    # value recorded in the connect record; compilers may emit
+    # same-section objects in any order, so this - not section order -
+    # defines client ordering.
+    for node in nodes.values():
+        for conns in node.connects.values():
+            conns.sort(key=lambda c: c[0])
+
+    # A line is shared when the total client count (chain dispatchers +
+    # user connects) exceeds one.
+    if not shared:
+        for node in nodes.values():
+            lines = set(node.chains) | set(node.connects)
+            for line in lines:
+                count = len(node.chains.get(line, [])) + \
+                    len(node.connects.get(line, []))
+                if count > 1:
+                    raise GenError(
+                        f"intc2: line {line} of node {node.ord} has {count} "
+                        f"clients; enable CONFIG_INTC2_SHARED to allow "
+                        f"shared lines")
+
+    # Topological order over parent edges, roots first (Kahn).
+    indeg = {ord_: 0 for ord_ in nodes}
+    for node in nodes.values():
+        if node.parent_ord is not None:
+            indeg[node.ord] += 1
+    queue = sorted(o for o, d in indeg.items() if d == 0)
+    order = []
+    children = {}
+    for node in nodes.values():
+        if node.parent_ord is not None:
+            children.setdefault(node.parent_ord, []).append(node.ord)
+    while queue:
+        ord_ = queue.pop(0)
+        order.append(ord_)
+        for child in sorted(children.get(ord_, [])):
+            indeg[child] -= 1
+            if indeg[child] == 0:
+                queue.append(child)
+    if len(order) != len(nodes):
+        cyclic = sorted(o for o, d in indeg.items() if d > 0)
+        raise GenError(f"intc2: cycle in the interrupt graph involving dep "
+                       f"ordinals {cyclic}")
+
+    return Model(nodes, order, shared, dynamic, entry_size)
+
+
+def line_clients(node, line):
+    """Number of clients on a (node, line) input."""
+    return len(node.chains.get(line, [])) + len(node.connects.get(line, []))
+
+
+def emit_linker(model):
+    """Emit the table-layout linker fragment (included in the final pass)."""
+    out = []
+    out.append("/* Generated by gen_intc2_tables.py - do not edit */")
+    out.append("FILL(0x00);")
+    align = 8 if model.entry_size == 16 else 4
+
+    def entry_keeps(node, line):
+        """Exact-name KEEPs for a line's clients in registration order:
+        chain dispatchers first, then user connects sorted by their
+        recorded __COUNTER__ order."""
+        keeps = []
+        for k in range(len(node.chains.get(line, []))):
+            keeps.append(f"KEEP(*(.intc2_slot.{node.ord}.{line}.{k}))")
+        for (order, _prio, _flags) in node.connects.get(line, []):
+            keeps.append(f"KEEP(*(.intc2_entry.{node.ord}.{line}.{order}))")
+        return keeps
+
+    for ord_ in model.boot_order:
+        node = model.nodes[ord_]
+        out.append(f". = ALIGN({align});")
+        out.append(f"__intc2_table_dts_ord_{ord_} = .;")
+        for line in range(node.nlines):
+            count = line_clients(node, line)
+            if count == 0:
+                out.append(f". = . + {model.entry_size}; /* line {line}: spurious */")
+            elif count == 1:
+                out.append(f"{entry_keeps(node, line)[0]} /* line {line} */")
+            else:
+                out.append(f"KEEP(*(.intc2_fanin_slot.{ord_}.{line})) "
+                           f"/* line {line}: {count} clients */")
+
+    # Client directories of shared lines, contiguous per line, in
+    # registration order.
+    for ord_ in model.boot_order:
+        node = model.nodes[ord_]
+        for line in range(node.nlines):
+            if line_clients(node, line) < 2:
+                continue
+            out.append(f". = ALIGN({align});")
+            out.append(f"__intc2_fanin_cl_{ord_}_{line} = .;")
+            out.extend(entry_keeps(node, line))
+
+    # Safety net: any stray entry/slot section that validation did not
+    # account for still gets placed (never silently orphaned).
+    out.append("KEEP(*(.intc2_entry.*))")
+    out.append("KEEP(*(.intc2_slot.*))")
+    out.append("KEEP(*(.intc2_fanin_slot.*))")
+    out.append("")
+    return "\n".join(out)
+
+
+def emit_source(model):
+    """Emit the companion C file (symbol references only, no addresses)."""
+    out = []
+    out.append("/* Generated by gen_intc2_tables.py - do not edit */")
+    out.append("")
+    out.append("#include <zephyr/intc2.h>")
+    out.append("")
+
+    # Chain-dispatch slots: the child controller's dispatch entry placed
+    # on its parent's input line.
+    for ord_ in model.boot_order:
+        node = model.nodes[ord_]
+        for line in sorted(node.chains):
+            for k, child in enumerate(node.chains[line]):
+                out.append(f"extern const struct intc2_node __intc2_node_dts_ord_{child};")
+                out.append(f"Z_INTC2_TABLE_CONST struct intc2_entry")
+                out.append(f"__intc2_slot_p{ord_}_l{line}_c{child}")
+                out.append(f"\t__attribute__((section(\".intc2_slot.{ord_}.{line}.{k}\")))")
+                out.append(f"\t__used = {{")
+                out.append(f"\t\t.arg = &__intc2_node_dts_ord_{child},")
+                out.append(f"\t\t.isr = z_intc2_node_dispatch,")
+                out.append(f"}};")
+                out.append("")
+
+    # Fan-in slots + client directory descriptors for shared lines.
+    for ord_ in model.boot_order:
+        node = model.nodes[ord_]
+        for line in range(node.nlines):
+            count = line_clients(node, line)
+            if count < 2:
+                continue
+            out.append(f"extern const struct intc2_entry __intc2_fanin_cl_{ord_}_{line}[];")
+            out.append(f"static const struct z_intc2_fanin __intc2_fanin_{ord_}_{line} = {{")
+            out.append(f"\t.clients = __intc2_fanin_cl_{ord_}_{line},")
+            out.append(f"\t.count = {count},")
+            out.append(f"}};")
+            out.append(f"Z_INTC2_TABLE_CONST struct intc2_entry")
+            out.append(f"__intc2_fanin_slot_{ord_}_{line}")
+            out.append(f"\t__attribute__((section(\".intc2_fanin_slot.{ord_}.{line}\")))")
+            out.append(f"\t__used = {{")
+            out.append(f"\t\t.arg = &__intc2_fanin_{ord_}_{line},")
+            out.append(f"\t\t.isr = z_intc2_fanin_isr,")
+            out.append(f"}};")
+            out.append("")
+
+    # Boot directory: topological order, priority records per node. A
+    # child's chain-line priority is programmed on the *parent*.
+    for ord_ in model.boot_order:
+        node = model.nodes[ord_]
+        recs = []
+        for line in sorted(node.connects):
+            for (_order, prio, flags) in node.connects[line]:
+                recs.append((line, prio, flags))
+        for line in sorted(node.chains):
+            for child in node.chains[line]:
+                child_node = model.nodes[child]
+                recs.append((line, child_node.parent_prio, 0))
+        if recs:
+            out.append(f"static const struct z_intc2_prio_rec __intc2_prio_{ord_}[] = {{")
+            for (line, prio, flags) in recs:
+                out.append(f"\t{{ .line = {line}, .prio = {prio}, .flags = {flags} }},")
+            out.append(f"}};")
+        node.prio_count = len(recs)
+
+    out.append("")
+    if model.boot_order:
+        for ord_ in model.boot_order:
+            out.append(f"extern const struct intc2_node __intc2_node_dts_ord_{ord_};")
+        out.append("const struct z_intc2_boot_rec __intc2_boot[] = {")
+        for ord_ in model.boot_order:
+            node = model.nodes[ord_]
+            recs = f"__intc2_prio_{ord_}" if node.prio_count else "NULL"
+            out.append(f"\t{{ .node = &__intc2_node_dts_ord_{ord_}, "
+                       f".recs = {recs}, .count = {node.prio_count} }},")
+        out.append("};")
+    out.append(f"const uint32_t __intc2_boot_cnt = {len(model.boot_order)};")
+    out.append("")
+    return "\n".join(out)
+
+
+def get_symbols(elf):
+    from elftools.elf.sections import SymbolTableSection
+
+    for section in elf.iter_sections():
+        if isinstance(section, SymbolTableSection):
+            return {sym.name: sym.entry.st_value
+                    for sym in section.iter_symbols()}
+
+    raise GenError("intc2: no symbol table found in the pass-1 ELF")
+
+
+def read_intlist(path, section_names):
+    from elftools.elf.elffile import ELFFile
+
+    with open(path, "rb") as fp:
+        elf = ELFFile(fp)
+
+        data = None
+        for name in section_names:
+            section = elf.get_section_by_name(name)
+            if section is not None:
+                data = section.data()
+                break
+        if data is None:
+            raise GenError(f"intc2: no {section_names} section in {path}")
+
+        syms = get_symbols(elf)
+
+    return data, syms
+
+
+def parse_args(argv):
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     allow_abbrev=False)
+    parser.add_argument("--kernel", required=True,
+                        help="Pass-1 (zephyr_pre*) ELF file")
+    parser.add_argument("--intlist-section", action="append", required=True,
+                        help="The name of the .intc2_list section (can be "
+                             "repeated; the first section found is used)")
+    parser.add_argument("--output-source", required=True,
+                        help="Generated C companion file")
+    parser.add_argument("--output-linker", required=True,
+                        help="Generated linker fragment")
+    parser.add_argument("--big-endian", action="store_true",
+                        help="Target is big-endian")
+    parser.add_argument("--debug", action="store_true",
+                        help="Print debug information")
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+
+    try:
+        data, syms = read_intlist(args.kernel, args.intlist_section)
+        node_recs, conn_recs = parse_intlist(data, args.big_endian)
+
+        shared = "CONFIG_INTC2_SHARED" in syms
+        dynamic = "CONFIG_INTC2_DYNAMIC" in syms
+        entry_size = 16 if "CONFIG_64BIT" in syms else 8
+
+        model = build_model(node_recs, conn_recs, shared, dynamic, entry_size)
+    except GenError as err:
+        sys.exit(str(err))
+
+    if args.debug:
+        for ord_ in model.boot_order:
+            node = model.nodes[ord_]
+            print(f"intc2: node ord {ord_}: nlines {node.nlines} "
+                  f"parent {node.parent_ord}:{node.parent_line} "
+                  f"connects {sorted(node.connects)} chains {sorted(node.chains)}")
+
+    with open(args.output_linker, "w") as fp:
+        fp.write(emit_linker(model))
+    with open(args.output_source, "w") as fp:
+        fp.write(emit_source(model))
+
+
+if __name__ == "__main__":
+    main()

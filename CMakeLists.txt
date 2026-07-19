@@ -1475,6 +1475,27 @@ if(CONFIG_GEN_ISR_TABLES)
   set_property(GLOBAL APPEND PROPERTY GENERATED_KERNEL_SOURCE_FILES isr_tables.c)
 endif()
 
+if(CONFIG_INTC2)
+  # intc2_tables.c and the intc2_tables.ld layout fragment are generated
+  # from the .intc2_list records of ${ZEPHYR_LINK_STAGE_EXECUTABLE} by
+  # gen_intc2_tables.py
+  add_custom_command(
+    OUTPUT intc2_tables.c intc2_tables.ld
+    COMMAND ${PYTHON_EXECUTABLE}
+    ${ZEPHYR_BASE}/scripts/build/gen_intc2_tables.py
+    --output-source intc2_tables.c
+    --output-linker intc2_tables.ld
+    --kernel $<TARGET_FILE:${ZEPHYR_LINK_STAGE_EXECUTABLE}>
+    --intlist-section .intc2_list
+    --intlist-section intc2_list
+    $<$<BOOL:${CONFIG_BIG_ENDIAN}>:--big-endian>
+    $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:--debug>
+    DEPENDS ${ZEPHYR_LINK_STAGE_EXECUTABLE}
+    COMMAND_EXPAND_LISTS
+    )
+  set_property(GLOBAL APPEND PROPERTY GENERATED_KERNEL_SOURCE_FILES intc2_tables.c)
+endif()
+
 if(CONFIG_SYMTAB)
   add_custom_command(
     OUTPUT symtab.c

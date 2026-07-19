@@ -11,9 +11,15 @@
  * collects them here (RODATA, or RWDATA under CONFIG_INTC2_DYNAMIC).
  *
  * Table layout (per-node ordering, gaps, and the __intc2_table_* symbols)
- * is produced by the build-time table generator as a generated fragment
- * included here in the final link pass.
+ * is produced by scripts/build/gen_intc2_tables.py as a generated fragment
+ * included here in the final link pass. With CONFIG_INTC2 enabled the
+ * final pass always exists, because the generated companion source is
+ * added to GENERATED_KERNEL_SOURCE_FILES.
  */
 
 . = ALIGN(8);
+#if LINKER_ZEPHYR_FINAL
+INCLUDE intc2_tables.ld
+#else
 KEEP(*(.intc2_entry.*))
+#endif
