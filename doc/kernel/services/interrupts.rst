@@ -767,6 +767,14 @@ implement :c:struct:`intc2_driver_api`, declared with
 disabled, the consumer-facing ``INTC2_*`` constructs transparently compile
 down to the legacy machinery described in this document.
 
+On SMP-capable controllers, :kconfig:option:`CONFIG_INTC2_AFFINITY` adds
+runtime IRQ-to-CPU routing through :c:func:`intc2_set_affinity` and
+:c:func:`intc2_get_affinity`. Affinity is edge selection, not graph
+mutation: a call selects among the per-CPU delivery edges the node already
+has from the devicetree, within the node's advertised
+``INTC2_NODE_AFFINITY_*`` capability class, and lines start out routed to
+:kconfig:option:`CONFIG_INTC2_AFFINITY_DEFAULT_MASK`.
+
 .. doxygengroup:: intc2_apis
 
 Suggested Uses

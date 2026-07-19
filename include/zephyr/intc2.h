@@ -117,6 +117,23 @@ static inline int intc2_set_priority(struct intc2_spec spec, uint32_t prio, uint
 	return -ENOSYS;
 }
 
+static inline int intc2_set_affinity(struct intc2_spec spec, uint32_t cpumask)
+{
+	ARG_UNUSED(spec);
+	ARG_UNUSED(cpumask);
+
+	/* the legacy backend has no portable affinity control */
+	return -ENOSYS;
+}
+
+static inline int intc2_get_affinity(struct intc2_spec spec, uint32_t *cpumask)
+{
+	ARG_UNUSED(spec);
+	ARG_UNUSED(cpumask);
+
+	return -ENOSYS;
+}
+
 #ifdef CONFIG_DYNAMIC_INTERRUPTS
 static inline int intc2_connect_dynamic(struct intc2_spec spec, uint32_t prio,
 					void (*isr)(const void *arg), const void *arg,
@@ -146,6 +163,27 @@ struct intc2_node;
  * share one dispatch table (see CONFIG_INTC2_LEGACY_BRIDGE).
  */
 #define INTC2_NODE_ROOT_BRIDGE BIT(0)
+
+/**
+ * @name Node flags: affinity capability class
+ *
+ * What the node's routing hardware can do, for nodes that provide the
+ * set_affinity/get_affinity ops (CONFIG_INTC2_AFFINITY). A zero field
+ * means fixed routing. Affinity only selects among the per-CPU delivery
+ * edges the node already has from the devicetree; single-target
+ * hardware delivers to the first (lowest-numbered) CPU of the mask.
+ *
+ * @{
+ */
+/** One target CPU at a time (e.g. GICv3 IROUTER, APLIC direct) */
+#define INTC2_NODE_AFFINITY_SINGLE_TARGET (1U << 1)
+/** Arbitrary CPU sets (e.g. PLIC per-hart enables, GICv2 ITARGETSR) */
+#define INTC2_NODE_AFFINITY_MULTI_TARGET  (2U << 1)
+/** Hardware picks one CPU of the set per delivery (e.g. GICv3 1-of-N) */
+#define INTC2_NODE_AFFINITY_ONE_OF_N      (3U << 1)
+/** Field mask for the capability class bits */
+#define INTC2_NODE_AFFINITY_MASK          (3U << 1)
+/** @} */
 
 /**
  * @brief Interrupt specification: one input line of one controller node.
@@ -199,6 +237,14 @@ __subsystem struct intc2_driver_api {
 	/** Optional: program priority/flags of @a line */
 	int (*set_priority)(const struct intc2_node *node, uint32_t line,
 			    uint32_t prio, uint32_t flags);
+#ifdef CONFIG_INTC2_AFFINITY
+	/** Optional: deliver @a line to (one of) the CPUs in @a cpumask */
+	int (*set_affinity)(const struct intc2_node *node, uint32_t line,
+			    uint32_t cpumask);
+	/** Optional: report the CPU routing mask of @a line */
+	int (*get_affinity)(const struct intc2_node *node, uint32_t line,
+			    uint32_t *cpumask);
+#endif
 	/** Claim the highest-precedence pending line, or a negative value */
 	int32_t (*get_pending)(const struct intc2_node *node);
 	/** Optional: complete/EOI a claimed @a line */
@@ -582,6 +628,68 @@ static inline int intc2_set_priority(struct intc2_spec spec, uint32_t prio, uint
 	}
 
 	return api->set_priority(spec.node, spec.line, prio, flags);
+}
+
+/**
+ * @brief Route the interrupt line described by @a spec to the CPUs in
+ * @a cpumask.
+ *
+ * Affinity is edge selection, not graph mutation: the call selects
+ * among the per-CPU delivery edges the node already has, within the
+ * limits of its INTC2_NODE_AFFINITY_* capability class. Takes effect
+ * immediately, also on an enabled line.
+ *
+ * @retval 0 on success
+ * @retval -ENOSYS when CONFIG_INTC2_AFFINITY is disabled
+ * @retval -ENOTSUP when the node has fixed routing
+ * @retval -EINVAL when the mask is empty or names no reachable CPU
+ */
+static inline int intc2_set_affinity(struct intc2_spec spec, uint32_t cpumask)
+{
+#ifdef CONFIG_INTC2_AFFINITY
+	const struct intc2_driver_api *api = spec.node->api;
+
+	if (api->set_affinity == NULL) {
+		return -ENOTSUP;
+	}
+
+	if (cpumask == 0U) {
+		return -EINVAL;
+	}
+
+	return api->set_affinity(spec.node, spec.line, cpumask);
+#else
+	ARG_UNUSED(spec);
+	ARG_UNUSED(cpumask);
+
+	return -ENOSYS;
+#endif
+}
+
+/**
+ * @brief Get the CPU routing mask of the interrupt line described by
+ * @a spec.
+ *
+ * @retval 0 on success, with the mask written to @a cpumask
+ * @retval -ENOSYS when CONFIG_INTC2_AFFINITY is disabled
+ * @retval -ENOTSUP when the node has fixed routing
+ */
+static inline int intc2_get_affinity(struct intc2_spec spec, uint32_t *cpumask)
+{
+#ifdef CONFIG_INTC2_AFFINITY
+	const struct intc2_driver_api *api = spec.node->api;
+
+	if (api->get_affinity == NULL) {
+		return -ENOTSUP;
+	}
+
+	return api->get_affinity(spec.node, spec.line, cpumask);
+#else
+	ARG_UNUSED(spec);
+	ARG_UNUSED(cpumask);
+
+	return -ENOSYS;
+#endif
 }
 
 /** @cond INTERNAL_HIDDEN */

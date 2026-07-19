@@ -765,6 +765,25 @@ config INTC2_DYNAMIC
 	  devicetree properties that describe software policy rather than
 	  hardware.
 
+config INTC2_AFFINITY
+	bool "intc2 runtime IRQ-to-CPU routing"
+	depends on INTC2
+	help
+	  Enable the optional set_affinity/get_affinity controller ops and
+	  the intc2_set_affinity()/intc2_get_affinity() calls. Affinity
+	  selects among the per-CPU delivery edges a controller node
+	  already has from the devicetree; the graph topology itself stays
+	  const, and the RAM selection state lives in the drivers, so the
+	  cost is zero when this option is disabled.
+
+config INTC2_AFFINITY_DEFAULT_MASK
+	hex "Boot-time CPU mask for routable interrupt lines"
+	depends on INTC2_AFFINITY
+	default 0x1
+	help
+	  CPU mask that controllers with routable lines apply to every
+	  line at init, before any intc2_set_affinity() call is made.
+
 config IRQ_OFFLOAD_NESTED
 	bool "irq_offload() supports nested IRQs"
 	depends on IRQ_OFFLOAD

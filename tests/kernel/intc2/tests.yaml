@@ -32,3 +32,6 @@ tests:
     extra_configs:
       - CONFIG_INTC2_SHARED=y
       - CONFIG_INTC2_DYNAMIC=y
+  kernel.intc2.affinity:
+    extra_configs:
+      - CONFIG_INTC2_AFFINITY=y

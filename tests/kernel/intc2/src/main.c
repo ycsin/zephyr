@@ -350,3 +350,61 @@ ZTEST(intc2_dynamic, test_connect_out_of_range)
 	zassert_equal(intc2_connect_dynamic(spec, 0, dyn_isr, NULL, 0), -EINVAL);
 }
 #endif /* CONFIG_INTC2_DYNAMIC */
+
+ZTEST_SUITE(intc2_affinity, NULL, NULL, intc2_test_before, NULL, NULL);
+
+ZTEST(intc2_affinity, test_affinity_roundtrip)
+{
+#ifndef CONFIG_INTC2_AFFINITY
+	ztest_test_skip();
+#else
+	struct intc2_spec spec = INTC2_DT_SPEC_GET(DEV_A_NODE);
+	uint32_t mask = 0xa5a5a5a5;
+
+	zassert_equal(spec.node->flags & INTC2_NODE_AFFINITY_MASK,
+		      INTC2_NODE_AFFINITY_MULTI_TARGET);
+
+	/* the controller applies the boot default in its init op */
+	zassert_ok(intc2_get_affinity(spec, &mask));
+	zassert_equal(mask, CONFIG_INTC2_AFFINITY_DEFAULT_MASK);
+
+	zassert_ok(intc2_set_affinity(spec, BIT(0)));
+	zassert_ok(intc2_get_affinity(spec, &mask));
+	zassert_equal(mask, BIT(0));
+
+	/* routing does not disturb dispatch */
+	intc2_enable(spec);
+	trigger(ROOT, spec.line);
+	zassert_equal(a_count, 1);
+	intc2_disable(spec);
+#endif
+}
+
+ZTEST(intc2_affinity, test_affinity_bad_mask)
+{
+#ifndef CONFIG_INTC2_AFFINITY
+	ztest_test_skip();
+#else
+	struct intc2_spec spec = INTC2_DT_SPEC_GET(DEV_A_NODE);
+
+	/* empty masks are rejected in the core */
+	zassert_equal(intc2_set_affinity(spec, 0), -EINVAL);
+
+	/* unreachable CPUs are rejected by the controller */
+	zassert_equal(intc2_set_affinity(spec, BIT(31)), -EINVAL);
+#endif
+}
+
+ZTEST(intc2_affinity, test_affinity_fixed_routing)
+{
+#ifndef CONFIG_INTC2_AFFINITY
+	ztest_test_skip();
+#else
+	struct intc2_spec spec = {.node = L2, .line = 0};
+	uint32_t mask;
+
+	zassert_equal(spec.node->flags & INTC2_NODE_AFFINITY_MASK, 0);
+	zassert_equal(intc2_set_affinity(spec, BIT(0)), -ENOTSUP);
+	zassert_equal(intc2_get_affinity(spec, &mask), -ENOTSUP);
+#endif
+}
