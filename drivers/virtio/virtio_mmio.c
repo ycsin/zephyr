@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel/mm.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/spinlock.h>
@@ -322,10 +323,10 @@ static int virtio_mmio_init_common(const struct device *dev)
 	};                                                                                         \
 	static int virtio_mmio_init##inst(const struct device *dev)                                \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), virtio_mmio_isr,      \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), virtio_mmio_isr,      \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
 		int ret = virtio_mmio_init_common(dev);                                            \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 		return ret;                                                                        \
 	}                                                                                          \
 	DEVICE_DT_INST_DEFINE(inst, virtio_mmio_init##inst, NULL, &virtio_mmio_data##inst,         \
