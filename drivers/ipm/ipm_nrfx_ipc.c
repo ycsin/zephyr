@@ -8,6 +8,7 @@
 
 #include <string.h>
 #include <zephyr/drivers/ipm.h>
+#include <zephyr/intc2.h>
 #include <nrfx_ipc.h>
 #include "ipm_nrfx_ipc.h"
 
@@ -81,10 +82,10 @@ static int ipm_nrf_set_enabled(const struct device *dev, int enable)
 {
 	/* Enable configured channels */
 	if (enable) {
-		irq_enable(DT_INST_IRQN(0));
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 		nrfx_ipc_receive_event_group_enable((uint32_t)IPC_EVENT_BITS);
 	} else {
-		irq_disable(DT_INST_IRQN(0));
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 		nrfx_ipc_receive_event_group_disable((uint32_t)IPC_EVENT_BITS);
 	}
 	return 0;
@@ -200,7 +201,7 @@ static int vipm_nrf_##_idx##_set_enabled(const struct device *dev, int enable)\
 		LOG_ERR("IPM_" #_idx " is TX message channel");		\
 		return -EINVAL;						\
 	} else if (enable) {						\
-		irq_enable(DT_INST_IRQN(0));		\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));		\
 		nrfx_ipc_receive_event_enable(_idx);			\
 	} else if (!enable) {						\
 		nrfx_ipc_receive_event_disable(_idx);			\
@@ -236,7 +237,7 @@ static void gipm_init(void)
 #else
 	nrfx_ipc_init(0, vipm_dispatcher, (void *)&nrfx_ipm_data);
 #endif
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    nrfx_isr, nrfx_ipc_irq_handler, 0);
 

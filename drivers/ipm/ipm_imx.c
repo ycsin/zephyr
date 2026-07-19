@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <string.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <soc.h>
 #include <zephyr/drivers/ipm.h>
 #include <zephyr/irq.h>
@@ -353,9 +354,9 @@ DEVICE_DT_INST_DEFINE(0,
 
 static void imx_mu_config_func_b(const struct device *dev)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    imx_mu_isr, DEVICE_DT_INST_GET(0), 0);
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }

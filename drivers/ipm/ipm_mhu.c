@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <soc.h>
 #include <zephyr/irq.h>
 #include "ipm_mhu.h"
@@ -194,12 +195,12 @@ DEVICE_DT_INST_DEFINE(0,
 static void ipm_mhu_irq_config_func_0(const struct device *d)
 {
 	ARG_UNUSED(d);
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 			DT_INST_IRQ(0, priority),
 			ipm_mhu_isr,
 			DEVICE_DT_INST_GET(0),
 			0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 
 static void ipm_mhu_irq_config_func_1(const struct device *d);
@@ -225,10 +226,10 @@ DEVICE_DT_INST_DEFINE(1,
 static void ipm_mhu_irq_config_func_1(const struct device *d)
 {
 	ARG_UNUSED(d);
-	IRQ_CONNECT(DT_INST_IRQN(1),
+	INTC2_DT_INST_CONNECT_INLINE(1,
 			DT_INST_IRQ(1, priority),
 			ipm_mhu_isr,
 			DEVICE_DT_INST_GET(1),
 			0);
-	irq_enable(DT_INST_IRQN(1));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(1));
 }

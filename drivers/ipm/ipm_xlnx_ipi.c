@@ -10,6 +10,7 @@
 
 #include <errno.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/ipm.h>
 #include <zephyr/irq.h>
 
@@ -243,11 +244,11 @@ static DEVICE_API(ipm, xlnx_ipi_api) = {
 			      POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT, NULL);             \
 	static int xlnx_ipi_config_func##inst(const struct device *dev)                            \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), xlnx_mailbox_rx_isr,  \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), xlnx_mailbox_rx_isr,  \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 		LOG_DBG("irq %d is enabled: %s\n", DT_INST_IRQN(inst),                             \
-			irq_is_enabled(DT_INST_IRQN(inst)) ? "true" : "false");                    \
+			intc2_is_enabled((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst)) ? "true" : "false");                    \
 		return 0;                                                                          \
 	}
 

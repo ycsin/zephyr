@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT st_stm32_hsem_mailbox
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/ipm.h>
 #include <zephyr/drivers/clock_control/stm32_clock_control.h>
@@ -69,11 +70,11 @@ static void stm32_hsem_mailbox_irq_config_func(const struct device *dev)
 {
 	ARG_UNUSED(dev);
 
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    stm32_hsem_mailbox_ipm_rx_isr, DEVICE_DT_INST_GET(0), 0);
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 
 int stm32_hsem_mailbox_ipm_send(const struct device *dev, int wait, uint32_t id,

@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT intel_sedi_ipm
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/pm/device.h>
 #include <zephyr/drivers/ipm.h>
@@ -279,7 +280,7 @@ static DEVICE_API(ipm, ipm_funcs) = {
 	};								\
 	static void ipm_##n##_irq_config(void)				\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n),				\
+		INTC2_DT_INST_CONNECT_INLINE(n,				\
 			    DT_INST_IRQ(n, priority), sedi_ipc_isr,	\
 			    DT_INST_PROP(n, peripheral_id),		\
 			    DT_INST_IRQ(n, flags));			\
