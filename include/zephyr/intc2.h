@@ -361,7 +361,7 @@ BUILD_ASSERT(sizeof(struct intc2_entry) == 2 * sizeof(void *), "no padding allow
  * which targets without absolute addressing (e.g. RISC-V) reject;
  * their plain operand printing is already punctuation-free.
  */
-#if defined(CONFIG_ARM) || defined(CONFIG_ARM64) || defined(CONFIG_X86)
+#if defined(CONFIG_ARM) || defined(CONFIG_ARM64) || defined(CONFIG_X86) || defined(CONFIG_RX)
 #define Z_INTC2_ASM_OPND(n) "%c" STRINGIFY(n)
 #else
 #define Z_INTC2_ASM_OPND(n) "%" STRINGIFY(n)

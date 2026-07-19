@@ -25,8 +25,11 @@ KEEP(*(.intc2_entry.*))
 #ifdef CONFIG_INTC2_LEGACY_BRIDGE
 /*
  * Pass-0 placeholder for the bridged legacy table symbol; the real
- * definition comes from the generated fragment in later passes.
+ * definition comes from the generated fragment in later passes. The
+ * second spelling serves toolchains that prefix C symbols with an
+ * underscore (e.g. RX).
  */
 PROVIDE(_sw_isr_table = .);
+PROVIDE(__sw_isr_table = .);
 #endif
 #endif

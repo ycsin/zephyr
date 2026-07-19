@@ -45,8 +45,8 @@ config INTC2_ROOT_ARCV2
 	select INTC2_ROOT_GENERIC
 
 config INTC2_ROOT_RX_ICU
-	# opt-in pending bridge validation: early CPU exception (suspected start-vector/ABI interplay)
 	bool "intc2 root node for the Renesas RX ICU"
+	default y
 	depends on INTC2 && RX && DT_HAS_RENESAS_RX_ICU_ENABLED
 	depends on !ISR_TABLES_LOCAL_DECLARATION
 	select INTC2_ROOT_GENERIC

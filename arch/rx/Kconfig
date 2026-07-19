@@ -55,6 +55,8 @@ config GEN_ISR_TABLES
 	default y
 
 config GEN_SW_ISR_TABLE
+	# the bridged intc2 root table takes over _sw_isr_table
+	default n if INTC2_LEGACY_BRIDGE
 	default y
 
 config GEN_IRQ_VECTOR_TABLE
