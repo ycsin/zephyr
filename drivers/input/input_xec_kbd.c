@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <soc.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/dt-bindings/interrupt-controller/mchp-xec-ecia.h>
 #include <zephyr/input/input.h>
@@ -70,7 +71,7 @@ static void xec_kbd_isr(const struct device *dev)
 	struct xec_kbd_config const *cfg = dev->config;
 
 	soc_ecia_girq_status_clear(cfg->girq, cfg->girq_pos);
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	input_kbd_matrix_poll_start(dev);
 }
@@ -91,7 +92,7 @@ static void xec_kbd_set_detect_mode(const struct device *dev, bool enabled)
 
 		soc_ecia_girq_status_clear(cfg->girq, cfg->girq_pos);
 		NVIC_ClearPendingIRQ(DT_INST_IRQN(0));
-		irq_enable(DT_INST_IRQN(0));
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	} else {
 		pm_policy_state_lock_get(PM_STATE_SUSPEND_TO_IDLE,
 					 PM_ALL_SUBSTATES);
@@ -168,7 +169,7 @@ static int xec_kbd_init(const struct device *dev)
 	sys_write32(MCHP_KSCAN_KSI_IEN_REG_MASK, base + XEC_KBD_KSI_IEN_OFS);
 
 	/* Interrupts are enabled in the thread function */
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		    xec_kbd_isr, DEVICE_DT_INST_GET(0), 0);
 
 	soc_ecia_girq_status_clear(cfg->girq, cfg->girq_pos);

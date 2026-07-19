@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/input/input.h>
 #include <zephyr/logging/log.h>
@@ -171,7 +172,7 @@ static int input_kpp_init(const struct device *dev)
 
 	k_work_init_delayable(&drv_data->work, kpp_work_handler);
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		kpp_isr, DEVICE_DT_INST_GET(0), 0);
 	return 0;
 }

@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT realtek_rts5912_kbd
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/clock_control_rts5912.h>
@@ -150,7 +151,7 @@ static int rts5912_kbd_init(const struct device *dev)
 
 	NVIC_ClearPendingIRQ(DT_INST_IRQN(0));
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), rts5912_kbd_isr,
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), rts5912_kbd_isr,
 		    DEVICE_DT_INST_GET(0), 0);
 
 	return input_kbd_matrix_common_init(dev);

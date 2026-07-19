@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT nxp_tsi_input
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/input/input.h>
 #include <zephyr/drivers/clock_control.h>
@@ -313,12 +314,12 @@ static int mcux_tsi_init(const struct device *dev)
 										\
 	static void mcux_tsi_irq_config_##n(const struct device *dev)		\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(n),					\
+		INTC2_DT_INST_CONNECT_INLINE(n,					\
 			    DT_INST_IRQ(n, priority),				\
 			    mcux_tsi_isr,					\
 			    DEVICE_DT_INST_GET(n),				\
 			    0);							\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}									\
 										\
 	static const struct mcux_tsi_config mcux_tsi_config_##n = {		\

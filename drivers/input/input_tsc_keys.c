@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <zephyr/autoconf.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
@@ -307,9 +308,9 @@ static int stm32_tsc_init(const struct device *dev)
                                                                                                    \
 	static void stm32_tsc_irq_init_##index(void)                                               \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(index), DT_INST_IRQ(index, priority), stm32_tsc_isr,      \
+		INTC2_DT_INST_CONNECT_INLINE(index, DT_INST_IRQ(index, priority), stm32_tsc_isr,      \
 			    DEVICE_DT_INST_GET(index), 0);                                         \
-		irq_enable(DT_INST_IRQN(index));                                                   \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(index));                                                   \
 	};                                                                                         \
                                                                                                    \
 	static const struct stm32_tsc_group_config group_config_cfg_##index[] = {                  \

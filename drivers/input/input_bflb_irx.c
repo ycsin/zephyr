@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT bflb_irx
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/input/input.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
@@ -417,12 +418,12 @@ static void bflb_irx_isr(const struct device *dev)
 #define IRX_BFLB_IRQ_HANDLER(n)						\
 	static void bflb_irx_config_func_##n(const struct device *dev)	\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n),				\
+		INTC2_DT_INST_CONNECT_INLINE(n,				\
 			    DT_INST_IRQ(n, priority),			\
 			    bflb_irx_isr,				\
 			    DEVICE_DT_INST_GET(n),			\
 			    0);						\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}
 
 #define BFLB_IRX_DEFINE(inst)									\
