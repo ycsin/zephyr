@@ -6,6 +6,7 @@
 
 #include "emul_intc.h"
 
+#include <zephyr/device.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/util.h>
 
@@ -68,7 +69,7 @@ static void emul_intc_init(const struct intc2_node *node)
 	emul_intc_regs(node)->inited = true;
 }
 
-static const struct intc2_api emul_intc_api = {
+static DEVICE_API(intc2, emul_intc_api) = {
 	.enable = emul_intc_enable,
 	.disable = emul_intc_disable,
 	.is_enabled = emul_intc_is_enabled,

@@ -77,8 +77,13 @@ struct intc2_entry {
  * All ops take the node itself; drivers reach their register block through
  * node->config. Dispatch-path ops (get_pending, eoi) execute on the CPU
  * that took the interrupt.
+ *
+ * Drivers must declare their instance with the standard driver-class
+ * convention so that it participates in DEVICE_API_IS() checks:
+ *
+ *     static DEVICE_API(intc2, my_driver_api) = { .enable = ..., };
  */
-struct intc2_api {
+__subsystem struct intc2_driver_api {
 	/** Unmask @a line */
 	void (*enable)(const struct intc2_node *node, uint32_t line);
 	/** Mask @a line */
@@ -104,7 +109,7 @@ struct intc2_api {
  * unless CONFIG_INTC2_DYNAMIC places the dispatch tables in RAM.
  */
 struct intc2_node {
-	const struct intc2_api *api;
+	const struct intc2_driver_api *api;
 	/** Driver private constant configuration (register base etc.) */
 	const void *config;
 	/**
@@ -266,7 +271,7 @@ DT_FOREACH_STATUS_OKAY_NODE(Z_INTC2_MAYBE_NODE_DECLARE)
  * by the build-time generator.
  *
  * @param node_id devicetree node identifier of the controller
- * @param api_ pointer to the driver's const struct intc2_api
+ * @param api_ pointer to the driver's const struct intc2_driver_api
  * @param config_ driver private const configuration pointer
  * @param nlines_ number of input lines the controller has
  * @param flags_ node flags (reserved, pass 0)
@@ -377,7 +382,7 @@ static inline int intc2_is_enabled(struct intc2_spec spec)
  */
 static inline int intc2_set_priority(struct intc2_spec spec, uint32_t prio, uint32_t flags)
 {
-	const struct intc2_api *api = spec.node->api;
+	const struct intc2_driver_api *api = spec.node->api;
 
 	if (api->set_priority == NULL) {
 		return -ENOSYS;
@@ -438,7 +443,7 @@ z_intc2_lookup(const struct intc2_node *node, uint32_t line)
  */
 static inline void intc2_dispatch(const struct intc2_node *node)
 {
-	const struct intc2_api *api = node->api;
+	const struct intc2_driver_api *api = node->api;
 	int32_t line;
 
 	while ((line = api->get_pending(node)) >= 0) {
