@@ -98,13 +98,19 @@ tests:
       - CONFIG_SPEED_OPTIMIZATIONS=y
   arch.interrupt.intc2_bridge:
     # legacy interrupt machinery running on the bridged intc2 root table
-    platform_allow: qemu_cortex_m3
+    platform_allow:
+      - qemu_cortex_m3
+      - qemu_riscv32
+      - qemu_riscv64
     integration_platforms:
       - qemu_cortex_m3
     extra_configs:
       - CONFIG_INTC2=y
   arch.shared_interrupt.intc2_bridge:
-    platform_allow: qemu_cortex_m3
+    platform_allow:
+      - qemu_cortex_m3
+      - qemu_riscv32
+      - qemu_riscv64
     integration_platforms:
       - qemu_cortex_m3
     extra_configs:
