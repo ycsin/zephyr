@@ -52,8 +52,8 @@ config INTC2_ROOT_RX_ICU
 	select INTC2_ROOT_GENERIC
 
 config INTC2_ROOT_XTENSA_CORE_INTC
-	# opt-in pending bridge validation: hangs at boot
 	bool "intc2 root node for the Xtensa core interrupt controller"
+	default y
 	depends on INTC2 && XTENSA && DT_HAS_CDNS_XTENSA_CORE_INTC_ENABLED
 	depends on !ISR_TABLES_LOCAL_DECLARATION
 	# only the flat dc233c core for now: SoCs with level-2 aggregators

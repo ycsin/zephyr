@@ -108,6 +108,7 @@ tests:
       - qemu_or1k
       - qemu_rx
       - qemu_arc/qemu_arc_em
+      - qemu_xtensa/dc233c
     integration_platforms:
       - qemu_cortex_m3
     extra_configs:

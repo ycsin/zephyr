@@ -1718,7 +1718,7 @@ add_dependencies(
   linker_zephyr_prebuilt_script_target
   )
 
-set(generated_kernel_files ${GKSF} ${GKOF})
+set(generated_kernel_files ${GKSF} ${GKOF} ${GASF})
 if(NOT generated_kernel_files)
   # Use the prebuilt elf as the final elf since we don't have a
   # generation stage.
