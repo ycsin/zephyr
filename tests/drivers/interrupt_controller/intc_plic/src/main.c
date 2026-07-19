@@ -35,15 +35,18 @@ ZTEST(intc_plic, test_hart_context_mapping)
 	extern const uint32_t plic_hart_contexts_0[];
 
 	if (!IS_ENABLED(CONFIG_TEST_INTC_PLIC_ALT_MAPPING)) {
-		/* Based on the default qemu_riscv64 devicetree */
+		/*
+		 * Based on the default qemu_riscv64 devicetree: one
+		 * machine-mode context per hart (QEMU hart-config "M,M,...")
+		 */
 		zassert_equal(plic_hart_contexts_0[0], 0);
-		zassert_equal(plic_hart_contexts_0[1], 2);
-		zassert_equal(plic_hart_contexts_0[2], 4);
-		zassert_equal(plic_hart_contexts_0[3], 6);
-		zassert_equal(plic_hart_contexts_0[4], 8);
-		zassert_equal(plic_hart_contexts_0[5], 10);
-		zassert_equal(plic_hart_contexts_0[6], 12);
-		zassert_equal(plic_hart_contexts_0[7], 14);
+		zassert_equal(plic_hart_contexts_0[1], 1);
+		zassert_equal(plic_hart_contexts_0[2], 2);
+		zassert_equal(plic_hart_contexts_0[3], 3);
+		zassert_equal(plic_hart_contexts_0[4], 4);
+		zassert_equal(plic_hart_contexts_0[5], 5);
+		zassert_equal(plic_hart_contexts_0[6], 6);
+		zassert_equal(plic_hart_contexts_0[7], 7);
 	} else {
 		/* Based on the definition in the `alt_mapping.overlay` */
 		zassert_equal(plic_hart_contexts_0[0], 0);
