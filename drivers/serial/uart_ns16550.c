@@ -21,6 +21,7 @@
 
 #include <errno.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/arch/cpu.h>
 #include <zephyr/types.h>
 
@@ -1940,10 +1941,10 @@ static DEVICE_API(uart, uart_ns16550_driver_api) = {
 	static void uart_ns16550_irq_config_func##n(const struct device *dev) \
 	{                                                                     \
 		ARG_UNUSED(dev);                                              \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),	      \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),	      \
 			    uart_ns16550_isr, DEVICE_DT_INST_GET(n),	      \
 			    UART_NS16550_IRQ_FLAGS(n));			      \
-		irq_enable(DT_INST_IRQN(n));                                  \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                  \
 	}
 
 /* PCI(e) with auto IRQ detection */

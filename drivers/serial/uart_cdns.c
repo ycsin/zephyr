@@ -1,3 +1,4 @@
+#include <zephyr/intc2.h>
 /*
  * Copyright 2022 Meta Platforms, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
@@ -265,10 +266,10 @@ static int uart_cdns_init(const struct device *dev)
 #define UART_CDNS_IRQ_CFG_FUNC(n)								   \
 	static void uart_cdns_irq_cfg_func_##n(void)						   \
 	{											   \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), uart_cdns_irq_handler,	   \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), uart_cdns_irq_handler,	   \
 			    DEVICE_DT_INST_GET(n), 0);						   \
 												   \
-		irq_enable(DT_INST_IRQN(n));							   \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));							   \
 	}
 
 #define UART_CDNS_IRQ_CFG_FUNC_INIT(n) .cfg_func = uart_cdns_irq_cfg_func_##n,

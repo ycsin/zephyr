@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT silabs_si32_usart
 
 #include <zephyr/drivers/clock_control.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/init.h>
 #include <zephyr/kernel.h>
@@ -349,9 +350,9 @@ static int usart_si32_init(const struct device *dev)
 #define SI32_USART_IRQ_HANDLER(index)                                                              \
 	static void usart_si32_irq_config_func_##index(const struct device *dev)                   \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(index), DT_INST_IRQ(index, priority),                     \
+		INTC2_DT_INST_CONNECT_INLINE(index, DT_INST_IRQ(index, priority),                     \
 			    usart_si32_irq_handler, DEVICE_DT_INST_GET(index), 0);                 \
-		irq_enable(DT_INST_IRQN(index));                                                   \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(index));                                                   \
 	}
 #else
 #define SI32_USART_IRQ_HANDLER_DECL(index) /* Not used */

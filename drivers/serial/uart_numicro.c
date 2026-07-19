@@ -9,6 +9,7 @@
 #define DT_DRV_COMPAT nuvoton_numicro_uart
 
 #include <zephyr/drivers/uart.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/reset.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/clock_control_numicro.h>
@@ -427,9 +428,9 @@ static DEVICE_API(uart, numicro_uart_driver_api) = {
 #define NUMICRO_UART_IRQ_CONFIG_FUNC(inst)                                                         \
 	static void NUMICRO_UART_IRQ_FN_NAME(inst)(const struct device *dev)                       \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), numicro_uart_isr,     \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), numicro_uart_isr,     \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 	}
 #define NUMICRO_UART_DEFINE_IRQ(inst) .irq_config_func = NUMICRO_UART_IRQ_FN_NAME(inst)
 #else /* CONFIG_UART_INTERRUPT_DRIVEN */

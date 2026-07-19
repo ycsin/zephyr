@@ -12,6 +12,7 @@
 
 #include <errno.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/irq.h>
@@ -1620,7 +1621,7 @@ static DEVICE_API(uart, mcux_lpuart_driver_api) = {
 #ifdef CONFIG_UART_MCUX_LPUART_ISR_SUPPORT
 #define MCUX_LPUART_IRQ_INSTALL(n, i)					\
 	do {								\
-		IRQ_CONNECT(DT_INST_IRQN_BY_IDX(n, i),			\
+		INTC2_DT_INST_CONNECT_INLINE_BY_IDX(n, i,			\
 			    DT_INST_IRQ_BY_IDX(n, i, priority),		\
 			    mcux_lpuart_isr, DEVICE_DT_INST_GET(n), 0);	\
 									\

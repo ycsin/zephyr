@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT shakti_uart
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/irq.h>
@@ -230,9 +231,9 @@ static DEVICE_API(uart, uart_shakti_driver_api) = {
 #define UART_SHAKTI_IRQ_CONFIG(n)                                                 \
 	static void uart_shakti_irq_config_##n(const struct device *dev)              \
 	{                                                                             \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),                    \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),                    \
 			    uart_shakti_isr, DEVICE_DT_INST_GET(n), 0);                       \
-		irq_enable(DT_INST_IRQN(n));                                              \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                              \
 	}
 #define UART_SHAKTI_IRQ_FUNC_INIT(n) .irq_config_func = uart_shakti_irq_config_##n,
 #define UART_SHAKTI_DATA(n) static struct uart_shakti_data uart_shakti_data_##n;

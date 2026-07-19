@@ -12,6 +12,7 @@
  */
 
 #include <zephyr/drivers/uart.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/pm/device.h>
 #include <zephyr/arch/common/sys_io.h>
@@ -593,12 +594,12 @@ static DEVICE_API(uart, uart_bflb_driver_api) = {
 #define BFLB_UART_IRQ_HANDLER(instance)							\
 	static void uart_bflb_config_func_##instance(const struct device *dev)	\
 	{										\
-		IRQ_CONNECT(DT_INST_IRQN(instance),					\
+		INTC2_DT_INST_CONNECT_INLINE(instance,					\
 			    DT_INST_IRQ(instance, priority),				\
 			    uart_bflb_isr,						\
 			    DEVICE_DT_INST_GET(instance),				\
 			    0);								\
-		irq_enable(DT_INST_IRQN(instance));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(instance));					\
 	}
 #else /* CONFIG_UART_INTERRUPT_DRIVEN */
 #define BFLB_UART_IRQ_HANDLER_DECL(instance)

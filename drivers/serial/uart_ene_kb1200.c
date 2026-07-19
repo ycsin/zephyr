@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ene_kb1200_uart
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <reg/ser.h>
@@ -349,9 +350,9 @@ static void kb1200_uart_irq_init(void)
 {
 	if (init_irq) {
 		init_irq = false;
-		IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), kb1200_uart_isr_wrap, NULL,
+		INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), kb1200_uart_isr_wrap, NULL,
 			    0);
-		irq_enable(DT_INST_IRQN(0));
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	}
 }
 #endif /* CONFIG_UART_INTERRUPT_DRIVEN */

@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/pm/device.h>
@@ -752,12 +753,12 @@ static DEVICE_API(uart, uart_smartbond_driver_api) = {
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 #define UART_SMARTBOND_CONFIGURE(id)			\
 	do {						\
-		IRQ_CONNECT(DT_INST_IRQN(id),		\
+		INTC2_DT_INST_CONNECT_INLINE(id,		\
 			    DT_INST_IRQ(id, priority),	\
 			    uart_smartbond_isr,		\
 			    DEVICE_DT_INST_GET(id), 0);	\
 							\
-		irq_enable(DT_INST_IRQN(id));		\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(id));		\
 	} while (0)
 #else
 #define UART_SMARTBOND_CONFIGURE(id)

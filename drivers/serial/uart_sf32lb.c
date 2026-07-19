@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT sifli_sf32lb_usart
 
 #include <zephyr/arch/cpu.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/clock_control/sf32lb.h>
@@ -921,9 +922,9 @@ static int uart_sf32lb_init(const struct device *dev)
 	IF_ENABLED(CONFIG_UART_INTERRUPT_DRIVEN,                                                   \
 	(static void uart_sf32lb_irq_config_func_##index(const struct device *dev)                 \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(index), DT_INST_IRQ(index, priority), uart_sf32lb_isr,    \
+		INTC2_DT_INST_CONNECT_INLINE(index, DT_INST_IRQ(index, priority), uart_sf32lb_isr,    \
 			    DEVICE_DT_INST_GET(index), 0);                                         \
-		irq_enable(DT_INST_IRQN(index));                                                   \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(index));                                                   \
 	}));                                                                                       \
                                                                                                    \
 	static const struct uart_sf32lb_config uart_sf32lb_cfg_##index = {                         \

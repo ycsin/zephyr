@@ -23,6 +23,7 @@
 
 #include <errno.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/arch/cpu.h>
 #include <zephyr/types.h>
 
@@ -1175,9 +1176,9 @@ static DEVICE_API(uart, uart_xlnx_ps_driver_api) = {
 #define UART_XLNX_PS_IRQ_CONF_FUNC(port)                                                           \
 	static void uart_xlnx_ps_irq_config_##port(const struct device *dev)                       \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(port), DT_INST_IRQ(port, priority), uart_xlnx_ps_isr,     \
+		INTC2_DT_INST_CONNECT_INLINE(port, DT_INST_IRQ(port, priority), uart_xlnx_ps_isr,     \
 			    DEVICE_DT_INST_GET(port), 0);                                          \
-		irq_enable(DT_INST_IRQN(port));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(port));                                                    \
 	}
 
 #else

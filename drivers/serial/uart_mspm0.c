@@ -10,6 +10,7 @@
 
 /* Zephyr includes */
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/mspm0_clock_control.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -483,9 +484,9 @@ static DEVICE_API(uart, uart_mspm0_driver_api) = {
 #define MSP_UART_IRQ_DEFINE(inst)                                                               \
 	static void uart_mspm0_##inst##_irq_register(const struct device *dev)                  \
 	{                                                                                       \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), uart_mspm0_isr,    \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), uart_mspm0_isr,    \
 			    DEVICE_DT_INST_GET(inst), 0);                                       \
-		irq_enable(DT_INST_IRQN(inst));                                                 \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                 \
 	}
 #else
 #define MSP_UART_IRQ_DEFINE(inst)

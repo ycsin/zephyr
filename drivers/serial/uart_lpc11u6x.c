@@ -8,6 +8,7 @@
 #include <cmsis_core.h>
 
 #include <zephyr/drivers/uart.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/irq.h>
 
@@ -434,11 +435,11 @@ DEVICE_DT_DEFINE(DT_NODELABEL(uart0),
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 static void lpc11u6x_uart0_isr_config(const struct device *dev)
 {
-	IRQ_CONNECT(DT_IRQN(DT_NODELABEL(uart0)),
+	INTC2_DT_CONNECT_INLINE(DT_NODELABEL(uart0),
 		    DT_IRQ(DT_NODELABEL(uart0), priority),
 		    lpc11u6x_uart0_isr, DEVICE_DT_GET(DT_NODELABEL(uart0)), 0);
 
-	irq_enable(DT_IRQN(DT_NODELABEL(uart0)));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_NODELABEL(uart0)));
 }
 #endif /* CONFIG_UART_INTERRUPT_DRIVEN */
 
@@ -907,19 +908,19 @@ struct lpc11u6x_uartx_shared_irq lpc11u6x_uartx_shared_irq_info_1 = {
 static void lpc11u6x_uartx_isr_config_1(const struct device *dev)
 {
 #if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(uart1))
-	IRQ_CONNECT(DT_IRQN(DT_NODELABEL(uart1)),
+	INTC2_DT_CONNECT_INLINE(DT_NODELABEL(uart1),
 		    DT_IRQ(DT_NODELABEL(uart1), priority),
 		    lpc11u6x_uartx_shared_isr,
 		    &lpc11u6x_uartx_shared_irq_info_1,
 		    0);
-	irq_enable(DT_IRQN(DT_NODELABEL(uart1)));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_NODELABEL(uart1)));
 #else
-	IRQ_CONNECT(DT_IRQN(DT_NODELABEL(uart4)),
+	INTC2_DT_CONNECT_INLINE(DT_NODELABEL(uart4),
 		    DT_IRQ(DT_NODELABEL(uart4), priority),
 		    lpc11u6x_uartx_shared_isr,
 		    &lpc11u6x_uartx_shared_irq_info_1,
 		    0);
-	irq_enable(DT_IRQN(DT_NODELABEL(uart4)));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_NODELABEL(uart4)));
 #endif /* DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(uart1)) */
 }
 #endif /* CONFIG_UART_INTERRUPT_DRIVEN &&
@@ -948,19 +949,19 @@ struct lpc11u6x_uartx_shared_irq lpc11u6x_uartx_shared_irq_info_2 = {
 static void lpc11u6x_uartx_isr_config_2(const struct device *dev)
 {
 #if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(uart2))
-	IRQ_CONNECT(DT_IRQN(DT_NODELABEL(uart2)),
+	INTC2_DT_CONNECT_INLINE(DT_NODELABEL(uart2),
 		    DT_IRQ(DT_NODELABEL(uart2), priority),
 		    lpc11u6x_uartx_shared_isr,
 		    &lpc11u6x_uartx_shared_irq_info_2,
 		    0);
-	irq_enable(DT_IRQN(DT_NODELABEL(uart2)));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_NODELABEL(uart2)));
 #else
-	IRQ_CONNECT(DT_IRQN(DT_NODELABEL(uart3)),
+	INTC2_DT_CONNECT_INLINE(DT_NODELABEL(uart3),
 		    DT_IRQ(DT_NODELABEL(uart3), priority),
 		    lpc11u6x_uartx_shared_isr,
 		    &lpc11u6x_uartx_shared_irq_info_2,
 		    0);
-	irq_enable(DT_IRQN(DT_NODELABEL(uart3)));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_NODELABEL(uart3)));
 #endif /* DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(uart2)) */
 }
 #endif /* CONFIG_UART_INTERRUPT_DRIVEN &&

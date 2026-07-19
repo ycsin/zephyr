@@ -13,6 +13,7 @@
 
 #include <errno.h>
 #include <zephyr/sys/__assert.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/init.h>
 #include <soc.h>
@@ -449,11 +450,11 @@ static DEVICE_API(uart, uart_sam_driver_api) = {
 #define UART_SAM_CONFIG_FUNC(n)						\
 	static void uart##n##_sam_irq_config_func(const struct device *port)	\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n),				\
+		INTC2_DT_INST_CONNECT_INLINE(n,				\
 			    DT_INST_IRQ(n, priority),			\
 			    uart_sam_isr,				\
 			    DEVICE_DT_INST_GET(n), 0);			\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}
 #define UART_SAM_IRQ_CFG_FUNC_INIT(n)					\
 	.irq_config_func = uart##n##_sam_irq_config_func

@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT realtek_bee_uart
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/arch/cpu.h>
 #include <zephyr/sys/__assert.h>
 #include <soc.h>
@@ -508,9 +509,9 @@ static DEVICE_API(uart, uart_bee_driver_api) = {
 #define BEE_UART_IRQ_HANDLER(index)                                                                \
 	static void uart_bee_irq_config_func_##index(const struct device *dev)                     \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(index), DT_INST_IRQ(index, priority), uart_bee_isr,       \
+		INTC2_DT_INST_CONNECT_INLINE(index, DT_INST_IRQ(index, priority), uart_bee_isr,       \
 			    DEVICE_DT_INST_GET(index), 0);                                         \
-		irq_enable(DT_INST_IRQN(index));                                                   \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(index));                                                   \
 	}
 #else
 #define BEE_UART_IRQ_HANDLER_DECL(index) /* Not used */

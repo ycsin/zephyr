@@ -14,6 +14,7 @@
 
 #include <string.h>
 #include <zephyr/irq.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/kernel.h>
@@ -1486,7 +1487,7 @@ static DEVICE_API(uart, ifx_cat1_uart_driver_api) = {
 	}                                                                                          \
 	static void ifx_cat1_uart_irq_config_func_##n(void)                                        \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),                             \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),                             \
 			    uart_handle_events_func_##n, DEVICE_DT_INST_GET(n), 0);                \
 	}
 #define CALL_UART_IRQ_CONFIG(n) ifx_cat1_uart_irq_config_func_##n();

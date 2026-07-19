@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT focaltech_ft9001_usart
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/clock_control.h>
@@ -553,9 +554,9 @@ static DEVICE_API(uart, uart_ft9001_driver_api) = {
 #define FOCALTECH_UART_IRQ_HANDLER(idx)                                                            \
 	static void uart_ft9001_cfg_func_##idx(const struct device *dev)                           \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(idx), DT_INST_IRQ(idx, priority), uart_ft9001_isr,        \
+		INTC2_DT_INST_CONNECT_INLINE(idx, DT_INST_IRQ(idx, priority), uart_ft9001_isr,        \
 			    DEVICE_DT_INST_GET(idx), 0);                                           \
-		irq_enable(DT_INST_IRQN(idx));                                                     \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(idx));                                                     \
 	}
 #define FOCALTECH_UART_IRQ_HANDLER_FUNC_INIT(idx) .irq_config_func = uart_ft9001_cfg_func_##idx,
 #else

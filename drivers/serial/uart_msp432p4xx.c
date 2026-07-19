@@ -13,6 +13,7 @@
 #include <driverlib/gpio.h>
 
 #include <zephyr/drivers/uart.h>
+#include <zephyr/intc2.h>
 
 /* Driverlib includes */
 #include <driverlib/rom.h>
@@ -143,11 +144,11 @@ static int uart_msp432p4xx_init(const struct device *dev)
 	MAP_UART_enableModule(config->base);
 
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 			DT_INST_IRQ(0, priority),
 			uart_msp432p4xx_isr, DEVICE_DT_INST_GET(0),
 			0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 #endif
 	return 0;

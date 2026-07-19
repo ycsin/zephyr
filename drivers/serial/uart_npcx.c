@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nuvoton_npcx_uart
 
 #include <zephyr/sys/__assert.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/uart.h>
@@ -1214,9 +1215,9 @@ static int uart_npcx_init(const struct device *dev)
 #define NPCX_UART_IRQ_CONFIG_FUNC(inst)                                                            \
 	static void uart_npcx_irq_config_##inst(const struct device *dev)                          \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), uart_npcx_isr,        \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), uart_npcx_isr,        \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 	}
 #else
 #define NPCX_UART_IRQ_CONFIG_FUNC_DECL(inst)

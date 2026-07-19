@@ -9,6 +9,7 @@
  */
 
 #include <zephyr/drivers/clock_control/nrf_clock_control.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/pm/device.h>
@@ -3281,7 +3282,7 @@ static int uarte_instance_deinit(const struct device *dev)
 #define UARTE_IRQ_CONFIGURE(idx)							   \
 	do {										   \
 		UARTE_IRQ_CONNECT(idx, DT_IRQN(UARTE(idx)), DT_IRQ(UARTE(idx), priority)); \
-		irq_enable(DT_IRQN(UARTE(idx)));					   \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(UARTE(idx)));					   \
 		UARTE_TIMER_IRQ_CONNECT(idx, timer_isr)					   \
 	} while (false)
 

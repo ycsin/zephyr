@@ -21,6 +21,7 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/arch/cpu.h>
 #include <zephyr/sys/__assert.h>
 #include <soc.h>
@@ -589,11 +590,11 @@ DEVICE_DT_INST_DEFINE(0,
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 static void irq_config_func_0(const struct device *dev)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    uart_stellaris_isr, DEVICE_DT_INST_GET(0),
 		    0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 #endif
 
@@ -628,11 +629,11 @@ DEVICE_DT_INST_DEFINE(1,
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 static void irq_config_func_1(const struct device *dev)
 {
-	IRQ_CONNECT(DT_INST_IRQN(1),
+	INTC2_DT_INST_CONNECT_INLINE(1,
 		    DT_INST_IRQ(1, priority),
 		    uart_stellaris_isr, DEVICE_DT_INST_GET(1),
 		    0);
-	irq_enable(DT_INST_IRQN(1));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(1));
 }
 #endif
 
@@ -667,11 +668,11 @@ DEVICE_DT_INST_DEFINE(2,
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 static void irq_config_func_2(const struct device *dev)
 {
-	IRQ_CONNECT(DT_INST_IRQN(2),
+	INTC2_DT_INST_CONNECT_INLINE(2,
 		    DT_INST_IRQ(2, priority),
 		    uart_stellaris_isr, DEVICE_DT_INST_GET(2),
 		    0);
-	irq_enable(DT_INST_IRQN(2));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(2));
 }
 #endif
 

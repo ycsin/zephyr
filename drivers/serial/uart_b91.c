@@ -8,6 +8,7 @@
 #include "clock.h"
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/irq.h>
@@ -565,7 +566,7 @@ static DEVICE_API(uart, uart_b91_driver_api) = {
 										    \
 	static void uart_b91_irq_connect_##n(void)				    \
 	{									    \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),		    \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),		    \
 			    uart_b91_irq_handler,				    \
 			    DEVICE_DT_INST_GET(n), 0);				    \
 										    \

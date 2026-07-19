@@ -6,6 +6,7 @@
 
 #include <errno.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/pm/device.h>
 #include <zephyr/pm/device_runtime.h>
@@ -30,11 +31,11 @@ static void uart_sedi_cb(struct device *port);
 	static void irq_config_uart_##n(const struct device *dev)      \
 	{							       \
 		ARG_UNUSED(dev);				       \
-		IRQ_CONNECT(DT_INST_IRQN(n),			       \
+		INTC2_DT_INST_CONNECT_INLINE(n,			       \
 			    DT_INST_IRQ(n, priority), uart_sedi_isr,   \
 			    DEVICE_DT_GET(DT_NODELABEL(uart##n)),      \
 			    DT_INST_IRQ(n, flags));		       \
-		irq_enable(DT_INST_IRQN(n));			       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));			       \
 	}
 #else /*CONFIG_UART_INTERRUPT_DRIVEN */
 #define UART_IRQ_HANDLER_DECL(n)

@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT litex_uart
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/arch/cpu.h>
 #include <zephyr/init.h>
 #include <zephyr/irq.h>
@@ -339,10 +340,10 @@ static int uart_litex_init(const struct device *dev)
 #define LITEX_UART_IRQ_INIT(n)                                                                     \
 	static void uart_irq_config##n(const struct device *dev)                                   \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), uart_litex_irq_handler,     \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), uart_litex_irq_handler,     \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
                                                                                                    \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}
 
 #define LITEX_UART_INIT(n)                                                                         \

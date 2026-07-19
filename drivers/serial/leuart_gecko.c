@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/uart.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <em_leuart.h>
 #include <em_gpio.h>
@@ -348,11 +349,11 @@ DEVICE_DT_INST_DEFINE(0, &leuart_gecko_init,
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 static void leuart_gecko_config_func_0(const struct device *dev)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    leuart_gecko_isr, DEVICE_DT_INST_GET(0), 0);
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 #endif
 
@@ -401,11 +402,11 @@ DEVICE_DT_INST_DEFINE(1, &leuart_gecko_init,
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 static void leuart_gecko_config_func_1(const struct device *dev)
 {
-	IRQ_CONNECT(DT_INST_IRQN(1),
+	INTC2_DT_INST_CONNECT_INLINE(1,
 		    DT_INST_IRQ(1, priority),
 		    leuart_gecko_isr, DEVICE_DT_INST_GET(1), 0);
 
-	irq_enable(DT_INST_IRQN(1));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(1));
 }
 #endif
 

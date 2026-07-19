@@ -12,6 +12,7 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/arch/cpu.h>
 #include <stdbool.h>
 #include <zephyr/sys/__assert.h>
@@ -323,9 +324,9 @@ static DEVICE_API(uart, uart_bcm2711_driver_api) = {
 #define UART_BCM2711_IRQ_CONF_FUNC(port)                                                           \
 	static void irq_config_func_##port(const struct device *dev)                               \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(port), DT_INST_IRQ(port, priority), uart_isr,             \
+		INTC2_DT_INST_CONNECT_INLINE(port, DT_INST_IRQ(port, priority), uart_isr,             \
 			    DEVICE_DT_INST_GET(port), 0);                                          \
-		irq_enable(DT_INST_IRQN(port));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(port));                                                    \
 	}
 
 #else

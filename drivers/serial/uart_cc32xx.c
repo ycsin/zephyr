@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ti_cc32xx_uart
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/arch/cpu.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -312,11 +313,11 @@ IF_ENABLED(CONFIG_UART_INTERRUPT_DRIVEN, \
 	(static void uart_cc32xx_cfg_func_##idx(const struct device *dev) \
 	{ \
 		IF_ENABLED(CONFIG_UART_INTERRUPT_DRIVEN, ( \
-			IRQ_CONNECT(DT_INST_IRQN(idx), \
+			INTC2_DT_INST_CONNECT_INLINE(idx, \
 			    DT_INST_IRQ(idx, priority), \
 			    uart_cc32xx_isr, DEVICE_DT_INST_GET(idx), \
 			    0); \
-			irq_enable(DT_INST_IRQN(idx))) \
+			intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(idx))) \
 		); \
 	})); \
 static const struct uart_cc32xx_dev_config uart_cc32xx_dev_cfg_##idx = { \

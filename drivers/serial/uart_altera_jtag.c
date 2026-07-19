@@ -11,6 +11,7 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/arch/cpu.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/sys/sys_io.h>
@@ -501,12 +502,12 @@ static DEVICE_API(uart, uart_altera_jtag_driver_api) = {
 #define UART_ALTERA_JTAG_CONFIG_FUNC(n)					\
 	static void uart_altera_jtag_irq_config_func_##n(const struct device *dev)  \
 	{										\
-		IRQ_CONNECT(DT_INST_IRQN(n),		\
+		INTC2_DT_INST_CONNECT_INLINE(n,		\
 				DT_INST_IRQ(n, priority),	\
 				uart_altera_jtag_isr,		\
 				DEVICE_DT_INST_GET(n), 0);	\
 											\
-		irq_enable(DT_INST_IRQN(n));		\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));		\
 	}
 
 #define UART_ALTERA_JTAG_CONFIG_INIT(n)		\

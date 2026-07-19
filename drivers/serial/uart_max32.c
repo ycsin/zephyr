@@ -6,6 +6,7 @@
 
 #ifdef CONFIG_UART_ASYNC_API
 #include <zephyr/drivers/dma.h>
+#include <zephyr/intc2.h>
 #include <wrap_max32_dma.h>
 #endif
 #include <zephyr/drivers/pinctrl.h>
@@ -1203,9 +1204,9 @@ static DEVICE_API(uart, uart_max32_driver_api) = {
 	IF_ENABLED(MAX32_UART_USE_IRQ,                                                             \
 		   (static void uart_max32_irq_init_##_num(const struct device *dev)               \
 		   {             \
-			   IRQ_CONNECT(DT_INST_IRQN(_num), DT_INST_IRQ(_num, priority),            \
+			   INTC2_DT_INST_CONNECT_INLINE(_num, DT_INST_IRQ(_num, priority),            \
 				       uart_max32_isr, DEVICE_DT_INST_GET(_num), 0);               \
-			   irq_enable(DT_INST_IRQN(_num));                                         \
+			   intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(_num));                                         \
 		   }));                                                                            \
 	static const struct max32_uart_config max32_uart_config_##_num = {                         \
 		.regs = (mxc_uart_regs_t *)DT_INST_REG_ADDR(_num),                                 \

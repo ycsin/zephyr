@@ -11,6 +11,7 @@
 #include <soc.h>
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/uart.h>
@@ -302,12 +303,12 @@ static DEVICE_API(uart, uart_aesc_driver_api) = {
 #define AESC_UART_IRQ_INIT(no)						     \
 	static void uart_aesc_irq_config_##no(const struct device *dev)	     \
 	{								     \
-		IRQ_CONNECT(DT_INST_IRQN(no),				     \
+		INTC2_DT_INST_CONNECT_INLINE(no,				     \
 			    DT_INST_IRQ(no, priority),			     \
 			    uart_aesc_isr,				     \
 			    DEVICE_DT_INST_GET(no),			     \
 			    0);						     \
-		irq_enable(DT_INST_IRQN(no));				     \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(no));				     \
 	}
 #define AESC_UART_IRQ_CFG(no) .irq_config = uart_aesc_irq_config_##no,
 #else

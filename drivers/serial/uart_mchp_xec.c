@@ -17,6 +17,7 @@
 
 #include <soc.h>
 #include <zephyr/arch/cpu.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/uart.h>
@@ -936,9 +937,9 @@ static DEVICE_API(uart, uart_xec_driver_api) = {
 	{                                                                                          \
 		const struct uart_xec_device_config *devcfg = dev->config;                         \
                                                                                                    \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), uart_xec_isr,               \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), uart_xec_isr,               \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 		soc_ecia_girq_ctrl(devcfg->girq_id, devcfg->girq_pos, 1u);                         \
 	}
 #else

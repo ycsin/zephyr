@@ -11,6 +11,7 @@
 #define DT_DRV_COMPAT sifive_uart0
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/arch/cpu.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -403,11 +404,11 @@ DEVICE_DT_INST_DEFINE(0,
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 static void uart_sifive_irq_cfg_func_0(void)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		    uart_sifive_irq_handler, DEVICE_DT_INST_GET(0),
 		    0);
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 #endif
 
@@ -445,11 +446,11 @@ DEVICE_DT_INST_DEFINE(1,
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 static void uart_sifive_irq_cfg_func_1(void)
 {
-	IRQ_CONNECT(DT_INST_IRQN(1), DT_INST_IRQ(1, priority),
+	INTC2_DT_INST_CONNECT_INLINE(1, DT_INST_IRQ(1, priority),
 		    uart_sifive_irq_handler, DEVICE_DT_INST_GET(1),
 		    0);
 
-	irq_enable(DT_INST_IRQN(1));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(1));
 }
 #endif
 
