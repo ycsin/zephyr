@@ -18,7 +18,9 @@ zephyr_library_sources(
   smp.c
   )
 
-zephyr_library_sources_ifdef(CONFIG_GEN_SW_ISR_TABLE isr_wrapper.S)
+if(CONFIG_GEN_SW_ISR_TABLE OR CONFIG_INTC2_LEGACY_BRIDGE)
+  zephyr_library_sources(isr_wrapper.S)
+endif()
 zephyr_library_sources_ifdef(CONFIG_USERSPACE thread.c)
 zephyr_library_sources_ifdef(CONFIG_SEMIHOST semihost.c)
 zephyr_library_sources_ifdef(CONFIG_THREAD_LOCAL_STORAGE __aeabi_read_tp.S)

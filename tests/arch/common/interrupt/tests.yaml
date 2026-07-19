@@ -100,6 +100,7 @@ tests:
     # legacy interrupt machinery running on the bridged intc2 root table
     platform_allow:
       - qemu_cortex_m3
+      - qemu_cortex_a9
       - qemu_riscv32
       - qemu_riscv64
       - qemu_leon3
@@ -112,6 +113,7 @@ tests:
   arch.shared_interrupt.intc2_bridge:
     platform_allow:
       - qemu_cortex_m3
+      - qemu_cortex_a9
       - qemu_riscv32
       - qemu_riscv64
       - qemu_leon3
