@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/sdhc.h>
 #include <zephyr/sd/sd_spec.h>
@@ -1354,10 +1355,10 @@ static DEVICE_API(sdhc, xlnx_sdhc_api) = {
 	}                                                                                         \
 	static void xlnx_sdhc_config_intr##n(const struct device *dev)                            \
 	{                                                                                         \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),                            \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),                            \
 				xlnx_sdhc_irq_handler##n, DEVICE_DT_INST_GET(n),                  \
 				DT_INST_IRQ(n, flags));                                           \
-		irq_enable(DT_INST_IRQN(n));                                                      \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                      \
 	}
 #define XLNX_SDHC_INTR_FUNC_REG(n) .irq_config_func = xlnx_sdhc_config_intr##n,
 

@@ -8,6 +8,7 @@
 #define DT_DRV_COMPAT microchip_sama7g5_sdmmc
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/cache.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/sys/byteorder.h>
@@ -1096,9 +1097,9 @@ static DEVICE_API(sdhc, sdmmc_api) = {
 												\
 	static void sdmmc_##N##_irq_config_func(const struct device *dev)			\
 	{											\
-		IRQ_CONNECT(DT_INST_IRQN(N), DT_INST_IRQ(N, priority),				\
+		INTC2_DT_INST_CONNECT_INLINE(N, DT_INST_IRQ(N, priority),				\
 			sam_sdmmc_isr, DEVICE_DT_INST_GET(N), 0);				\
-		irq_enable(DT_INST_IRQN(N));							\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(N));							\
 	}											\
 
 DT_INST_FOREACH_STATUS_OKAY(SAM_SDMMC_INIT)

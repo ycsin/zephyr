@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT bflb_sdhc
 
 #include <zephyr/drivers/sdhc.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/kernel.h>
@@ -1001,9 +1002,9 @@ static int sdhc_bflb_init(const struct device *dev)
 #define SDHC_BFLB_IRQ_CONFIG(n)                                                                    \
 	static void sdhc_bflb_irq_config_##n(void)                                                 \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),                             \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),                             \
 			    sdhc_bflb_isr, DEVICE_DT_INST_GET(n), 0);                              \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}
 
 #define SDHC_BFLB_INIT(n)                                                                          \

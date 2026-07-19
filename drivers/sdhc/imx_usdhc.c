@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_imx_usdhc
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/sdhc.h>
 #include <zephyr/sd/sd_spec.h>
@@ -1237,9 +1238,9 @@ static DEVICE_API(sdhc, usdhc_api) = {
 #define IMX_USDHC_INIT(n)                                                                          \
 	static void usdhc_##n##_irq_config_func(const struct device *dev)                          \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), imx_usdhc_isr,              \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), imx_usdhc_isr,              \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
                                                                                                    \
 	PINCTRL_DT_INST_DEFINE(n);                                                                 \

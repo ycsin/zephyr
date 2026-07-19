@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ambiq_sdio
 
 #include <zephyr/devicetree.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/cache.h>
 #include <zephyr/irq.h>
@@ -792,9 +793,9 @@ static int ambiq_sdio_pm_action(const struct device *dev, enum pm_device_action 
 #define AMBIQ_SDIO_INIT(n)                                                                         \
 	static void sdio_##n##_irq_config_func(const struct device *dev)                           \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), ambiq_sdio_isr,             \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), ambiq_sdio_isr,             \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
                                                                                                    \
 	PINCTRL_DT_INST_DEFINE(n);                                                                 \

@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/sdhc.h>
+#include <zephyr/intc2.h>
 #include <zephyr/sys/util_macro.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/kernel.h>
@@ -469,10 +470,10 @@ static void sdhc_litex_irq_handler(const struct device *dev)
 #define DEFINE_SDHC_LITEX(n)                                                                       \
 	static void sdhc_litex_irq_config##n(void)                                                 \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), sdhc_litex_irq_handler,     \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), sdhc_litex_irq_handler,     \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
                                                                                                    \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	};                                                                                         \
                                                                                                    \
 	static struct sdhc_litex_data sdhc_litex_data_##n;                                         \

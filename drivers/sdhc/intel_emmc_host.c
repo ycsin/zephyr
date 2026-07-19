@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT intel_emmc_host
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/sdhc.h>
 #include <zephyr/sd/sd_spec.h>
@@ -1286,9 +1287,9 @@ static DEVICE_API(sdhc, emmc_api) = {
 	static void emmc_config_##n(const struct device *port)                                     \
 	{                                                                                          \
 		ARG_UNUSED(port);                                                                  \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), emmc_isr,                   \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), emmc_isr,                   \
 			    DEVICE_DT_INST_GET(n), EMMC_HOST_IRQ_FLAGS(n));                        \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}
 
 /* PCI(e) with auto IRQ detection */

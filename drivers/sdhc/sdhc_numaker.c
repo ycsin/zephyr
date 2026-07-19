@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT nuvoton_numaker_sdhc
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/cache.h>
 #include <zephyr/drivers/sdhc.h>
 #include <zephyr/drivers/gpio.h>
@@ -990,10 +991,10 @@ static DEVICE_API(sdhc, sdhc_numaker_api) = {
                                                                                                    \
 	static void sdhc_numaker_irq_config_func_##inst(const struct device *dev)                  \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), sdhc_numaker_isr,     \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), sdhc_numaker_isr,     \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
                                                                                                    \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 	}                                                                                          \
                                                                                                    \
 	static const struct sdhc_numaker_config sdhc_numaker_config_##inst = {                     \

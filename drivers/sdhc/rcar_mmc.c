@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT renesas_rcar_mmc
 
 #include <zephyr/devicetree.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/disk.h>
 #include <zephyr/drivers/sdhc.h>
 #include <zephyr/drivers/clock_control/renesas_cpg_mssr.h>
@@ -2136,9 +2137,9 @@ exit_unmap:
 #define RCAR_MMC_CONFIG_FUNC(n)                                                                    \
 	static void irq_config_func_##n(const struct device *dev)                                  \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), rcar_mmc_irq_handler,       \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), rcar_mmc_irq_handler,       \
 			    DEVICE_DT_INST_GET(n), DT_INST_IRQ(n, flags));                         \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}
 #define RCAR_MMC_IRQ_CFG_FUNC_INIT(n) .irq_config_func = irq_config_func_##n,
 #else
