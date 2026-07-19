@@ -2,10 +2,22 @@ common:
   tags:
     - kernel
     - interrupt
+  # one QEMU platform per architecture port, plus native_sim
   platform_allow:
     - native_sim
     - qemu_cortex_m3
+    - qemu_cortex_a9
+    - qemu_cortex_a53
+    - qemu_x86
+    - qemu_x86_64
     - qemu_riscv32
+    - qemu_riscv64
+    - qemu_leon3
+    - qemu_malta
+    - qemu_or1k
+    - qemu_arc/qemu_arc_em
+    - qemu_rx
+    - qemu_xtensa/dc233c
   integration_platforms:
     - native_sim
 tests:
