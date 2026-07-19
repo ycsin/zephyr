@@ -8,6 +8,7 @@
 #include <soc.h>
 #include <string.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/dma.h>
 #include <zephyr/init.h>
@@ -413,9 +414,9 @@ static DEVICE_API(dma, npcx_driver_api) = {
 		LISTIFY(DT_INST_PROP(n, dma_channels), DMA_NPCX_GDMA_CH_REG, (,), n)};             \
 	static void dma_npcx_##n##_irq_config(void)                                                \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), dma_npcx_isr,               \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), dma_npcx_isr,               \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
 	static struct dma_npcx_ch_data dma_npcx_##n##_channels[DT_INST_PROP(n, dma_channels)];     \
 	ATOMIC_DEFINE(dma_npcx_atomic_##n, DT_INST_PROP(n, dma_channels));                         \

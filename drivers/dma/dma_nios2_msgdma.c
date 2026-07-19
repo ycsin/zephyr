@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT altr_msgdma
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <errno.h>
 #include <zephyr/init.h>
 #include <string.h>
@@ -214,10 +215,10 @@ static int nios2_msgdma0_initialize(const struct device *dev)
 
 	alt_msgdma_init(dev_data->msgdma_dev, 0, DT_INST_IRQN(0));
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		    nios2_msgdma_isr, DEVICE_DT_INST_GET(0), 0);
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	return 0;
 }

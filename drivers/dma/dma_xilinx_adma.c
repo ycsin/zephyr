@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <soc.h>
 #include <zephyr/cache.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/dma.h>
@@ -660,9 +661,9 @@ static int dma_xilinx_adma_init(const struct device *dev)
 				     CONFIG_DMA_XILINX_ADMA_DESC_POOL_ALIGNMENT);                  \
 	static void dma_xilinx_adma##n##_irq_configure(void)                                       \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), dma_xilinx_adma_isr,        \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), dma_xilinx_adma_isr,        \
 			    DEVICE_DT_INST_GET(n), DT_INST_IRQ(n, flags));                         \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
 	static const struct dma_xilinx_adma_config dma_xilinx_adma##n##_config = {                 \
 		DEVICE_MMIO_ROM_INIT(DT_DRV_INST(n)),                                              \

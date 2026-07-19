@@ -12,6 +12,7 @@
 
 #include <errno.h>
 #include <zephyr/sys/__assert.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/init.h>
 #include <string.h>
@@ -565,7 +566,7 @@ static DEVICE_API(dma, sam_xdmac_driver_api) = {
 #define DMA_INIT(n)								\
 	static void dma##n##_irq_config(void)					\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),		\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),		\
 			    sam_xdmac_isr, DEVICE_DT_INST_GET(n), 0);		\
 	}									\
 										\

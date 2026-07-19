@@ -13,6 +13,7 @@
 #include <errno.h>
 #include <soc.h>
 #include <zephyr/init.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
@@ -1122,11 +1123,11 @@ static int dma_mcux_edma_init(const struct device *dev)
 
 #define IRQ_CONFIG(n, idx, fn)							\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN_BY_IDX(n, idx),			\
+		INTC2_DT_INST_CONNECT_INLINE_BY_IDX(n, idx,			\
 			    DT_INST_IRQ_BY_IDX(n, idx, priority),		\
 			    fn,							\
 			    DEVICE_DT_INST_GET(n), 0);				\
-			    irq_enable(DT_INST_IRQN_BY_IDX(n, idx));	\
+			    intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_IDX(n, idx));	\
 	}
 
 #define EDMA_CHANNELS_MASK(n) static uint32_t edma_channel_mask_##n[] =  \

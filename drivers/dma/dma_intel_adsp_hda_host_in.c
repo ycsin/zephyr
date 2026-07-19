@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT intel_adsp_hda_host_in
 
 #include <zephyr/drivers/dma.h>
+#include <zephyr/intc2.h>
 #include <adsp_interrupt.h>
 #include "dma_intel_adsp_hda.h"
 
@@ -44,11 +45,11 @@ static DEVICE_API(dma, intel_adsp_hda_dma_host_in_api) = {
 									\
 	static void intel_adsp_hda_dma##inst##_irq_config(void)		\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(inst),			\
+		INTC2_DT_INST_CONNECT_INLINE(inst,			\
 			    DT_INST_IRQ(inst, priority), intel_adsp_hda_dma_isr,	\
 			    DEVICE_DT_INST_GET(inst),			\
 			    DT_INST_IRQ(inst, flags));			\
-		irq_enable(DT_INST_IRQN(inst));			\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));			\
 		IF_ENABLED(CONFIG_SOC_SERIES_INTEL_ADSP_ACE,	\
 			    (ACE_DINT[0].ie[ACE_INTL_HDAHIDMA] = 1;))	\
 	}

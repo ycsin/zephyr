@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT brcm_iproc_pax_dma_v2
 
 #include <zephyr/arch/cpu.h>
+#include <zephyr/intc2.h>
 #include <zephyr/cache.h>
 #include <errno.h>
 #include <zephyr/init.h>
@@ -749,12 +750,12 @@ static int dma_iproc_pax_init(const struct device *dev)
 
 #ifndef CONFIG_DMA_IPROC_PAX_POLL_MODE
 	/* Register and enable RM interrupt */
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    rm_isr,
 		    DEVICE_DT_INST_GET(0),
 		    0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 #else
 	LOG_INF("%s PAX DMA rings in poll mode!\n", dev->name);
 #endif

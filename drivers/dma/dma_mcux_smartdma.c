@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/dma.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/pm/policy.h>
@@ -138,10 +139,10 @@ static DEVICE_API(dma, dma_mcux_smartdma_api) = {
 #define SMARTDMA_INIT(n)							\
 	static void dma_mcux_smartdma_config_func_##n(const struct device *dev) \
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),		\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),		\
 				dma_mcux_smartdma_irq,				\
 				DEVICE_DT_INST_GET(n), 0);			\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}									\
 										\
 	static const struct dma_mcux_smartdma_config smartdma_##n##_config = {	\

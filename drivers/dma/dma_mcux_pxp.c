@@ -6,6 +6,7 @@
  */
 
 #include <zephyr/drivers/dma.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/dma/dma_mcux_pxp.h>
 #include <zephyr/devicetree.h>
 
@@ -206,7 +207,7 @@ static int dma_mcux_pxp_init(const struct device *dev)
 	static void dma_pxp_config_func##n(const struct device *dev)                               \
 	{                                                                                          \
 		IF_ENABLED(DT_INST_IRQ_HAS_IDX(n, 0),                                              \
-			   (IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),                 \
+			   (INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),                 \
 					dma_mcux_pxp_irq_handler, DEVICE_DT_INST_GET(n), 0);       \
 			    irq_enable(DT_INST_IRQ(n, irq));))                                     \
 	}                                                                                          \

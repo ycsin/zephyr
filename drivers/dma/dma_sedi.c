@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/pm/device.h>
 #include <string.h>
 #include <zephyr/init.h>
@@ -382,11 +383,11 @@ static int dma_sedi_init(const struct device *dev)
 									\
 	static void dma_sedi_##inst##_irq_config(void)			\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(inst),				\
+		INTC2_DT_INST_CONNECT_INLINE(inst,				\
 			    DT_INST_IRQ(inst, priority), dma_isr,	\
 			    (void *)DT_INST_PROP(inst, peripheral_id),			\
 			    DT_INST_IRQ(inst, flags));			\
-		irq_enable(DT_INST_IRQN(inst));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));				\
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(DMA_DEVICE_INIT_SEDI)

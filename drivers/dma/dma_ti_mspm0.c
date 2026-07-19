@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ti_mspm0_dma
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/init.h>
 #include <zephyr/drivers/dma.h>
@@ -333,11 +334,11 @@ static DEVICE_API(dma, dma_ti_mspm0_api) = {
 										\
 	static inline void dma_ti_mspm0_irq_cfg_##inst(void)			\
 	{									\
-		irq_disable(DT_INST_IRQN(inst));				\
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority),	\
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));				\
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority),	\
 			    dma_ti_mspm0_isr, DEVICE_DT_INST_GET(inst), 0);	\
 										\
-		irq_enable(DT_INST_IRQN(inst));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));					\
 	}									\
 										\
 	static struct dma_ti_mspm0_channel_data					\

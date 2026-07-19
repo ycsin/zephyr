@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT bflb_dma
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <soc.h>
 #include <zephyr/drivers/dma.h>
 #include <zephyr/cache.h>
@@ -407,9 +408,9 @@ static int dma_bflb_init(const struct device *dev)
 	sys_write32(0xFF, cfg->base_reg + DMA_INTERRCLR_OFFSET);
 	sys_write32(0xFF, cfg->base_reg + DMA_INTTCCLEAR_OFFSET);
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), dma_bflb_isr,
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), dma_bflb_isr,
 		    DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	return 0;
 }

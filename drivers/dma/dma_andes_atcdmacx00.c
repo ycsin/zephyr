@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/init.h>
 #include <zephyr/drivers/dma.h>
@@ -633,7 +634,7 @@ static DEVICE_API(dma, dma_atcdmacx00_api) = {
 									\
 	static void dma_atcdmacx00_irq_config_##n(void)			\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n),				\
+		INTC2_DT_INST_CONNECT_INLINE(n,				\
 			    1,						\
 			    dma_atcdmacx00_isr,				\
 			    DEVICE_DT_INST_GET(n),			\

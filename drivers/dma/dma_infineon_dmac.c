@@ -8,6 +8,7 @@
 #define DT_DRV_COMPAT infineon_dmac
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/dma.h>
 #include <zephyr/irq.h>
@@ -650,9 +651,9 @@ static DEVICE_API(dma, infineon_dmac_api) = {
 #define INFINEON_DMAC_INIT(n)                                                                      \
 	static void infineon_dmac_irq_config_##n(void)                                             \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), infineon_dmac_shared_isr,   \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), infineon_dmac_shared_isr,   \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
 	static struct infineon_dmac_data infineon_dmac_data_##n;                                   \
 	static const struct infineon_dmac_config infineon_dmac_config_##n = {                      \
