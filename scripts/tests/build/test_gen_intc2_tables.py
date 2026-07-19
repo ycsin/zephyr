@@ -283,3 +283,65 @@ class TestEmitSource:
         src = gen.emit_source(model)
         assert "__intc2_boot_cnt = 0;" in src
         assert "__intc2_boot[]" not in src
+
+
+class TestMultilevel:
+    """Encoded connects on a bridged root re-home to the chained node."""
+
+    BRIDGE = gen.NODE_ROOT_BRIDGE
+
+    def encoded(self, local, parent_line=11, l1_bits=8):
+        return ((local + 1) << l1_bits) | parent_line
+
+    def test_rehome_to_child(self):
+        model = gen.build_model(
+            [node_rec(5, 1036, flags=self.BRIDGE),
+             node_rec(12, 1024, pord=5, pline=11)],
+            [conn_rec(5, self.encoded(10), prio=3, order=0)],
+            False, False, 8, 0, level_bits=(8, 11))
+        root = model.nodes[5]
+        plic = model.nodes[12]
+        assert 10 in plic.connects and not root.connects
+        ld = gen.emit_linker(model)
+        # the KEEP lands in the child's table region, named by the
+        # original record identity (root ord, encoded value)
+        idx_child = ld.index("__intc2_table_dts_ord_12")
+        assert ld.index(f".intc2_entry.5.{self.encoded(10)}.0") > idx_child
+        # child priority comes from the connect record
+        src = gen.emit_source(model)
+        assert "{ .line = 10, .prio = 3, .flags = 0 }" in src
+
+    def test_flat_line_stays_on_root(self):
+        model = gen.build_model(
+            [node_rec(5, 1036, flags=self.BRIDGE),
+             node_rec(12, 1024, pord=5, pline=11)],
+            [conn_rec(5, 7, order=0)],
+            False, False, 8, 0, level_bits=(8, 11))
+        assert 7 in model.nodes[5].connects
+
+    def test_missing_aggregator_node(self):
+        with pytest.raises(gen.GenError, match="convert the aggregating"):
+            gen.build_model(
+                [node_rec(5, 1036, flags=self.BRIDGE)],
+                [conn_rec(5, self.encoded(10), order=0)],
+                False, False, 8, 0, level_bits=(8, 11))
+
+    def test_no_rehome_without_bridge_flag(self):
+        # native connects on a non-bridge node are never decoded
+        with pytest.raises(gen.GenError, match="only has"):
+            gen.build_model(
+                [node_rec(5, 16), node_rec(12, 1024, pord=5, pline=11)],
+                [conn_rec(5, self.encoded(10), order=0)],
+                False, False, 8, 0, level_bits=(8, 11))
+
+    def test_three_level(self):
+        # l1=8 bits, l2=8 bits, l3=8 bits: line 4 on the grandchild
+        # behind (root line 11 -> child line 3)
+        line = (5 << 16) | (4 << 8) | 11
+        model = gen.build_model(
+            [node_rec(5, 4096, flags=self.BRIDGE),
+             node_rec(12, 64, pord=5, pline=11),
+             node_rec(20, 32, pord=12, pline=3)],
+            [conn_rec(5, line, order=0)],
+            False, False, 8, 0, level_bits=(8, 8, 8))
+        assert 4 in model.nodes[20].connects

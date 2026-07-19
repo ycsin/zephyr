@@ -1497,6 +1497,15 @@ if(CONFIG_INTC2)
   if(NOT DEFINED CONFIG_GEN_IRQ_START_VECTOR)
     set(CONFIG_GEN_IRQ_START_VECTOR 0)
   endif()
+  set(intc2_level_bits_arg)
+  if(CONFIG_MULTI_LEVEL_INTERRUPTS)
+    set(intc2_level_bits
+      "${CONFIG_1ST_LEVEL_INTERRUPT_BITS},${CONFIG_2ND_LEVEL_INTERRUPT_BITS}")
+    if(CONFIG_3RD_LEVEL_INTERRUPTS)
+      string(APPEND intc2_level_bits ",${CONFIG_3RD_LEVEL_INTERRUPT_BITS}")
+    endif()
+    set(intc2_level_bits_arg --level-bits ${intc2_level_bits})
+  endif()
   add_custom_command(
     OUTPUT intc2_tables.c intc2_tables.ld
     COMMAND ${PYTHON_EXECUTABLE}
@@ -1508,6 +1517,7 @@ if(CONFIG_INTC2)
     --intlist-section intc2_list
     --entry-size $<IF:$<BOOL:${CONFIG_64BIT}>,16,8>
     --start-vector ${CONFIG_GEN_IRQ_START_VECTOR}
+    ${intc2_level_bits_arg}
     $<$<BOOL:${CONFIG_INTC2_SHARED}>:--shared>
     $<$<BOOL:${CONFIG_INTC2_DYNAMIC}>:--dynamic>
     $<$<BOOL:${CONFIG_BIG_ENDIAN}>:--big-endian>

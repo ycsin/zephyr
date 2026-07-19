@@ -133,8 +133,40 @@ def parse_intlist(data, big_endian=False):
     return node_recs, conn_recs
 
 
+def rehome_encoded(nodes, root, line, level_bits):
+    """Resolve a multilevel-encoded line on a bridged root to the chained
+    controller node it aggregates to, returning (node, local line).
+
+    Legacy connect macros address lines behind an aggregator by their
+    multilevel-encoded IRQ number; in the intc2 graph those lines belong
+    to the aggregator's own node, so the connect is re-homed there.
+    """
+    l1_bits = level_bits[0]
+    if (line >> l1_bits) == 0:
+        return root, line
+
+    node = root
+    local = line & ((1 << l1_bits) - 1)
+    shift = l1_bits
+    for bits in level_bits[1:]:
+        part = (line >> shift) & ((1 << bits) - 1)
+        if part == 0:
+            break
+        children = node.chains.get(local, [])
+        if len(children) != 1:
+            raise GenError(
+                f"intc2: encoded connect 0x{line:x} chains through line "
+                f"{local} of node {node.ord}, which has {len(children)} "
+                f"intc2 child node(s); convert the aggregating interrupt "
+                f"controller's driver to intc2")
+        node = nodes[children[0]]
+        local = part - 1
+        shift += bits
+    return node, local
+
+
 def build_model(node_recs, conn_recs, shared, dynamic, entry_size,
-                sparse_threshold=25, start_vector=0):
+                sparse_threshold=25, start_vector=0, level_bits=None):
     """Validate records and produce the layout/boot model."""
     nodes = {}
 
@@ -167,13 +199,19 @@ def build_model(node_recs, conn_recs, shared, dynamic, entry_size,
         if node is None:
             raise GenError(f"intc2: INTC2_DT_CONNECT targets unknown "
                            f"controller (dep ordinal {ord_})")
+        # Section names carry the callsite identity (the connect macro's
+        # target ord/line, assembler-evaluated); a re-homed connect keeps
+        # its original name, so compute it before decoding.
+        name = f".intc2_entry.{ord_}.{line}.{order}"
+        if level_bits and (node.flags & NODE_ROOT_BRIDGE):
+            node, line = rehome_encoded(nodes, node, line, level_bits)
         if line >= node.nlines:
             raise GenError(f"intc2: connect to line {line} of node "
                            f"{node.ord}, which only has {node.nlines} lines")
         if prio > 0xFF or flags > 0xFF:
             raise GenError(f"intc2: connect on node {node.ord} line {line}: "
                            f"priority/flags must fit in 8 bits")
-        node.connects.setdefault(line, []).append((order, prio, flags))
+        node.connects.setdefault(line, []).append((order, prio, flags, name))
 
     # Registration order within a translation unit is the __COUNTER__
     # value recorded in the connect record; compilers may emit
@@ -243,8 +281,8 @@ def emit_linker(model):
         keeps = []
         for k in range(len(node.chains.get(line, []))):
             keeps.append(f"KEEP(*(.intc2_slot.{node.ord}.{line}.{k}))")
-        for (order, _prio, _flags) in node.connects.get(line, []):
-            keeps.append(f"KEEP(*(.intc2_entry.{node.ord}.{line}.{order}))")
+        for (_order, _prio, _flags, name) in node.connects.get(line, []):
+            keeps.append(f"KEEP(*({name}))")
         return keeps
 
     for ord_ in model.boot_order:
@@ -259,8 +297,10 @@ def emit_linker(model):
             out.append(f"_sw_isr_table = __intc2_table_dts_ord_{ord_} + {off};")
             out.append(f"PROVIDE(__sw_isr_table = _sw_isr_table);")
         lines = node.used_lines if node.sparse else range(node.nlines)
+        nslots = 0
         for line in lines:
             count = line_clients(node, line)
+            nslots += 1
             if count == 0:
                 if node.bridge:
                     out.append(f"KEEP(*(.intc2_spur.{ord_}.{line})) /* line {line} */")
@@ -271,6 +311,12 @@ def emit_linker(model):
             else:
                 out.append(f"KEEP(*(.intc2_fanin_slot.{ord_}.{line})) "
                            f"/* line {line}: {count} clients */")
+        # One entry per laid-out line, exactly: a missed KEEP (name
+        # drift) or a duplicated entry emission fails the link instead
+        # of silently shifting the table layout.
+        out.append(f"ASSERT((. - __intc2_table_dts_ord_{ord_}) == "
+                   f"{nslots * model.entry_size}, "
+                   f"\"intc2: node {ord_} dispatch table layout mismatch\");")
 
     # Client directories of shared lines, contiguous per line, in
     # registration order.
@@ -375,7 +421,7 @@ def emit_source(model):
         node = model.nodes[ord_]
         recs = []
         for line in sorted(node.connects):
-            for (_order, prio, flags) in node.connects[line]:
+            for (_order, prio, flags, _name) in node.connects[line]:
                 recs.append((line, prio, flags))
         for line in sorted(node.chains):
             for child in node.chains[line]:
@@ -442,6 +488,14 @@ def parse_args(argv):
     parser.add_argument("--start-vector", type=int, default=0,
                         help="CONFIG_GEN_IRQ_START_VECTOR: offset of the "
                              "legacy table alias on a root-bridge node")
+    parser.add_argument("--level-bits", type=lambda s: tuple(
+                            int(b) for b in s.split(",")),
+                        default=None,
+                        help="Comma-separated CONFIG_*_LEVEL_INTERRUPT_BITS "
+                             "widths when CONFIG_MULTI_LEVEL_INTERRUPTS is "
+                             "enabled; multilevel-encoded connects on the "
+                             "bridged root are re-homed to the aggregating "
+                             "controller's node")
     parser.add_argument("--sparse-threshold", type=int, default=25,
                         help="Lay a node's table out sparse when fewer than "
                              "this percentage of its lines are used "
@@ -460,7 +514,7 @@ def main(argv=None):
 
         model = build_model(node_recs, conn_recs, args.shared, args.dynamic,
                             args.entry_size, args.sparse_threshold,
-                            args.start_vector)
+                            args.start_vector, args.level_bits)
     except GenError as err:
         sys.exit(str(err))
 
