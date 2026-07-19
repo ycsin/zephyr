@@ -4,6 +4,7 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/spi.h>
 #include <zephyr/drivers/gpio.h>
@@ -70,7 +71,7 @@ static void radio_isr(const struct device *dev)
 {
 	struct sx126x_hal_data *data = get_hal_data(dev);
 
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	if (data->dio1_callback != NULL) {
 		data->dio1_callback(data->dev);
@@ -86,9 +87,9 @@ int sx126x_hal_set_dio1_callback(const struct device *dev,
 
 	if (callback != NULL) {
 		NVIC_ClearPendingIRQ(DT_INST_IRQN(0));
-		irq_enable(DT_INST_IRQN(0));
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	} else {
-		irq_disable(DT_INST_IRQN(0));
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	}
 
 	return 0;
@@ -106,7 +107,7 @@ void sx126x_hal_dio1_irq_enable(const struct device *dev)
 	 * abort the cycle.
 	 */
 	NVIC_ClearPendingIRQ(DT_INST_IRQN(0));
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 
 static int sx126x_hal_set_pa_config(const struct device *dev, uint8_t pa_duty_cycle,
@@ -230,7 +231,7 @@ int sx126x_hal_init(const struct device *dev)
 	}
 
 	/* Setup radio IRQ (EXTI line 44) */
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    radio_isr, DEVICE_DT_INST_GET(0), 0);
 	LL_EXTI_EnableIT_32_63(LL_EXTI_LINE_44);

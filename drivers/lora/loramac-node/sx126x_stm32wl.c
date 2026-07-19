@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 
 #include "sx126x_common.h"
 
@@ -42,12 +43,12 @@ uint32_t sx126x_get_dio1_pin_state(struct sx126x_data *dev_data)
 void sx126x_dio1_irq_enable(struct sx126x_data *dev_data)
 {
 	NVIC_ClearPendingIRQ(DT_INST_IRQN(0));
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 
 void sx126x_dio1_irq_disable(struct sx126x_data *dev_data)
 {
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 
 void sx126x_set_tx_params(int8_t power, RadioRampTimes_t ramp_time)
@@ -119,17 +120,17 @@ static void radio_isr(const struct device *dev)
 {
 	struct sx126x_data *dev_data = dev->data;
 
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	k_work_submit(&dev_data->dio1_irq_work);
 }
 
 int sx126x_variant_init(const struct device *dev)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    radio_isr, DEVICE_DT_INST_GET(0), 0);
 	LL_EXTI_EnableIT_32_63(LL_EXTI_LINE_44);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	return 0;
 }
