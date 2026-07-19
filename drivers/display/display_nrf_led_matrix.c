@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/drivers/display.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/dt-bindings/gpio/gpio.h>
 #include <soc.h>
@@ -502,9 +503,9 @@ static int instance_init(const struct device *dev)
 	nrf_timer_event_clear(dev_config->timer, NRF_TIMER_EVENT_COMPARE0);
 	nrf_timer_int_enable(dev_config->timer, NRF_TIMER_INT_COMPARE0_MASK);
 
-	IRQ_CONNECT(DT_IRQN(TIMER_NODE), DT_IRQ(TIMER_NODE, priority),
+	INTC2_DT_CONNECT_INLINE(TIMER_NODE, DT_IRQ(TIMER_NODE, priority),
 		    timer_irq_handler, DEVICE_DT_GET(MATRIX_NODE), 0);
-	irq_enable(DT_IRQN(TIMER_NODE));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(TIMER_NODE));
 
 	return 0;
 }

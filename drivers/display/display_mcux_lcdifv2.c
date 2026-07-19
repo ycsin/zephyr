@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_imx_lcdifv2
 
 #include <zephyr/drivers/display.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
@@ -345,9 +346,9 @@ static DEVICE_API(display, mcux_lcdifv2_api) = {
 			      CONFIG_DISPLAY_INIT_PRIORITY, &mcux_lcdifv2_api);                    \
 	static void mcux_lcdifv2_config_func_##id(const struct device *dev)                        \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(id), DT_INST_IRQ(id, priority), mcux_lcdifv2_isr,         \
+		INTC2_DT_INST_CONNECT_INLINE(id, DT_INST_IRQ(id, priority), mcux_lcdifv2_isr,         \
 			    DEVICE_DT_INST_GET(id), 0);                                            \
-		irq_enable(DT_INST_IRQN(id));                                                      \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(id));                                                      \
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(MCUX_LCDIFV2_DEVICE_INIT)

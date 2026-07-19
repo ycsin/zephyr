@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT socionext_dpu
 
 #include <zephyr/drivers/display.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -348,9 +349,9 @@ static DEVICE_API(display, dpu_api) = {
 #define DPU_DEVICE_INIT(id)                                                                        \
 	static void dpu_config_func_##id(const struct device *dev)                                 \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(id), DT_INST_IRQ(id, priority), dpu_isr,                  \
+		INTC2_DT_INST_CONNECT_INLINE(id, DT_INST_IRQ(id, priority), dpu_isr,                  \
 			    DEVICE_DT_INST_GET(id), 0);                                            \
-		irq_enable(DT_INST_IRQN(id));                                                      \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(id));                                                      \
 	}                                                                                          \
 	DPU_FRAMEBUFFER_DECL(id);                                                                  \
 	struct dpu_data dpu_data_##id = {                                                          \

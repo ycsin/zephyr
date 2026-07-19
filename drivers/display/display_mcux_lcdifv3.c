@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_imx_lcdifv3
 
 #include <zephyr/drivers/display.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/kernel.h>
 #include <fsl_lcdifv3.h>
@@ -379,9 +380,9 @@ static DEVICE_API(display, mcux_lcdifv3_api) = {
 #define MCUX_LCDIFV3_DEVICE_INIT(id)                                                               \
 	static void mcux_lcdifv3_config_func_##id(const struct device *dev)                        \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(id), DT_INST_IRQ(id, priority), mcux_lcdifv3_isr,         \
+		INTC2_DT_INST_CONNECT_INLINE(id, DT_INST_IRQ(id, priority), mcux_lcdifv3_isr,         \
 			    DEVICE_DT_INST_GET(id), 0);                                            \
-		irq_enable(DT_INST_IRQN(id));                                                      \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(id));                                                      \
 	}                                                                                          \
 	MCUX_LCDIFV3_FRAMEBUFFER_DECL(id);                                                         \
 	static struct mcux_lcdifv3_data mcux_lcdifv3_data_##id = {                                 \
