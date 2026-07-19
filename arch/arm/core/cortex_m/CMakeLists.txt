@@ -38,6 +38,9 @@ zephyr_library_sources_ifndef(CONFIG_USE_SWITCH exc_exit.c thread_abort.c swap_h
 
 zephyr_library_sources_ifndef(CONFIG_ARM_CUSTOM_INTERRUPT_CONTROLLER irq_init.c)
 zephyr_library_sources_ifdef(CONFIG_GEN_SW_ISR_TABLE isr_wrapper.c)
+# the bridged intc2 root table replaces the generated SW ISR table but
+# is still dispatched through the common wrapper
+zephyr_library_sources_ifdef(CONFIG_INTC2_LEGACY_BRIDGE isr_wrapper.c)
 zephyr_library_sources_ifdef(CONFIG_DEBUG_COREDUMP coredump.c)
 zephyr_library_sources_ifdef(CONFIG_THREAD_LOCAL_STORAGE __aeabi_read_tp.S)
 zephyr_library_sources_ifdef(CONFIG_SEMIHOST semihost.c)

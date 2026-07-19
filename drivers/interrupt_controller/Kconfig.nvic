@@ -1,0 +1,15 @@
+# Copyright (c) 2026 Yong Cong Sin <yongcong.sin@gmail.com>
+# SPDX-License-Identifier: Apache-2.0
+
+config INTC2_NVIC
+	bool "intc2 root node for the ARM NVIC"
+	default y
+	depends on INTC2 && CPU_CORTEX_M && DT_HAS_ARM_V7M_NVIC_ENABLED
+	# the bridge redefines Z_ISR_DECLARE; the local-declaration record
+	# format is not bridged yet
+	depends on !ISR_TABLES_LOCAL_DECLARATION
+	select INTC2_LEGACY_BRIDGE
+	help
+	  Define the intc2 CPU-root node for the Cortex-M NVIC. The node's
+	  generated dispatch table takes over _sw_isr_table, so legacy and
+	  intc2 interrupt connections share one table and both APIs work.

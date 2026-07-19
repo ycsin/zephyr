@@ -76,7 +76,8 @@ void _isr_wrapper(void)
 	 */
 	irq_number -= 16;
 
-#if defined(CONFIG_GEN_SW_ISR_TABLE_ARRAY)
+#if defined(CONFIG_GEN_SW_ISR_TABLE_ARRAY) || defined(CONFIG_INTC2_LEGACY_BRIDGE)
+	/* with the bridge, _sw_isr_table is the intc2 root node's table */
 	const struct _isr_table_entry *entry = &_sw_isr_table[irq_number];
 	(entry->isr)(entry->arg);
 #elif defined(CONFIG_GEN_SW_ISR_TABLE_SWITCH)

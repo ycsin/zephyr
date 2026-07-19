@@ -118,6 +118,11 @@ extern void z_arm_interrupt_init(void);
 
 #ifdef CONFIG_CPU_CORTEX_M
 
+#ifdef CONFIG_INTC2_LEGACY_BRIDGE
+/* The intc2 CPU-root node: the NVIC (see drivers intc_nvic.c) */
+#define Z_INTC2_ROOT_NODE DT_INST(0, arm_v7m_nvic)
+#endif
+
 #if defined(CONFIG_ZERO_LATENCY_LEVELS)
 #define ZERO_LATENCY_LEVELS CONFIG_ZERO_LATENCY_LEVELS
 #else
