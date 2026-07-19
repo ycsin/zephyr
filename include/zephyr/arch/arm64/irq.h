@@ -23,6 +23,11 @@
 extern "C" {
 #endif
 
+#ifdef CONFIG_INTC2_LEGACY_BRIDGE
+/* The intc2 CPU-root node: the GICv3 */
+#define Z_INTC2_ROOT_NODE DT_INST(0, arm_gic_v3)
+#endif
+
 #ifdef _ASMLANGUAGE
 GTEXT(arch_irq_enable)
 GTEXT(arch_irq_disable)

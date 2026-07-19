@@ -172,7 +172,7 @@ SECTION_SUBSEC_FUNC(exc_vector_table,_vector_table_section,_vector_table)
 	/* Current EL with SP0 / IRQ */
 	.align 7
 	z_arm64_enter_exc x0, x1, el1
-#ifdef CONFIG_GEN_SW_ISR_TABLE
+#if defined(CONFIG_GEN_SW_ISR_TABLE) || defined(CONFIG_INTC2_LEGACY_BRIDGE)
 	b 	_isr_wrapper
 #else
 	b	z_irq_spurious
@@ -198,7 +198,7 @@ SECTION_SUBSEC_FUNC(exc_vector_table,_vector_table_section,_vector_table)
 	/* Current EL with SPx / IRQ */
 	.align 7
 	z_arm64_enter_exc x0, x1, el1
-#ifdef CONFIG_GEN_SW_ISR_TABLE
+#if defined(CONFIG_GEN_SW_ISR_TABLE) || defined(CONFIG_INTC2_LEGACY_BRIDGE)
 	b 	_isr_wrapper
 #else
 	b	z_irq_spurious
@@ -224,7 +224,7 @@ SECTION_SUBSEC_FUNC(exc_vector_table,_vector_table_section,_vector_table)
 	/* Lower EL using AArch64 / IRQ */
 	.align 7
 	z_arm64_enter_exc x0, x1, el0
-#ifdef CONFIG_GEN_SW_ISR_TABLE
+#if defined(CONFIG_GEN_SW_ISR_TABLE) || defined(CONFIG_INTC2_LEGACY_BRIDGE)
 	b 	_isr_wrapper
 #else
 	b	z_irq_spurious

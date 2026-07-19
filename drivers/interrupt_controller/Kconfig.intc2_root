@@ -16,6 +16,13 @@ config INTC2_ROOT_GIC
 	depends on !ISR_TABLES_LOCAL_DECLARATION
 	select INTC2_ROOT_GENERIC
 
+config INTC2_ROOT_GIC_V3
+	bool "intc2 root node for the AArch64 GICv3"
+	default y
+	depends on INTC2 && ARM64 && DT_HAS_ARM_GIC_V3_ENABLED
+	depends on !ISR_TABLES_LOCAL_DECLARATION
+	select INTC2_ROOT_GENERIC
+
 config INTC2_ROOT_IRQMP
 	bool "intc2 root node for the LEON IRQMP"
 	default y
