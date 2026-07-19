@@ -39,6 +39,89 @@
 extern "C" {
 #endif
 
+#if !defined(CONFIG_INTC2) && !defined(__DOXYGEN__)
+/*
+ * Legacy-backend shim: when the graph backend is not enabled, the
+ * INTC2_* consumer-facing constructs compile down to the legacy
+ * interrupt machinery, so code converted to the intc2 API keeps
+ * building and working unchanged. Only the leaf-consumer surface is
+ * shimmed; controller-side constructs (nodes, dispatch, the driver
+ * API) have no legacy equivalent and remain graph-backend-only.
+ */
+
+#include <zephyr/init.h>
+#include <zephyr/irq.h>
+
+struct intc2_spec {
+	uint32_t irqn;
+};
+
+#define INTC2_DT_SPEC_GET_BY_IDX(node_id, idx) {.irqn = DT_IRQN_BY_IDX(node_id, idx)}
+#define INTC2_DT_SPEC_GET(node_id)             INTC2_DT_SPEC_GET_BY_IDX(node_id, 0)
+
+/** @cond INTERNAL_HIDDEN */
+#define Z_INTC2_SHIM_CONNECT(irqn_, prio_, isr_, arg_, flags_, counter_)                           \
+	static int _CONCAT(__intc2_shim_init_, counter_)(void)                                     \
+	{                                                                                          \
+		IRQ_CONNECT(irqn_, prio_, isr_, arg_, flags_);                                     \
+		return 0;                                                                          \
+	}                                                                                          \
+	SYS_INIT(_CONCAT(__intc2_shim_init_, counter_), PRE_KERNEL_1, 0)
+
+/* extra layer so that __COUNTER__ expands exactly once */
+#define Z_INTC2_SHIM_CONNECT_C(irqn_, prio_, isr_, arg_, flags_, counter_)                         \
+	Z_INTC2_SHIM_CONNECT(irqn_, prio_, isr_, arg_, flags_, counter_)
+/** INTERNAL_HIDDEN @endcond */
+
+#define INTC2_DT_CONNECT_BY_IDX(node_id, idx, prio, isr, arg, flags)                               \
+	Z_INTC2_SHIM_CONNECT_C(DT_IRQN_BY_IDX(node_id, idx), prio, isr, arg, flags, __COUNTER__)
+
+#define INTC2_DT_CONNECT(node_id, prio, isr, arg, flags)                                           \
+	INTC2_DT_CONNECT_BY_IDX(node_id, 0, prio, isr, arg, flags)
+
+static inline void intc2_enable(struct intc2_spec spec)
+{
+	irq_enable(spec.irqn);
+}
+
+static inline void intc2_disable(struct intc2_spec spec)
+{
+	irq_disable(spec.irqn);
+}
+
+static inline int intc2_is_enabled(struct intc2_spec spec)
+{
+	return irq_is_enabled(spec.irqn);
+}
+
+static inline int intc2_set_priority(struct intc2_spec spec, uint32_t prio, uint32_t flags)
+{
+	ARG_UNUSED(spec);
+	ARG_UNUSED(prio);
+	ARG_UNUSED(flags);
+
+	/* legacy priorities are programmed at connect time */
+	return -ENOSYS;
+}
+
+#ifdef CONFIG_DYNAMIC_INTERRUPTS
+static inline int intc2_connect_dynamic(struct intc2_spec spec, uint32_t prio,
+					void (*isr)(const void *arg), const void *arg,
+					uint32_t flags)
+{
+	(void)irq_connect_dynamic(spec.irqn, prio, isr, arg, flags);
+	return 0;
+}
+#endif /* CONFIG_DYNAMIC_INTERRUPTS */
+
+#else /* CONFIG_INTC2: the graph backend */
+
+/**
+ * @defgroup intc2_apis intc2 DAG-based interrupt APIs
+ * @ingroup isr_apis
+ * @{
+ */
+
 struct intc2_node;
 
 /**
@@ -489,6 +572,12 @@ int intc2_connect_dynamic(struct intc2_spec spec, uint32_t prio,
 int intc2_disconnect_dynamic(struct intc2_spec spec, void (*isr)(const void *arg),
 			     const void *arg);
 #endif /* CONFIG_INTC2_DYNAMIC */
+
+/**
+ * @}
+ */
+
+#endif /* CONFIG_INTC2 */
 
 #ifdef __cplusplus
 }
