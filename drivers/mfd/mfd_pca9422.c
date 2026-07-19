@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/irq.h>
 #include <zephyr/drivers/mfd/pca9422.h>
@@ -354,9 +355,9 @@ int mfd_pca9422_reg_update_byte(const struct device *dev, uint8_t reg, uint8_t m
                                                                                                    \
 	static void mfd_pca9422_config_func_##inst(const struct device *dev)                       \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), mfd_pca9422_isr,      \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), mfd_pca9422_isr,      \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(MFD_PCA9422_INIT)
