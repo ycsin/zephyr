@@ -14,6 +14,7 @@
 #define DT_DRV_COMPAT st_stm32_qspi_controller
 
 #include <zephyr/drivers/pinctrl.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control/stm32_clock_control.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/flash.h>
@@ -1313,9 +1314,9 @@ static DEVICE_API(mspi, mspi_stm32_qspi_driver_api) = {
 #define STM32_MSPI_QSPI_IRQ_HANDLER(index)                                                     \
 	static void mspi_stm32_irq_config_func_##index(void)                                   \
 	{                                                                                      \
-		IRQ_CONNECT(DT_INST_IRQN(index), DT_INST_IRQ(index, priority),                 \
+		INTC2_DT_INST_CONNECT_INLINE(index, DT_INST_IRQ(index, priority),                 \
 			    mspi_stm32_qspi_isr, DEVICE_DT_INST_GET(index), 0);                \
-		irq_enable(DT_INST_IRQN(index));                                               \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(index));                                               \
 	}
 
 #define MSPI_STM32_QSPI_INIT(index)                                                            \

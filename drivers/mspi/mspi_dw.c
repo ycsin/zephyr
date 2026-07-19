@@ -8,6 +8,7 @@
 #define DT_DRV_COMPAT snps_designware_ssi
 
 #include <zephyr/drivers/mspi.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/gpio.h>
 #if defined(CONFIG_PINCTRL)
 #include <zephyr/drivers/pinctrl.h>
@@ -2147,10 +2148,10 @@ static DEVICE_API(mspi, drv_api) = {
 };
 
 #define MSPI_DW_INST_IRQ(idx, inst)					\
-	IRQ_CONNECT(DT_INST_IRQN_BY_IDX(inst, idx),			\
+	INTC2_DT_INST_CONNECT_INLINE_BY_IDX(inst, idx,			\
 		    DT_INST_IRQ_BY_IDX(inst, idx, priority),		\
 		    mspi_dw_isr, DEVICE_DT_INST_GET(inst), 0);		\
-	irq_enable(DT_INST_IRQN_BY_IDX(inst, idx))
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_IDX(inst, idx))
 
 #define MSPI_DW_MMIO_ROM_INIT(node_id)					\
 	COND_CODE_1(DT_REG_HAS_NAME(node_id, core),			\

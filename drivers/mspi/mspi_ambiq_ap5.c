@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ambiq_mspi_controller
 
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 #include <zephyr/logging/log_instance.h>
 LOG_LEVEL_SET(CONFIG_MSPI_LOG_LEVEL);
 #include <zephyr/kernel.h>
@@ -1997,9 +1998,9 @@ static DEVICE_API(mspi, mspi_ambiq_driver_api) = {
 	MSPI_PINCTRL_DT_DEFINE(DT_DRV_INST(n));                                                  \
 	static void mspi_ambiq_irq_cfg_func_##n(void)                                            \
 	{                                                                                        \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),                           \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),                           \
 		mspi_ambiq_isr, DEVICE_DT_INST_GET(n), 0);                                       \
-		irq_enable(DT_INST_IRQN(n));                                                     \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                     \
 	}                                                                                        \
 	static uint32_t mspi_ambiq_cmdq##n[DT_INST_PROP_OR(n, cmdq_buffer_size, 1024)]           \
 	__attribute__((section(DT_INST_PROP_OR(n, cmdq_buffer_location, ".nocache"))));          \
