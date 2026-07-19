@@ -1,0 +1,19 @@
+# Copyright (c) 2026 Yong Cong Sin <yongcong.sin@gmail.com>
+# SPDX-License-Identifier: Apache-2.0
+
+config INTC2_RISCV_CPU_INTC
+	bool "intc2 root node for the RISC-V CPU interrupt controller"
+	default y
+	depends on INTC2 && RISCV && DT_HAS_RISCV_CPU_INTC_ENABLED
+	# CLIC replaces the CPU intc; the bridge assumes table index == line
+	depends on !RISCV_HAS_CLIC
+	depends on RISCV_RESERVED_IRQ_ISR_TABLES_OFFSET = 0
+	depends on !ISR_TABLES_LOCAL_DECLARATION
+	select INTC2_LEGACY_BRIDGE
+	help
+	  Define the intc2 CPU-root node for the RISC-V CPU interrupt
+	  controller. The node's generated dispatch table takes over
+	  _sw_isr_table, so legacy and intc2 interrupt connections share
+	  one table and both APIs work. Interrupts on chained controllers
+	  (e.g. the PLIC) keep using the legacy path until those
+	  controllers are converted.

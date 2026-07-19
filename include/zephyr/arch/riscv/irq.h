@@ -73,12 +73,30 @@ extern void z_riscv_irq_vector_set(unsigned int irq);
 #define z_riscv_irq_vector_set(i) /* Nothing */
 #endif /* CONFIG_RISCV_HAS_CLIC */
 
+#ifdef CONFIG_INTC2_LEGACY_BRIDGE
+/* The intc2 CPU-root node: the RISC-V CPU interrupt controller */
+#define Z_INTC2_ROOT_NODE DT_INST(0, riscv_cpu_intc)
+#endif
+
+#ifdef CONFIG_INTC2_LEGACY_BRIDGE
+/*
+ * The bridge is gated on RISCV_RESERVED_IRQ_ISR_TABLES_OFFSET == 0 and
+ * the bridged record's line must stringify to a plain integer, so the
+ * offset addition is omitted here.
+ */
+#define ARCH_IRQ_CONNECT(irq_p, priority_p, isr_p, isr_param_p, flags_p) \
+{ \
+	Z_ISR_DECLARE(irq_p, 0, isr_p, isr_param_p); \
+	z_riscv_irq_priority_set(irq_p, priority_p, flags_p); \
+}
+#else
 #define ARCH_IRQ_CONNECT(irq_p, priority_p, isr_p, isr_param_p, flags_p) \
 { \
 	Z_ISR_DECLARE(irq_p + CONFIG_RISCV_RESERVED_IRQ_ISR_TABLES_OFFSET, \
 		      0, isr_p, isr_param_p); \
 	z_riscv_irq_priority_set(irq_p, priority_p, flags_p); \
 }
+#endif /* CONFIG_INTC2_LEGACY_BRIDGE */
 
 #define ARCH_IRQ_DIRECT_CONNECT(irq_p, priority_p, isr_p, flags_p) \
 { \
