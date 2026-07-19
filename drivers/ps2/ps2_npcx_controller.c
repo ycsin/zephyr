@@ -16,6 +16,7 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/ps2.h>
 #include <zephyr/dt-bindings/clock/npcx_clock.h>
@@ -108,11 +109,11 @@ int ps2_npcx_ctrl_enable_interface(const struct device *dev, uint8_t channel_id,
 	 * Disable the interrupt during changing the enabled channel mask to
 	 * prevent from preemption.
 	 */
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	if (channel_id >= NPCX_PS2_CH_COUNT) {
 		LOG_ERR("unexpected channel ID: %d", channel_id);
-		irq_enable(DT_INST_IRQN(0));
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 		k_sem_give(&data->lock);
 		return -EINVAL;
 	}
@@ -128,7 +129,7 @@ int ps2_npcx_ctrl_enable_interface(const struct device *dev, uint8_t channel_id,
 		inst->PSOSIG &= ~ch_clk_mask;
 	}
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	k_sem_give(&data->lock);
 
 	return 0;
@@ -197,7 +198,7 @@ int ps2_npcx_ctrl_write(const struct device *dev, uint8_t channel_id,
 	inst->PSOSIG &= ~BIT(NPCX_PSOSIG_WDAT(channel_id));
 	inst->PSOSIG |= ps2_npcx_ctrl_get_ch_clk_mask(channel_id);
 	if (k_sem_take(&data->tx_sync_sem, PS2_TRANSACTION_TIMEOUT) != 0) {
-		irq_disable(DT_INST_IRQN(0));
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 		LOG_ERR("PS/2 Tx timeout");
 		/* Reset the shift mechanism */
 		inst->PSOSIG = NPCX_PS2_SHIFT_MECH_RESET;
@@ -208,7 +209,7 @@ int ps2_npcx_ctrl_write(const struct device *dev, uint8_t channel_id,
 		 * channel_enabled_mask.
 		 */
 		inst->PSOSIG |= data->channel_enabled_mask;
-		irq_enable(DT_INST_IRQN(0));
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 		goto timeout_invalid;
 	}
 
@@ -376,10 +377,10 @@ static int ps2_npcx_ctrl_init(const struct device *dev)
 	k_sem_init(&data->lock, 1, 1);
 	k_sem_init(&data->tx_sync_sem, 0, 1);
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		    ps2_npcx_ctrl_isr, DEVICE_DT_INST_GET(0), 0);
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	return 0;
 }

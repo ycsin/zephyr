@@ -7,6 +7,7 @@
 #include <soc.h>
 
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/ps2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/kernel.h>
@@ -385,8 +386,8 @@ static inline int it51xxx_ps2_pm_action(const struct device *dev, enum pm_device
 		ARG_UNUSED(dev);                                                                   \
                                                                                                    \
 		ite_intc_irq_polarity_set(DT_INST_IRQN(n), DT_INST_IRQ(n, flags));                 \
-		IRQ_CONNECT(DT_INST_IRQN(n), 0, it51xxx_ps2_isr, DEVICE_DT_INST_GET(n), 0);        \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		INTC2_DT_INST_CONNECT_INLINE(n, 0, it51xxx_ps2_isr, DEVICE_DT_INST_GET(n), 0);        \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	};                                                                                         \
 	static struct it51xxx_ps2_config ps2_config_##n = {                                        \
 		.base = DT_INST_REG_ADDR(n),                                                       \

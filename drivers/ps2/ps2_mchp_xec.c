@@ -10,6 +10,7 @@
 #include <cmsis_core.h>
 #include <errno.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #ifdef CONFIG_SOC_SERIES_MEC172X
 #include <zephyr/drivers/clock_control/mchp_xec_clock_control.h>
@@ -399,11 +400,11 @@ static int ps2_xec_init(const struct device *dev)
 									\
 	static void ps2_xec_irq_config_func_##i(void)			\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(i),				\
+		INTC2_DT_INST_CONNECT_INLINE(i,				\
 			    DT_INST_IRQ(i, priority),			\
 			    ps2_xec_isr,				\
 			    DEVICE_DT_INST_GET(i), 0);			\
-		irq_enable(DT_INST_IRQN(i));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(i));				\
 	}								\
 									\
 	static struct ps2_xec_data ps2_xec_port_data_##i;		\
