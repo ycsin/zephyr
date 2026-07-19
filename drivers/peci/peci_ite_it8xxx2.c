@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ite_it8xxx2_peci
 
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/peci.h>
 #include <zephyr/kernel.h>
@@ -330,7 +331,7 @@ static int peci_it8xxx2_init(const struct device *dev)
 	peci_it8xxx2_configure(dev, PECI_IT8XXX2_BITRATE_1MHZ);
 
 	/* Interrupt Assignment */
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 	0,
 	peci_it8xxx2_isr,
 	DEVICE_DT_INST_GET(0),

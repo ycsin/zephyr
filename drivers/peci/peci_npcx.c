@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <soc.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/peci.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -107,7 +108,7 @@ static int peci_npcx_disable(const struct device *dev)
 
 	k_sem_take(&data->lock, K_FOREVER);
 
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	k_sem_give(&data->lock);
 
@@ -125,7 +126,7 @@ static int peci_npcx_enable(const struct device *dev)
 	reg->PECI_CTL_STS = BIT(NPCX_PECI_CTL_STS_DONE) | BIT(NPCX_PECI_CTL_STS_CRC_ERR) |
 			    BIT(NPCX_PECI_CTL_STS_ABRT_ERR);
 	NVIC_ClearPendingIRQ(DT_INST_IRQN(0));
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	k_sem_give(&data->lock);
 
@@ -275,7 +276,7 @@ static int peci_npcx_init(const struct device *dev)
 	k_sem_init(&data->trans_sync_sem, 0, 1);
 	k_sem_init(&data->lock, 1, 1);
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), peci_npcx_isr, DEVICE_DT_INST_GET(0),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), peci_npcx_isr, DEVICE_DT_INST_GET(0),
 		    0);
 
 	return 0;
