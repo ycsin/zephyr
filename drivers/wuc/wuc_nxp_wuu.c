@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_wuc_wuu
 
 #include <zephyr/init.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/kernel.h>
 #include <zephyr/irq.h>
@@ -213,7 +214,7 @@ static int mcux_wuu_init(const struct device *dev)
 {
 	struct mcux_wuu_data *data = (struct mcux_wuu_data *)dev->data;
 
-	IRQ_CONNECT(DT_IRQN(DT_DRV_INST(0)), DT_IRQ(DT_DRV_INST(0), priority), mcux_wuu_isr,
+	INTC2_DT_CONNECT_INLINE(DT_DRV_INST(0), DT_IRQ(DT_DRV_INST(0), priority), mcux_wuu_isr,
 		    DEVICE_DT_INST_GET(0), 0);
 
 	data->triggered_pin_sources = 0;

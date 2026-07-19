@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT nxp_llwu
 
 #include <zephyr/init.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/kernel.h>
 #include <zephyr/spinlock.h>
@@ -170,7 +171,7 @@ static int mcux_llwu_init(const struct device *dev)
 	struct mcux_llwu_data *data = dev->data;
 
 #if FSL_FEATURE_LLWU_HAS_EXTERNAL_PIN
-	IRQ_CONNECT(DT_IRQN(DT_DRV_INST(0)), DT_IRQ(DT_DRV_INST(0), priority), mcux_llwu_isr,
+	INTC2_DT_CONNECT_INLINE(DT_DRV_INST(0), DT_IRQ(DT_DRV_INST(0), priority), mcux_llwu_isr,
 		    DEVICE_DT_GET(DT_DRV_INST(0)), 0);
 	data->triggered_pin_sources = 0;
 	data->enabled_pins = 0;
