@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/cache.h>
 #include <zephyr/shell/shell.h>
@@ -938,9 +939,9 @@ int etr_process_init(void)
 	};
 
 	nrfx_tbm_init(&config, tbm_event_handler);
-	IRQ_CONNECT(DT_IRQN(DT_NODELABEL(tbm)), DT_IRQ(DT_NODELABEL(tbm), priority),
+	INTC2_DT_CONNECT_INLINE(DT_NODELABEL(tbm), DT_IRQ(DT_NODELABEL(tbm), priority),
 			    nrfx_isr, nrfx_tbm_irq_handler, 0);
-	irq_enable(DT_IRQN(DT_NODELABEL(tbm)));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_NODELABEL(tbm)));
 	nrfx_tbm_start();
 
 #ifdef CONFIG_DEBUG_NRF_ETR_SHELL
