@@ -15,6 +15,7 @@
 #include <infineon_kconfig.h>
 #include <cy_lpcomp.h>
 #include <zephyr/drivers/comparator.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <zephyr/logging/log.h>
 
@@ -347,9 +348,9 @@ static DEVICE_API(comparator, ifx_lpcomp_driver_api) = {
  * iterate through all channels to check which one triggered the interrupt.
  */
 #define CONFIGURE_SHARED_INTERRUPT(inst)                                                           \
-	IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), lpcomp_irq_handler,           \
+	INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), lpcomp_irq_handler,           \
 		    &ifx_lpcomp_instance_##inst, 0);                                               \
-	irq_enable(DT_INST_IRQN(inst));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));
 
 /* Set up shared IRQ handler and instantiate devices for all enabled child channels */
 #define LPCOMP_INSTANCE_SETUP(inst)                                                                \

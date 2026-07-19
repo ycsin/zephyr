@@ -7,6 +7,7 @@
 #include <em_device.h>
 #include <em_acmp.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/comparator.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/clock_control_silabs.h>
@@ -219,10 +220,10 @@ static DEVICE_API(comparator, acmp_api) = {
                                                                                                    \
 	static void acmp_irq_init##inst(void)                                                      \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), acmp_irq_handler,     \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), acmp_irq_handler,     \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
                                                                                                    \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 	}                                                                                          \
                                                                                                    \
 	static struct acmp_data acmp_data##inst;                                                   \

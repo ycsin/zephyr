@@ -9,6 +9,7 @@
 #include <fsl_acmp.h>
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/pm/device.h>
 #include <zephyr/drivers/comparator.h>
@@ -622,13 +623,13 @@ static int mcux_acmp_init(const struct device *dev)
 #define MCUX_ACMP_IRQ_HANDLER_DEFINE(inst)							\
 	static void MCUX_ACMP_IRQ_HANDLER_SYM(inst)(void)					\
 	{											\
-		IRQ_CONNECT(DT_INST_IRQN(inst),							\
+		INTC2_DT_INST_CONNECT_INLINE(inst,							\
 			    DT_INST_IRQ(inst, priority),					\
 			    mcux_acmp_irq_handler,						\
 			    DEVICE_DT_INST_GET(inst),						\
 			    0);									\
 												\
-		irq_enable(DT_INST_IRQN(inst));							\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));							\
 	}
 
 #define MCUX_ACMP_DEVICE(inst)									\

@@ -6,6 +6,7 @@
 
 #include <stddef.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/util.h>
@@ -255,9 +256,9 @@ static DEVICE_API(comparator, nxp_acomp_api) = {
 												\
 	static void nxp_acomp_irq_config_##inst(const struct device *dev)			\
 	{											\
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority),			\
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority),			\
 			    nxp_acomp_irq_handler, DEVICE_DT_INST_GET(inst), 0);		\
-		irq_enable(DT_INST_IRQN(inst));							\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));							\
 	}											\
 												\
 	static struct nxp_acomp_data nxp_acomp_data_##inst;					\

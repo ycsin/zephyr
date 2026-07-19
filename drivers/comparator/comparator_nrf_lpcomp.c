@@ -7,6 +7,7 @@
 #include <nrfx_lpcomp.h>
 
 #include <zephyr/drivers/comparator/nrf_lpcomp.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/pm/device.h>
 
@@ -344,13 +345,13 @@ static void shim_nrf_lpcomp_event_handler(nrf_lpcomp_event_t event)
 
 static int shim_nrf_lpcomp_init(const struct device *dev)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    nrfx_isr,
 		    nrfx_lpcomp_irq_handler,
 		    0);
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	(void)shim_nrf_lpcomp_config_to_nrf(&shim_nrf_lpcomp_config0,
 					    &shim_nrf_lpcomp_data0.config);

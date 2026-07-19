@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT renesas_rx_lvd
 
 #include <zephyr/drivers/comparator.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/atomic.h>
@@ -187,14 +188,14 @@ static int renesas_rx_pin_set_cmpa(const struct device *dev)
 static inline void lvd_irq_connect(void)
 {
 #if DT_NODE_HAS_STATUS_OKAY(LVD0_NODE)
-	IRQ_CONNECT(DT_IRQN(LVD0_NODE), DT_IRQ(LVD0_NODE, priority), lvd_ch1_isr,
+	INTC2_DT_CONNECT_INLINE(LVD0_NODE, DT_IRQ(LVD0_NODE, priority), lvd_ch1_isr,
 		    DEVICE_DT_GET(LVD0_NODE), 0);
-	irq_enable(DT_IRQN(LVD0_NODE));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(LVD0_NODE));
 #endif
 #if DT_NODE_HAS_STATUS_OKAY(LVD1_NODE)
-	IRQ_CONNECT(DT_IRQN(LVD1_NODE), DT_IRQ(LVD1_NODE, priority), lvd_ch2_isr,
+	INTC2_DT_CONNECT_INLINE(LVD1_NODE, DT_IRQ(LVD1_NODE, priority), lvd_ch2_isr,
 		    DEVICE_DT_GET(LVD1_NODE), 0);
-	irq_enable(DT_IRQN(LVD1_NODE));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(LVD1_NODE));
 #endif
 }
 
