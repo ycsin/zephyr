@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_lcdic
 
 #include <zephyr/drivers/mipi_dbi.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/pm/device.h>
@@ -948,11 +949,11 @@ static int mipi_dbi_lcdic_init(const struct device *dev)
 	static void mipi_dbi_lcdic_config_func_##n(			\
 			const struct device *dev)			\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),	\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),	\
 			    mipi_dbi_lcdic_isr,				\
 			    DEVICE_DT_INST_GET(n), 0);			\
 									\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}								\
 									\
 	PINCTRL_DT_INST_DEFINE(n);					\

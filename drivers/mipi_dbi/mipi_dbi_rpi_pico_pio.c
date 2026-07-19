@@ -12,6 +12,7 @@
 #include <hardware/dma.h>
 
 #include <zephyr/dt-bindings/dma/rpi-pico-dma-common.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/mipi_dbi.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/dma.h>
@@ -666,9 +667,9 @@ static DEVICE_API(mipi_dbi, mipi_dbi_pico_pio_driver_api) = {
                                                                                                    \
 	static void inst_##n##_irq_config(void)                                                    \
 	{                                                                                          \
-		IRQ_CONNECT(DT_IRQN(DT_INST_PARENT(n)), DT_IRQ(DT_INST_PARENT(n), priority),       \
+		INTC2_DT_CONNECT_INLINE(DT_INST_PARENT(n), DT_IRQ(DT_INST_PARENT(n), priority),       \
 			    mipi_dbi_pio_pio_irq_handler, DEVICE_DT_INST_GET(n), 0);               \
-		irq_enable(DT_IRQN(DT_INST_PARENT(n)));                                            \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_INST_PARENT(n)));                                            \
 	}                                                                                          \
                                                                                                    \
 	static const bool pins_consecutive_##n = CTRL_PINS_CONSECUTIVE(DT_DRV_INST(n));            \

@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_mipi_dbi_dcnano_lcdif
 
 #include <zephyr/drivers/clock_control.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/display.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -364,12 +365,12 @@ static DEVICE_API(mipi_dbi, mcux_dcnano_lcdif_dbi_api) = {
 #define MCUX_DCNANO_LCDIF_DEVICE_INIT(n)						\
 	static void mcux_dcnano_lcdif_dbi_config_func_##n(const struct device *dev)	\
 	{										\
-		IRQ_CONNECT(DT_INST_IRQN(n),						\
+		INTC2_DT_INST_CONNECT_INLINE(n,						\
 				DT_INST_IRQ(n, priority),				\
 				mcux_dcnano_lcdif_dbi_isr,				\
 				DEVICE_DT_INST_GET(n),					\
 				0);							\
-		irq_enable(DT_INST_IRQN(n));						\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));						\
 	}										\
 	PINCTRL_DT_INST_DEFINE(n);							\
 	struct mcux_dcnano_lcdif_dbi_data mcux_dcnano_lcdif_dbi_data_##n;		\

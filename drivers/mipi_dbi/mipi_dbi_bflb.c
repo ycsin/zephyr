@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT bflb_dbi
 
 #include <zephyr/drivers/spi.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/dma.h>
 #include <zephyr/drivers/mipi_dbi.h>
 #include <zephyr/drivers/clock_control.h>
@@ -752,12 +753,12 @@ static void mipi_dbi_bflb_isr(const struct device *dev)
 #define MIPI_DBI_BFLB_IRQ_HANDLER(n)						\
 	static void mipi_dbi_bflb_config_func_##n(const struct device *dev)	\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n),				\
+		INTC2_DT_INST_CONNECT_INLINE(n,				\
 			    DT_INST_IRQ(n, priority),			\
 			    mipi_dbi_bflb_isr,				\
 			    DEVICE_DT_INST_GET(n),			\
 			    0);						\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}
 
 #define DBI_GPIO_SPEC_ELEM(inst, _prop, _idx)				\
