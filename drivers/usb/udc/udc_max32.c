@@ -11,6 +11,7 @@
 #include <stdlib.h>
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/usb/udc.h>
 
 #include <wrap_max32_usb.h>
@@ -670,7 +671,7 @@ static int udc_max32_init(const struct device *dev)
 static int udc_max32_shutdown(const struct device *dev)
 {
 	MXC_USB_Shutdown();
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	if (udc_ep_disable_internal(dev, USB_CONTROL_EP_OUT)) {
 		LOG_ERR("Failed to disable control endpoint");
@@ -789,9 +790,9 @@ static const struct udc_api udc_max32_api = {
 #define UDC_MAX32_DEVICE_DEFINE(n)                                                                 \
 	static void udc_max32_irq_init_##n(void)                                                   \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), udc_max32_isr,              \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), udc_max32_isr,              \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
                                                                                                    \
 	K_THREAD_STACK_DEFINE(udc_max32_stack_##n, CONFIG_UDC_MAX32_THREAD_STACK_SIZE);            \

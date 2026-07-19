@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/usb/udc.h>
 #include <zephyr/sys/math_extras.h>
 #include <zephyr/drivers/clock_control.h>
@@ -3175,15 +3176,15 @@ static const struct udc_api udc_numaker_api = {
                                                                                                    \
 	static void udc_numaker_irq_config_func_##inst(const struct device *dev)                   \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), UDC_NUMAKER_ISR,      \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), UDC_NUMAKER_ISR,      \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
                                                                                                    \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 	}                                                                                          \
                                                                                                    \
 	static void udc_numaker_irq_unconfig_func_##inst(const struct device *dev)                 \
 	{                                                                                          \
-		irq_disable(DT_INST_IRQN(inst));                                                   \
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                   \
 	}                                                                                          \
                                                                                                    \
 	K_THREAD_STACK_DEFINE(udc_numaker_stack_##inst, CONFIG_UDC_NUMAKER_THREAD_STACK_SIZE);     \

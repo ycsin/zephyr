@@ -6,6 +6,7 @@
 #include "udc_common.h"
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/usb/udc.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/sys/util.h>
@@ -1866,15 +1867,15 @@ static void udc_bflb_v1_thread(void *dev, void *arg1, void *arg2)
 	static void udc_bflb_v1_irq_enable_##n(const struct device *dev)        \
 	{                                                                       \
 		ARG_UNUSED(dev);                                                \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),          \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),          \
 			    udc_bflb_v1_isr, DEVICE_DT_INST_GET(n), 0);         \
-		irq_enable(DT_INST_IRQN(n));                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                    \
 	}                                                                       \
                                                                                 \
 	static void udc_bflb_v1_irq_disable_##n(const struct device *dev)       \
 	{                                                                       \
 		ARG_UNUSED(dev);                                                \
-		irq_disable(DT_INST_IRQN(n));                                   \
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                   \
 	}                                                                       \
                                                                                 \
 	static struct udc_ep_config ep_cfg_out_##n[BFLB_USB_NUM_ENDPOINTS];     \

@@ -9,6 +9,7 @@
 #include <soc.h>
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/usb/udc.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/nrf_clock_control.h>
@@ -1740,7 +1741,7 @@ static int udc_nrf_init(const struct device *dev)
 		    nrfx_isr, nrfx_usbreg_irq_handler, 0);
 #endif
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		    nrfx_isr, nrf_usbd_irq_handler, 0);
 
 	(void)nrfx_power_init(&cfg->pwr);

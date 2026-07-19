@@ -8,6 +8,7 @@
 #include <soc.h>
 #include <string.h>
 #include <zephyr/drivers/usb/usb_dc.h>
+#include <zephyr/intc2.h>
 #include <zephyr/usb/usb_device.h>
 #include <zephyr/init.h>
 #include <zephyr/kernel.h>
@@ -195,9 +196,9 @@ int usb_dc_attach(void)
 		return -EIO;
 	}
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		    usb_isr_handler, 0, 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	dev_state.attached = true;
 	status = dev_state.dev_struct.controllerInterface->deviceControl(
 						dev_state.dev_struct.controllerHandle,
@@ -225,7 +226,7 @@ int usb_dc_detach(void)
 		return -EIO;
 	}
 
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	status = dev_state.dev_struct.controllerInterface->deviceDeinit(
 						   dev_state.dev_struct.controllerHandle);
 	if (kStatus_USB_Success != status) {

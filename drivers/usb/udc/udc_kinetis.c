@@ -16,6 +16,7 @@
 #include <stdio.h>
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/drivers/usb/udc.h>
@@ -943,7 +944,7 @@ static const struct udc_api usbfsotg_api = {
 	(irq_connect_dynamic(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),		\
 			     (void (*)(const void *))usbfsotg_isr_handler,	\
 			     DEVICE_DT_INST_GET(n), 0)),			\
-	(IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),			\
+	(INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),			\
 		     usbfsotg_isr_handler,					\
 		     DEVICE_DT_INST_GET(n), 0)))
 
@@ -951,12 +952,12 @@ static const struct udc_api usbfsotg_api = {
 	static void udc_irq_enable_func##n(const struct device *dev)		\
 	{									\
 		USBFSOTG_IRQ_DEFINE_OR(n);					\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}									\
 										\
 	static void udc_irq_disable_func##n(const struct device *dev)		\
 	{									\
-		irq_disable(DT_INST_IRQN(n));					\
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}									\
 										\
 	static struct usbfsotg_bd __aligned(512)				\

@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT snps_dwc2
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/drivers/usb/uhc.h>
@@ -2100,18 +2101,18 @@ static DEVICE_API(uhc, uhc_dwc2_api) = {
 	static void uhc_dwc2_irq_enable_func_##n(const struct device *dev)	\
 	{									\
 		ARG_UNUSED(dev);						\
-		IRQ_CONNECT(DT_INST_IRQN(n),					\
+		INTC2_DT_INST_CONNECT_INLINE(n,					\
 			    DT_INST_IRQ(n, priority),				\
 			    uhc_dwc2_isr_handler,				\
 			    DEVICE_DT_INST_GET(n),				\
 			    0);							\
 										\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}									\
 										\
 	static void uhc_dwc2_irq_disable_func_##n(const struct device *dev)	\
 	{									\
-		irq_disable(DT_INST_IRQN(n));					\
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}
 #endif
 

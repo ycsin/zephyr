@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nuvoton_numaker_usbd
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/usb/usb_device.h>
 #include <zephyr/dt-bindings/usb/usb.h>
 #include <zephyr/sys/math_extras.h>
@@ -1950,15 +1951,15 @@ static int numaker_udbd_init(const struct device *dev)
                                                                                                    \
 	static void numaker_usbd_irq_config_func_##inst(const struct device *dev)                  \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), numaker_udbd_isr,     \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), numaker_udbd_isr,     \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
                                                                                                    \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 	}                                                                                          \
                                                                                                    \
 	static void numaker_uusbd_irq_unconfig_func_##inst(const struct device *dev)               \
 	{                                                                                          \
-		irq_disable(DT_INST_IRQN(inst));                                                   \
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                   \
 	}                                                                                          \
                                                                                                    \
 	static const struct numaker_usbd_config numaker_usbd_config_##inst = {                     \

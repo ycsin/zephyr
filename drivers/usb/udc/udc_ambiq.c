@@ -7,6 +7,7 @@
 #include <soc.h>
 #include <string.h>
 #include <zephyr/drivers/clock_control/clock_control_ambiq.h>
+#include <zephyr/intc2.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/usb/udc.h>
@@ -947,15 +948,15 @@ static const struct udc_api udc_ambiq_api = {
                                                                                                    \
 	static void udc_ambiq_irq_enable_func_##n(const struct device *dev)                        \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), udc_ambiq_usb_isr,          \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), udc_ambiq_usb_isr,          \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
                                                                                                    \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
                                                                                                    \
 	static void udc_ambiq_irq_disable_func_##n(const struct device *dev)                       \
 	{                                                                                          \
-		irq_disable(DT_INST_IRQN(n));                                                      \
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                      \
 	}                                                                                          \
 	static struct udc_ep_config ep_cfg_out[DT_INST_PROP(n, num_bidir_endpoints)];              \
 	static struct udc_ep_config ep_cfg_in[DT_INST_PROP(n, num_bidir_endpoints)];               \

@@ -17,6 +17,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <zephyr/init.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/usb/usb_dc.h>
 #include <zephyr/usb/usb_device.h>
@@ -1278,7 +1279,7 @@ int usb_dc_attach(void)
 				    (CLOCK_CONTROL_NRF_SUBSYS_HF192M),
 				    (CLOCK_CONTROL_NRF_SUBSYS_HF)));
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		    nrfx_isr, nrf_usbd_common_irq_handler, 0);
 
 	nrfx_power_usbevt_enable();

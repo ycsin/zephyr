@@ -8,6 +8,7 @@
 
 #define LOG_LEVEL CONFIG_USB_DRIVER_LOG_LEVEL
 #include <zephyr/sys/minmax.h>
+#include <zephyr/intc2.h>
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(usb_dc_sam0);
 
@@ -334,7 +335,7 @@ int usb_dc_reset(void)
 {
 	UsbDevice *regs = &REGS->DEVICE;
 
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	regs->CTRLA.bit.SWRST = 1;
 	usb_sam0_wait_syncbusy();

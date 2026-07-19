@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT atmel_sam_usbc
 
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(usb_dc_sam_usbc, CONFIG_USB_DRIVER_LOG_LEVEL);
 
 #include <zephyr/kernel.h>
@@ -745,10 +746,10 @@ int usb_dc_attach(void)
 		regs->UDINTESET |= USBC_UDINTESET_SOFES;
 	}
 
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    usb_dc_sam_usbc_isr, 0, 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	/* Attach the device */
 	regs->UDCON &= ~USBC_UDCON_DETACH;
@@ -786,7 +787,7 @@ int usb_dc_detach(void)
 	soc_pmc_peripheral_enable(
 		PM_CLOCK_MASK(PM_CLK_GRP_PBB, SYSCLK_USBC_REGS));
 
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	irq_unlock(key);
 
 	LOG_DBG("USB DC detach");

@@ -9,6 +9,7 @@
 #include "udc_common.h"
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/usb/udc.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/atmel_sam_pmc.h>
@@ -1743,17 +1744,17 @@ static const struct udc_api udc_sam_udp_api = {
 	static void udc_sam_udp_irq_enable_##n(const struct device *dev)	\
 	{									\
 		ARG_UNUSED(dev);						\
-		IRQ_CONNECT(DT_INST_IRQN(n),					\
+		INTC2_DT_INST_CONNECT_INLINE(n,					\
 			    DT_INST_IRQ(n, priority),				\
 			    udc_sam_udp_isr_handler,				\
 			    DEVICE_DT_INST_GET(n), 0);				\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}									\
 										\
 	static void udc_sam_udp_irq_disable_##n(const struct device *dev)	\
 	{									\
 		ARG_UNUSED(dev);						\
-		irq_disable(DT_INST_IRQN(n));					\
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}									\
 										\
 	static struct udc_ep_config						\

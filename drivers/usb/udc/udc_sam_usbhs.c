@@ -12,6 +12,7 @@
 
 #include <soc.h>
 #include <zephyr/cache.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control/atmel_sam_pmc.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/usb/udc.h>
@@ -1686,16 +1687,16 @@ static const struct udc_api udc_sam_usbhs_api = {
 										   \
 	static void udc_sam_usbhs_irq_enable_##n(const struct device *dev)	   \
 	{									   \
-		IRQ_CONNECT(DT_INST_IRQN(n),					   \
+		INTC2_DT_INST_CONNECT_INLINE(n,					   \
 			    DT_INST_IRQ(n, priority),				   \
 			    sam_usbhs_isr_handler,				   \
 			    DEVICE_DT_INST_GET(n), 0);				   \
-		irq_enable(DT_INST_IRQN(n));					   \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					   \
 	}									   \
 										   \
 	static void udc_sam_usbhs_irq_disable_##n(const struct device *dev)	   \
 	{									   \
-		irq_disable(DT_INST_IRQN(n));					   \
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					   \
 	}									   \
 										   \
 	K_THREAD_STACK_DEFINE(udc_sam_usbhs_stack_##n,				   \

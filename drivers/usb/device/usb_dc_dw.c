@@ -19,6 +19,7 @@
 #include <stdio.h>
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/irq.h>
 #include <zephyr/sys/util.h>
@@ -156,13 +157,13 @@ static int usb_dw_init_pinctrl(const struct usb_dw_config *const config)
 										\
 	static void usb_dw_irq_enable_func_##n(const struct device *dev)	\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(n),					\
+		INTC2_DT_INST_CONNECT_INLINE(n,					\
 			    DT_INST_IRQ(n, priority),				\
 			    usb_dw_isr_handler,					\
 			    0,							\
 			    DW_IRQ_FLAGS(n));					\
 										\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}									\
 										\
 	static const struct usb_dw_config usb_dw_cfg_##n = {			\
@@ -900,7 +901,7 @@ int usb_dc_detach(void)
 		return 0;
 	}
 
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	/* Enable soft disconnect */
 	base->dctl |= USB_DWC2_DCTL_SFTDISCON;

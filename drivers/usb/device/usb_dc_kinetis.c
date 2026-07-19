@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/usb/usb_device.h>
 #include <zephyr/init.h>
@@ -1061,9 +1062,9 @@ static int usb_kinetis_init(void)
 			K_PRIO_COOP(2), 0, K_NO_WAIT);
 	k_thread_name_set(&dev_data.thread, "usb_kinetis");
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		    usb_kinetis_isr_handler, 0, 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	return 0;
 }

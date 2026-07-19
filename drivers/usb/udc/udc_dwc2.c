@@ -13,6 +13,7 @@
 #include <stdio.h>
 
 #include <zephyr/cache.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/sys/util.h>
@@ -3248,18 +3249,18 @@ static const struct udc_api udc_dwc2_api = {
 #define UDC_DWC2_IRQ_DT_INST_DEFINE(n)	\
 	static void udc_dwc2_irq_enable_func_##n(const struct device *dev)	\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(n),					\
+		INTC2_DT_INST_CONNECT_INLINE(n,					\
 			    DT_INST_IRQ(n, priority),				\
 			    udc_dwc2_isr_handler,				\
 			    DEVICE_DT_INST_GET(n),				\
 			    DW_IRQ_FLAGS(n));					\
 										\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}									\
 										\
 	static void udc_dwc2_irq_disable_func_##n(const struct device *dev)	\
 	{									\
-		irq_disable(DT_INST_IRQN(n));					\
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}
 #endif
 

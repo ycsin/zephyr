@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT atmel_sam_usbhs
 
 #include <zephyr/usb/usb_device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control/atmel_sam_pmc.h>
 #include <zephyr/irq.h>
 #include <zephyr/kernel.h>
@@ -349,9 +350,9 @@ int usb_dc_attach(void)
 #endif
 
 	/* Connect and enable the interrupt */
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		    usb_dc_isr, 0, 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	/* Attach the device */
 	USBHS->USBHS_DEVCTRL &= ~USBHS_DEVCTRL_DETACH;
@@ -379,7 +380,7 @@ int usb_dc_detach(void)
 				(clock_control_subsys_t)&clock_cfg);
 
 	/* Disable interrupt */
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	LOG_DBG("");
 	return 0;

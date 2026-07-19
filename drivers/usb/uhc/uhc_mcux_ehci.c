@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/init.h>
@@ -423,7 +424,7 @@ static const usb_host_controller_interface_t uhc_mcux_if = {
 	COND_CODE_1(CONFIG_UDC_NXP_EHCI,                                                           \
 	(irq_connect_dynamic(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),                            \
 			     (void (*)(const void *))uhc_mcux_isr, DEVICE_DT_INST_GET(n), 0)),     \
-	(IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), uhc_mcux_isr,                      \
+	(INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), uhc_mcux_isr,                      \
 		     DEVICE_DT_INST_GET(n), 0)))
 
 #define UHC_MCUX_EHCI_DEVICE_DEFINE(n)                                                             \
@@ -432,12 +433,12 @@ static const usb_host_controller_interface_t uhc_mcux_if = {
 	static void uhc_irq_enable_func##n(const struct device *dev)                               \
 	{                                                                                          \
 		UHC_MCUX_EHCI_IRQ_DEFINE_OR(n);                                                    \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
                                                                                                    \
 	static void uhc_irq_disable_func##n(const struct device *dev)                              \
 	{                                                                                          \
-		irq_disable(DT_INST_IRQN(n));                                                      \
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                      \
 	}                                                                                          \
                                                                                                    \
 	static K_KERNEL_STACK_DEFINE(drv_stack_##n, CONFIG_UHC_NXP_THREAD_STACK_SIZE);             \

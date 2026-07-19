@@ -12,6 +12,7 @@
 #include <soc.h>
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/drivers/usb/udc.h>
@@ -918,7 +919,7 @@ static usb_phy_config_struct_t phy_config_##n = {					\
 	(irq_connect_dynamic(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),			\
 			     (void (*)(const void *))udc_mcux_isr,			\
 			     DEVICE_DT_INST_GET(n), 0)),				\
-	(IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), udc_mcux_isr,		\
+	(INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), udc_mcux_isr,		\
 		     DEVICE_DT_INST_GET(n), 0)))
 
 #define USB_MCUX_EHCI_DEVICE_DEFINE(n)							\
@@ -927,12 +928,12 @@ static usb_phy_config_struct_t phy_config_##n = {					\
 	static void udc_irq_enable_func##n(const struct device *dev)			\
 	{										\
 		UDC_MCUX_EHCI_IRQ_DEFINE_OR(n);						\
-		irq_enable(DT_INST_IRQN(n));						\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));						\
 	}										\
 											\
 	static void udc_irq_disable_func##n(const struct device *dev)			\
 	{										\
-		irq_disable(DT_INST_IRQN(n));						\
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));						\
 	}										\
 											\
 	static struct udc_ep_config							\
