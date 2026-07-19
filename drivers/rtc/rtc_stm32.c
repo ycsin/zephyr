@@ -12,6 +12,7 @@
 
 #include <errno.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/init.h>
 #include <zephyr/devicetree.h>
@@ -470,10 +471,10 @@ void rtc_stm32_isr(const struct device *dev)
 
 static void rtc_stm32_irq_config(const struct device *dev)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    rtc_stm32_isr, DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 #endif /* STM32_RTC_ALARM_ENABLED */
 

@@ -8,6 +8,7 @@
 #define DT_DRV_COMPAT ti_mspm0_rtc
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/rtc.h>
 #include <zephyr/init.h>
@@ -441,9 +442,9 @@ static DEVICE_API(rtc, rtc_ti_mspm0_driver_api) = {
 	IF_ENABLED(CONFIG_RTC_ALARM,						\
 	(static void ti_mspm0_config_irq_##n(void)				\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),		\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),		\
 			    rtc_ti_mspm0_isr, DEVICE_DT_INST_GET(n), 0);	\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}))									\
 										\
 	static struct rtc_ti_mspm0_data rtc_data_##n;				\

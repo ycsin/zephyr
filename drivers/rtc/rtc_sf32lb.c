@@ -8,6 +8,7 @@
 #include "rtc_utils.h"
 
 #include <zephyr/arch/cpu.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/rtc.h>
 #include <zephyr/logging/log.h>
@@ -404,9 +405,9 @@ static int rtc_sf32lb_init(const struct device *dev)
 	IF_ENABLED(CONFIG_RTC_ALARM,                                                               \
 	(static void rtc_sf32lb_irq_config_func_##n(void)                                          \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), rtc_irq_handler,            \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), rtc_irq_handler,            \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}));
 
 DT_INST_FOREACH_STATUS_OKAY(RTC_SF32LB_DEFINE)

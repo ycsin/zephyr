@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/init.h>
 #include <zephyr/sys/util.h>
@@ -526,12 +527,12 @@ static DEVICE_API(rtc, rtc_mc146818_driver_api) = {
 		mfd_mc146818_std_write(config->mfd,				\
 				RTC_REG_B, RTC_DMODE_BIT | RTC_HFORMAT_BIT);	\
 										\
-		IRQ_CONNECT(DT_INST_IRQN(0),					\
+		INTC2_DT_INST_CONNECT_INLINE(0,					\
 				DT_INST_IRQ(0, priority),			\
 				rtc_mc146818_isr, DEVICE_DT_INST_GET(n),	\
 				DT_INST_IRQ(0, flags));				\
 										\
-		irq_enable(DT_INST_IRQN(0));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));					\
 										\
 		return 0;							\
 	}

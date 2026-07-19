@@ -13,6 +13,7 @@
 #include <stdlib.h>
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/rtc.h>
 #include "rtc_utils.h"
 
@@ -318,14 +319,14 @@ static int rtc_sam0_alarm_set_time(const struct device *dev, uint16_t id, uint16
 
 	k_spinlock_key_t key = k_spin_lock(&data->lock);
 
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	rtc_sam0_sync(cfg->regs);
 	regs->Mode2Alarm[id].ALARM.reg = datetime;
 	regs->Mode2Alarm[id].MASK.reg = RTC_MODE2_MASK_SEL(alarm_msk);
 	regs->INTFLAG.reg = RTC_MODE2_INTFLAG_ALARM(BIT(id));
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	k_spin_unlock(&data->lock, key);
 
@@ -543,11 +544,11 @@ static int rtc_sam0_init(const struct device *dev)
 
 	regs->INTFLAG.reg = 0;
 #ifdef CONFIG_RTC_ALARM
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    rtc_sam0_isr,
 		    DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 #endif
 	return 0;
 }

@@ -6,6 +6,7 @@
 
 
 #include <zephyr/drivers/rtc.h>
+#include <zephyr/intc2.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/pm/device.h>
 #include <zephyr/sys/util.h>
@@ -372,9 +373,9 @@ static int ambiq_rtc_init(const struct device *dev)
 	data->alarm_user_callback = NULL;
 	data->alarm_pending = false;
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), ambiq_rtc_isr, DEVICE_DT_INST_GET(0),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), ambiq_rtc_isr, DEVICE_DT_INST_GET(0),
 			0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 #endif
 	return 0;
 }

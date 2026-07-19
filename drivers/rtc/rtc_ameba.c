@@ -11,6 +11,7 @@
 #include <ameba_soc.h>
 
 #include <zephyr/drivers/rtc.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/kernel.h>
 
@@ -559,10 +560,10 @@ static DEVICE_API(rtc, rtc_ameba_driver_api) = {
 #if defined(CONFIG_RTC_ALARM)
 static void rtc_ameba_irq_configure(void)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), rtc_ameba_alarm_isr,
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), rtc_ameba_alarm_isr,
 		    DEVICE_DT_INST_GET(0), 0);
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 #endif
 

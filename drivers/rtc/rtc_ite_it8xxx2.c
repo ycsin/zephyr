@@ -8,6 +8,7 @@
 
 #include <soc.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/irq.h>
 #include <zephyr/drivers/rtc.h>
@@ -749,7 +750,7 @@ static int rtc_it8xxx2_init(const struct device *dev)
 
 #ifdef CONFIG_RTC_ALARM
 #define RTC_ITE_IRQ_FUN_ELEM(idx, inst)                                                            \
-	IRQ_CONNECT(DT_INST_IRQN_BY_IDX(inst, idx), 0, rtc_it8xxx2_isr, DEVICE_DT_INST_GET(inst),  \
+	INTC2_DT_INST_CONNECT_INLINE_BY_IDX(inst, idx, 0, rtc_it8xxx2_isr, DEVICE_DT_INST_GET(inst),  \
 		    DT_INST_IRQ_BY_IDX(inst, idx, flags));
 
 #define RTC_ITE_IRQN_ELEM(idx, inst)                                                               \

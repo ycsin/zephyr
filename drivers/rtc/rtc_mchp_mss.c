@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/rtc.h>
 #include <zephyr/logging/log.h>
@@ -517,9 +518,9 @@ static DEVICE_API(rtc, rtc_mchp_mss_api) = {
 /* Defines the RTC interrupt configurations. */
 #ifdef CONFIG_RTC_ALARM
 #define RTC_MCHP_MSS_CONNECT(n, m)                                                                 \
-	IRQ_CONNECT(DT_INST_IRQN_BY_IDX(n, m), DT_INST_IRQ_BY_IDX(n, m, priority),                 \
+	INTC2_DT_INST_CONNECT_INLINE_BY_IDX(n, m, DT_INST_IRQ_BY_IDX(n, m, priority),                 \
 		    rtc_mchp_mss_isr, DEVICE_DT_INST_GET(n), 0);                                   \
-	irq_enable(DT_INST_IRQN_BY_IDX(n, m));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_IDX(n, m));
 #endif
 
 /* RTC driver configuration structure for instance n */

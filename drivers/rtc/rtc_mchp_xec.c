@@ -7,6 +7,7 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/dt-bindings/interrupt-controller/mchp-xec-ecia.h>
 #include <soc.h>
@@ -460,9 +461,9 @@ static int rtc_xec_init(const struct device *dev)
 	soc_ecia_girq_ctrl(cfg->girq_rtc, cfg->girq_pos_rtc, 1);
 
 	/* RTC Interrupt */
-	IRQ_CONNECT(DT_INST_IRQN_BY_IDX(0, 0), DT_INST_IRQ_BY_IDX(0, 0, priority), rtc_xec_isr,
+	INTC2_DT_INST_CONNECT_INLINE_BY_IDX(0, 0, DT_INST_IRQ_BY_IDX(0, 0, priority), rtc_xec_isr,
 		    DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN_BY_IDX(0, 0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_IDX(0, 0));
 
 	return 0;
 }

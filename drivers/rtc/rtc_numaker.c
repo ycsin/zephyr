@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nuvoton_numaker_rtc
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/irq.h>
 #include <zephyr/drivers/rtc.h>
@@ -196,10 +197,10 @@ static int rtc_numaker_alarm_set_time(const struct device *dev, uint16_t id, uin
 
 	k_spinlock_key_t key = k_spin_lock(&data->lock);
 
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	if ((mask == 0) || (timeptr == NULL)) {
 		/* Disable the alarm */
-		irq_enable(DT_INST_IRQN(0));
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 		k_spin_unlock(&data->lock, key);
 		rtc_base->CAMSK = 0x00;
 		rtc_base->TAMSK = 0x00;
@@ -254,7 +255,7 @@ static int rtc_numaker_alarm_set_time(const struct device *dev, uint16_t id, uin
 	rtc_base->TAMSK = tamsk;
 
 	k_spin_unlock(&data->lock, key);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	/* Enable RTC Alarm Interrupt */
 	RTC_EnableInt(RTC_INTEN_ALMIEN_Msk);
@@ -357,14 +358,14 @@ static int rtc_numaker_alarm_set_callback(const struct device *dev, uint16_t id,
 	}
 
 	K_SPINLOCK(&data->lock) {
-		irq_disable(DT_INST_IRQN(0));
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 		data->alarm_callback = callback;
 		data->alarm_user_data = user_data;
 		if ((callback == NULL) && (user_data == NULL)) {
 			/* Disable RTC Alarm Interrupt */
 			RTC_DisableInt(RTC_INTEN_ALMIEN_Msk);
 		}
-		irq_enable(DT_INST_IRQN(0));
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	}
 
 	return 0;
@@ -404,12 +405,12 @@ static int rtc_numaker_init(const struct device *dev)
 
 	RTC_SetClockSource(cfg->oscillator);
 
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), rtc_numaker_isr,
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), rtc_numaker_isr,
 		    DEVICE_DT_INST_GET(0), 0);
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	err = RTC_Open(0);
 
 done:
