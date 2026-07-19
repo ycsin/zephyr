@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ti_mspm0_aes
 
 #include <zephyr/crypto/cipher.h>
+#include <zephyr/intc2.h>
 #include <zephyr/crypto/crypto.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
@@ -435,9 +436,9 @@ static DEVICE_API(crypto, crypto_enc_funcs) = {
 												\
 	static void crypto_mspm0_irq_config_##n(const struct device *dev)			\
 	{											\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), crypto_mspm0_aes_isr,	\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), crypto_mspm0_aes_isr,	\
 			    DEVICE_DT_INST_GET(n), 0);						\
-		irq_enable(DT_INST_IRQN(n));							\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));							\
 	}											\
 												\
 	static const struct crypto_mspm0_aes_config crypto_aes_config_##n = {			\

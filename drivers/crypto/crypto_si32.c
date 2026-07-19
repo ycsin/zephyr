@@ -16,6 +16,7 @@
 
 #define LOG_LEVEL CONFIG_CRYPTO_LOG_LEVEL
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(aes_silabs_si32);
 
 #include <zephyr/crypto/crypto.h>
@@ -141,9 +142,9 @@ static int crypto_si32_init(const struct device *dev)
 	SI32_AES_A_enable_error_interrupt(SI32_AES_0);
 
 	/* Install error handler */
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), crypto_si32_irq_error_handler,
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), crypto_si32_irq_error_handler,
 		    DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	/* Halt AES0 module on debug breakpoint */
 	SI32_AES_A_enable_stall_in_debug_mode(SI32_AES_0);

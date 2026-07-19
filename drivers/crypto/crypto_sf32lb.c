@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT sifli_sf32lb_crypto
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/crypto/crypto.h>
 #include <zephyr/sys/byteorder.h>
@@ -1111,9 +1112,9 @@ static DEVICE_API(crypto, crypto_sifli_funcs) = {
 #define CRYPTO_SIFLI_IRQ_CONFIG(inst)                                                              \
 	static void crypto_sifli_irq_config_##inst(void)                                           \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), crypto_sifli_isr,     \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), crypto_sifli_isr,     \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 	}
 
 #define CRYPTO_SIFLI_IRQ_CONFIG_INIT(inst) .irq_config_func = crypto_sifli_irq_config_##inst,

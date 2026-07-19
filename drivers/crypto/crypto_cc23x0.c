@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ti_cc23x0_aes
 
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(crypto_cc23x0, CONFIG_CRYPTO_LOG_LEVEL);
 
 #include <zephyr/crypto/crypto.h>
@@ -1072,12 +1073,12 @@ static int crypto_cc23x0_init(const struct device *dev)
 #endif
 	struct crypto_cc23x0_data *data = dev->data;
 
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    crypto_cc23x0_isr,
 		    DEVICE_DT_INST_GET(0),
 		    0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	CLKCTLEnable(CLKCTL_BASE, CLKCTL_LAES);
 
