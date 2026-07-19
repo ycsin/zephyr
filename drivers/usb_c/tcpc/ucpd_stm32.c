@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT st_stm32_ucpd
 
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(ucpd_stm32, CONFIG_USBC_LOG_LEVEL);
 
 #include <stm32_bitops.h>
@@ -1409,9 +1410,9 @@ static void config_tcpc_irq(void)
 	if (++inst_num == DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT)) {
 		DT_INST_FOREACH_STATUS_OKAY(DEV_INST_INIT)
 
-		IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), ucpd_isr, dev_inst, 0);
+		INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), ucpd_isr, dev_inst, 0);
 
-		irq_enable(DT_INST_IRQN(0));
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	}
 }
 
