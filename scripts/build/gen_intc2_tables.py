@@ -35,6 +35,9 @@ TAG_NODE = 1
 TAG_CONNECT = 2
 NO_PARENT = 0xFFFFFFFF
 
+# struct intc2_node flags (keep in sync with include/zephyr/intc2.h)
+NODE_ROOT_BRIDGE = 1
+
 REC_FIELDS = 8
 REC_SIZE = REC_FIELDS * 4
 INFO_SIZE = 8
@@ -70,10 +73,16 @@ class Model:
         # lines is below the threshold (percent). Dynamic connect needs
         # every line addressable, so it forces dense tables.
         for node in nodes.values():
+            node.bridge = bool(node.flags & NODE_ROOT_BRIDGE)
             used = len(set(node.chains) | set(node.connects))
-            node.sparse = (not dynamic and sparse_threshold > 0 and
+            # A bridge node aliases _sw_isr_table: always dense/full-size
+            node.sparse = (not node.bridge and not dynamic and
+                           sparse_threshold > 0 and
                            used * 100 < node.nlines * sparse_threshold)
             node.used_lines = sorted(set(node.chains) | set(node.connects))
+        if sum(1 for n in nodes.values() if n.bridge) > 1:
+            raise GenError("intc2: more than one root-bridge node "
+                           "(only one can alias _sw_isr_table)")
 
 
 def parse_intlist(data, big_endian=False):
@@ -240,11 +249,17 @@ def emit_linker(model):
         # alias for toolchains that prefix C symbols with an underscore
         # (only materializes when referenced, harmless elsewhere)
         out.append(f"PROVIDE(___intc2_table_dts_ord_{ord_} = __intc2_table_dts_ord_{ord_});")
+        if node.bridge:
+            out.append(f"_sw_isr_table = __intc2_table_dts_ord_{ord_};")
+            out.append(f"PROVIDE(__sw_isr_table = _sw_isr_table);")
         lines = node.used_lines if node.sparse else range(node.nlines)
         for line in lines:
             count = line_clients(node, line)
             if count == 0:
-                out.append(f". = . + {model.entry_size}; /* line {line}: spurious */")
+                if node.bridge:
+                    out.append(f"KEEP(*(.intc2_spur.{ord_}.{line})) /* line {line} */")
+                else:
+                    out.append(f". = . + {model.entry_size}; /* line {line}: spurious */")
             elif count == 1:
                 out.append(f"{entry_keeps(node, line)[0]} /* line {line} */")
             else:
@@ -269,6 +284,7 @@ def emit_linker(model):
     out.append("KEEP(*(.intc2_entry.*))")
     out.append("KEEP(*(.intc2_slot.*))")
     out.append("KEEP(*(.intc2_fanin_slot.*))")
+    out.append("KEEP(*(.intc2_spur.*))")
     out.append("")
     return "\n".join(out)
 
@@ -280,6 +296,23 @@ def emit_source(model):
     out.append("")
     out.append("#include <zephyr/intc2.h>")
     out.append("")
+
+    # Spurious filler entries for the empty lines of a root-bridge
+    # node, matching the legacy table's z_irq_spurious default.
+    if any(n.bridge for n in model.nodes.values()):
+        out.append("extern void z_irq_spurious(const void *unused);")
+        out.append("")
+    for ord_ in model.boot_order:
+        node = model.nodes[ord_]
+        if not node.bridge:
+            continue
+        for line in range(node.nlines):
+            if line_clients(node, line) != 0:
+                continue
+            out.append(f"Z_INTC2_TABLE_CONST struct intc2_entry __intc2_spur_{ord_}_{line}")
+            out.append(f"\t__attribute__((section(\".intc2_spur.{ord_}.{line}\")))")
+            out.append(f"\t__used = {{ .arg = NULL, .isr = z_irq_spurious }};")
+        out.append("")
 
     # Sparse-table line directories: lines[0] is the count, then the
     # used line numbers ascending, matching the table layout order.

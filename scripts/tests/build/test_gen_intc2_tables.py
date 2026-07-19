@@ -218,6 +218,24 @@ class TestEmitLinker:
         model = build([node_rec(5, 32)], [conn_rec(5, 20)], sparse=0)
         assert not model.nodes[5].sparse
 
+    def test_root_bridge(self):
+        model = build([node_rec(5, 4, flags=gen.NODE_ROOT_BRIDGE)],
+                      [conn_rec(5, 1)], sparse=25)
+        node = model.nodes[5]
+        assert node.bridge and not node.sparse
+        ld = gen.emit_linker(model)
+        assert "_sw_isr_table = __intc2_table_dts_ord_5;" in ld
+        assert "KEEP(*(.intc2_spur.5.0))" in ld
+        assert ". = . + " not in ld
+        src = gen.emit_source(model)
+        assert "z_irq_spurious" in src
+        assert '__attribute__((section(".intc2_spur.5.3")))' in src
+
+    def test_single_bridge_only(self):
+        with pytest.raises(gen.GenError, match="root-bridge"):
+            build([node_rec(5, 4, flags=gen.NODE_ROOT_BRIDGE),
+                   node_rec(6, 4, flags=gen.NODE_ROOT_BRIDGE)], [])
+
     def test_catch_all_tail(self):
         model = build([node_rec(5, 1)], [])
         ld = gen.emit_linker(model)
