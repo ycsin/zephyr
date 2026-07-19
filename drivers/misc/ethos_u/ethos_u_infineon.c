@@ -6,6 +6,7 @@
  */
 
 #include <zephyr/irq.h>
+#include <zephyr/intc2.h>
 #include <zephyr/init.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
@@ -206,9 +207,9 @@ static int ethosu_infineon_init(const struct device *dev)
                                                                                                    \
 	static void ethosu_infineon_irq_config_##n(void)                                           \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),                             \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),                             \
 			    ethosu_infineon_irq_handler, DEVICE_DT_INST_GET(n), 0);                \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
                                                                                                    \
 	static const struct ethosu_dts_info ethosu_infineon_dts_info_##n = {                       \

@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_flexio
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/drivers/clock_control.h>
@@ -254,19 +255,19 @@ int nxp_flexio_child_attach(const struct device *dev,
 									\
 	static void mcux_flexio_irq_config_func_##n(const struct device *dev) \
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),	\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),	\
 			mcux_flexio_isr, DEVICE_DT_INST_GET(n), 0);	\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}								\
 									\
 	static void mcux_flexio_irq_enable_func_##n(void)		\
 	{								\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}								\
 									\
 	static void mcux_flexio_irq_disable_func_##n(void)		\
 	{								\
-		irq_disable(DT_INST_IRQN(n));				\
+		intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(MCUX_FLEXIO_INIT)

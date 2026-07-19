@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/drivers/misc/flexram/nxp_flexram.h>
+#include <zephyr/intc2.h>
 #include <zephyr/dt-bindings/memory-controller/nxp,flexram.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/init.h>
@@ -220,9 +221,9 @@ static int nxp_flexram_init(void)
 #endif /* CONFIG_NXP_FLEXRAM_MAGIC_ADDR_API */
 
 #ifdef FLEXRAM_INTERRUPTS_USED
-	IRQ_CONNECT(DT_IRQN(FLEXRAM_DT_NODE), DT_IRQ(FLEXRAM_DT_NODE, priority),
+	INTC2_DT_CONNECT_INLINE(FLEXRAM_DT_NODE, DT_IRQ(FLEXRAM_DT_NODE, priority),
 			nxp_flexram_isr, NULL, 0);
-	irq_enable(DT_IRQN(FLEXRAM_DT_NODE));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(FLEXRAM_DT_NODE));
 #endif /* FLEXRAM_INTERRUPTS_USED */
 
 	return 0;

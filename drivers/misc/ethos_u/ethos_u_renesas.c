@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/irq.h>
+#include <zephyr/intc2.h>
 #include <zephyr/init.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
@@ -85,10 +86,10 @@ static int ethos_u_renesas_ra_init(const struct device *dev)
                                                                                                    \
 		BSP_ASSIGN_EVENT_TO_CURRENT_CORE(BSP_PRV_IELS_ENUM(EVENT_NPU_IRQ));                \
                                                                                                    \
-		IRQ_CONNECT(DT_INST_IRQN(idx), DT_INST_IRQ(idx, priority),                         \
+		INTC2_DT_INST_CONNECT_INLINE(idx, DT_INST_IRQ(idx, priority),                         \
 			    ethos_u_renesas_ra_irq_handler, DEVICE_DT_INST_GET(idx), 0);           \
                                                                                                    \
-		irq_enable(DT_INST_IRQN(idx));                                                     \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(idx));                                                     \
 	}                                                                                          \
                                                                                                    \
 	static const struct ethos_u_renesas_config ethos_u_renesas_config##idx = {                 \
