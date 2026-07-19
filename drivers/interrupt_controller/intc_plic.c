@@ -28,6 +28,10 @@
 #include <zephyr/drivers/interrupt_controller/riscv_plic.h>
 #include <zephyr/irq.h>
 
+#ifdef CONFIG_INTC2_PLIC
+#include <zephyr/intc2.h>
+#endif
+
 #define PLIC_BASE_ADDR(n) DT_INST_REG_ADDR(n)
 /*
  * These registers' offset are defined in the RISCV PLIC specs, see:
@@ -92,8 +96,10 @@ struct plic_config {
 	/* Number of IRQs supported in this driver */
 	uint32_t nr_irqs;
 	uint32_t irq;
+#ifndef CONFIG_INTC2_PLIC
 	riscv_plic_irq_config_func_t irq_config_func;
 	const struct _isr_table_entry *isr_table;
+#endif
 	const uint32_t *const hart_context;
 };
 
@@ -244,11 +250,8 @@ static uint32_t riscv_plic_irq_trig_val(const struct device *dev, uint32_t local
 }
 #endif /* CONFIG_PLIC_SUPPORTS_TRIG_TYPE */
 
-static void plic_irq_enable_set_state(uint32_t irq, bool enable)
+static void local_irq_enable_set_state(const struct device *dev, uint32_t local_irq, bool enable)
 {
-	const struct device *dev = get_plic_dev_from_irq(irq);
-	const uint32_t local_irq = irq_from_level_2(irq);
-
 	for (uint32_t cpu_num = 0; cpu_num < arch_num_cpus(); cpu_num++) {
 		mem_addr_t en_addr =
 			get_context_en_addr(dev, cpu_num) + local_irq_to_reg_offset(local_irq);
@@ -259,6 +262,14 @@ static void plic_irq_enable_set_state(uint32_t irq, bool enable)
 			  enable ? (get_irq_cpumask(dev, local_irq) & BIT(cpu_num)) != 0 : false);
 		sys_write32(en_value, en_addr);
 	}
+}
+
+static void plic_irq_enable_set_state(uint32_t irq, bool enable)
+{
+	const struct device *dev = get_plic_dev_from_irq(irq);
+	const uint32_t local_irq = irq_from_level_2(irq);
+
+	local_irq_enable_set_state(dev, local_irq, enable);
 }
 
 /**
@@ -373,11 +384,10 @@ int riscv_plic_irq_is_enabled(uint32_t irq)
  * @param irq IRQ number for which to set priority
  * @param priority Priority of IRQ to set to
  */
-void riscv_plic_set_priority(uint32_t irq, uint32_t priority)
+static void local_irq_set_priority(const struct device *dev, uint32_t local_irq,
+				   uint32_t priority)
 {
-	const struct device *dev = get_plic_dev_from_irq(irq);
 	const struct plic_config *config = dev->config;
-	const uint32_t local_irq = irq_from_level_2(irq);
 	mem_addr_t prio_addr = config->prio + (local_irq * sizeof(uint32_t));
 
 	if (priority > config->max_prio) {
@@ -385,6 +395,14 @@ void riscv_plic_set_priority(uint32_t irq, uint32_t priority)
 	}
 
 	sys_write32(priority, prio_addr);
+}
+
+void riscv_plic_set_priority(uint32_t irq, uint32_t priority)
+{
+	const struct device *dev = get_plic_dev_from_irq(irq);
+	const uint32_t local_irq = irq_from_level_2(irq);
+
+	local_irq_set_priority(dev, local_irq, priority);
 }
 
 #ifdef CONFIG_PLIC_SUPPORTS_SOFT_INTERRUPT
@@ -503,6 +521,7 @@ static ALWAYS_INLINE uint16_t *get_irq_hit_count_total(const struct device *dev,
 }
 #endif /* CONFIG_PLIC_SHELL_IRQ_COUNT */
 
+#ifndef CONFIG_INTC2_PLIC
 static void plic_irq_handler(const struct device *dev)
 {
 	const struct plic_config *config = dev->config;
@@ -583,17 +602,11 @@ static void plic_irq_handler(const struct device *dev)
 	sys_write32(local_irq, claim_complete_addr);
 #endif /* #ifdef CONFIG_PLIC_SUPPORTS_TRIG_EDGE */
 }
+#endif /* !CONFIG_INTC2_PLIC */
 
-/**
- * @brief Initialize the Platform Level Interrupt Controller
- *
- * @param dev PLIC device struct
- *
- * @retval 0 on success.
- */
-static int plic_init(const struct device *dev)
+static void plic_hw_init(const struct device *dev)
 {
-	const struct plic_config *config = dev->config;
+	__maybe_unused const struct plic_config *config = dev->config;
 	mem_addr_t en_addr, thres_prio_addr;
 #if !defined(CONFIG_PLIC_WARM_BOOT)
 	mem_addr_t prio_addr = config->prio;
@@ -619,12 +632,141 @@ static int plic_init(const struct device *dev)
 		sys_write32(0U, prio_addr + (i * sizeof(uint32_t)));
 	}
 #endif
+}
+
+/**
+ * @brief Initialize the Platform Level Interrupt Controller
+ *
+ * @param dev PLIC device struct
+ *
+ * @retval 0 on success.
+ */
+static int plic_init(const struct device *dev)
+{
+#ifdef CONFIG_INTC2_PLIC
+	/*
+	 * The intc2 boot pass (PRE_KERNEL_1 priority 0) has already reset
+	 * the hardware via the node's init op, programmed the recorded
+	 * line priorities and enabled the chain line on the CPU root;
+	 * re-initializing here would wipe them.
+	 */
+	ARG_UNUSED(dev);
+#else
+	const struct plic_config *config = dev->config;
+
+	plic_hw_init(dev);
 
 	/* Configure IRQ for PLIC driver */
 	config->irq_config_func();
+#endif
 
 	return 0;
 }
+
+#ifdef CONFIG_INTC2_PLIC
+
+static void plic_intc2_enable(const struct intc2_node *node, uint32_t line)
+{
+	const struct device *dev = node->config;
+	struct plic_data *data = dev->data;
+
+	K_SPINLOCK(&data->lock) {
+		local_irq_enable_set_state(dev, line, true);
+	}
+}
+
+static void plic_intc2_disable(const struct intc2_node *node, uint32_t line)
+{
+	const struct device *dev = node->config;
+	struct plic_data *data = dev->data;
+
+	K_SPINLOCK(&data->lock) {
+		local_irq_enable_set_state(dev, line, false);
+	}
+}
+
+static int plic_intc2_is_enabled(const struct intc2_node *node, uint32_t line)
+{
+	const struct device *dev = node->config;
+	struct plic_data *data = dev->data;
+	int ret = 0;
+
+	K_SPINLOCK(&data->lock) {
+		ret = local_irq_is_enabled(dev, line);
+	}
+
+	return ret;
+}
+
+static int plic_intc2_set_priority(const struct intc2_node *node, uint32_t line,
+				   uint32_t prio, uint32_t flags)
+{
+	const struct device *dev = node->config;
+
+	ARG_UNUSED(flags);
+
+	local_irq_set_priority(dev, line, prio);
+
+	return 0;
+}
+
+static int32_t plic_intc2_get_pending(const struct intc2_node *node)
+{
+	const struct device *dev = node->config;
+	uint32_t cpu_id = arch_curr_cpu()->id;
+	const uint32_t local_irq = sys_read32(get_claim_complete_addr(dev));
+
+	if (local_irq == 0U) {
+		/*
+		 * Nothing (left) to claim, or another target of the
+		 * multicast notification claimed the line first.
+		 */
+		return -ENOENT;
+	}
+
+#ifdef CONFIG_PLIC_SHELL_IRQ_COUNT
+	uint16_t *cpu_count = get_irq_hit_count_cpu(dev, cpu_id, local_irq);
+	uint16_t *total_count = get_irq_hit_count_total(dev, local_irq);
+
+	/* Cap the count at __UINT16_MAX__ */
+	if (*total_count < __UINT16_MAX__) {
+		(*cpu_count)++;
+		if (CONFIG_MP_MAX_NUM_CPUS > 1) {
+			(*total_count)++;
+		}
+	}
+#endif /* CONFIG_PLIC_SHELL_IRQ_COUNT */
+
+	/* Keep the legacy riscv_plic_get_irq()/riscv_plic_get_dev() working */
+	save_irq[cpu_id] = local_irq;
+	save_dev[cpu_id] = dev;
+
+	return (int32_t)local_irq;
+}
+
+static void plic_intc2_eoi(const struct intc2_node *node, uint32_t line)
+{
+	const struct device *dev = node->config;
+
+	sys_write32(line, get_claim_complete_addr(dev));
+}
+
+static void plic_intc2_init(const struct intc2_node *node)
+{
+	plic_hw_init(node->config);
+}
+
+static DEVICE_API(intc2, plic_intc2_api) = {
+	.enable = plic_intc2_enable,
+	.disable = plic_intc2_disable,
+	.is_enabled = plic_intc2_is_enabled,
+	.set_priority = plic_intc2_set_priority,
+	.get_pending = plic_intc2_get_pending,
+	.eoi = plic_intc2_eoi,
+	.init = plic_intc2_init,
+};
+
+#endif /* CONFIG_INTC2_PLIC */
 
 #ifdef CONFIG_PLIC_SHELL
 static inline int parse_device(const struct shell *sh, size_t argc, char *argv[],
@@ -691,7 +833,10 @@ static int cmd_stats_get(const struct shell *sh, size_t argc, char *argv[])
 			/* If there's > 1 CPU, print the total hit count at the end */
 			shell_fprintf(sh, SHELL_NORMAL, "  %5d", *total_count);
 		}
-#ifdef CONFIG_SYMTAB
+#if defined(CONFIG_INTC2_PLIC)
+		/* Dispatch goes through the intc2 node's own table */
+		shell_fprintf(sh, SHELL_NORMAL, "\n");
+#elif defined(CONFIG_SYMTAB)
 		const char *name =
 			symtab_find_symbol_name((uintptr_t)config->isr_table[i].isr, NULL);
 
@@ -913,7 +1058,20 @@ SHELL_CMD_REGISTER(plic, &plic_cmds, "PLIC shell commands", NULL);
 		PLIC_IRQ_CPUMASK_BUF_INIT(n)                                                       \
 	};
 
-#define PLIC_INTC_IRQ_FUNC_DECLARE(n) static void plic_irq_config_func_##n(void)
+#ifdef CONFIG_INTC2_PLIC
+/*
+ * The generated chain slot on the CPU-root node dispatches this
+ * instance's intc2 node directly; there is no legacy handler to
+ * connect, and the boot pass enables the chain line.
+ */
+#define PLIC_INTC_IRQ_FUNC_DECLARE(n)
+#define PLIC_INTC_IRQ_FUNC_DEFINE(n)
+#define PLIC_INTC_CONFIG_IRQ_INIT(n)
+#define PLIC_INTC2_NODE_DEFINE(n)                                                                  \
+	INTC2_NODE_DT_DEFINE(DT_DRV_INST(n), &plic_intc2_api, DEVICE_DT_INST_GET(n),               \
+			     PLIC_MIN_IRQ_NUM(n), 0);
+#else
+#define PLIC_INTC_IRQ_FUNC_DECLARE(n) static void plic_irq_config_func_##n(void);
 
 #define PLIC_INTC_IRQ_FUNC_DEFINE(n)                                                               \
 	static void plic_irq_config_func_##n(void)                                                 \
@@ -922,13 +1080,19 @@ SHELL_CMD_REGISTER(plic, &plic_cmds, "PLIC shell commands", NULL);
 		irq_enable(DT_INST_IRQN(n));                                                       \
 	}
 
+#define PLIC_INTC_CONFIG_IRQ_INIT(n)                                                               \
+	.irq_config_func = plic_irq_config_func_##n,                                               \
+	.isr_table = &_sw_isr_table[INTC_INST_ISR_TBL_OFFSET(n)],
+#define PLIC_INTC2_NODE_DEFINE(n)
+#endif /* CONFIG_INTC2_PLIC */
+
 #define HART_CONTEXTS(i, n) IF_ENABLED(IS_EQ(DT_INST_IRQN_BY_IDX(n, i), DT_INST_IRQN(n)), (i,))
 #define PLIC_HART_CONTEXT_DECLARE(n)                                                               \
 	INTC_PLIC_STATIC const uint32_t plic_hart_contexts_##n[DT_CHILD_NUM(DT_PATH(cpus))] = {    \
 		LISTIFY(DT_INST_NUM_IRQS(n), HART_CONTEXTS, (), n)}
 
 #define PLIC_INTC_CONFIG_INIT(n)                                                                   \
-	PLIC_INTC_IRQ_FUNC_DECLARE(n);                                                             \
+	PLIC_INTC_IRQ_FUNC_DECLARE(n)                                                              \
 	PLIC_HART_CONTEXT_DECLARE(n);                                                              \
 	static const struct plic_config plic_config_##n = {                                        \
 		.prio = PLIC_BASE_ADDR(n),                                                         \
@@ -942,8 +1106,7 @@ SHELL_CMD_REGISTER(plic, &plic_cmds, "PLIC shell commands", NULL);
 		.riscv_ndev = DT_INST_PROP(n, riscv_ndev),                                         \
 		.nr_irqs = PLIC_MIN_IRQ_NUM(n),                                                    \
 		.irq = DT_INST_IRQN(n),                                                            \
-		.irq_config_func = plic_irq_config_func_##n,                                       \
-		.isr_table = &_sw_isr_table[INTC_INST_ISR_TBL_OFFSET(n)],                          \
+		PLIC_INTC_CONFIG_IRQ_INIT(n)                                                       \
 		.hart_context = plic_hart_contexts_##n,                                            \
 	};                                                                                         \
 	PLIC_INTC_IRQ_FUNC_DEFINE(n)
@@ -958,6 +1121,7 @@ SHELL_CMD_REGISTER(plic, &plic_cmds, "PLIC shell commands", NULL);
 	DEVICE_DT_INST_DEFINE(n, &plic_init, NULL,                                                 \
 			      &plic_data_##n, &plic_config_##n,                                    \
 			      PRE_KERNEL_1, CONFIG_INTC_INIT_PRIORITY,                             \
-			      NULL);
+			      NULL);                                                               \
+	PLIC_INTC2_NODE_DEFINE(n)
 
 DT_INST_FOREACH_STATUS_OKAY(PLIC_INTC_DEVICE_INIT)

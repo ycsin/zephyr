@@ -15,5 +15,6 @@ config INTC2_RISCV_CPU_INTC
 	  controller. The node's generated dispatch table takes over
 	  _sw_isr_table, so legacy and intc2 interrupt connections share
 	  one table and both APIs work. Interrupts on chained controllers
-	  (e.g. the PLIC) keep using the legacy path until those
-	  controllers are converted.
+	  dispatch through the chained controller's own intc2 node when
+	  its driver is converted (see INTC2_PLIC); unconverted chained
+	  controllers are a build error for connects on their lines.

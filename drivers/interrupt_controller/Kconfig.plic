@@ -96,4 +96,21 @@ config PLIC_WARM_BOOT
 	  Disable part of the initialisation in case of a warm boot, for example
 	  in case of Asymmetric Multi Processing
 
+config INTC2_PLIC
+	bool "intc2 controller node for the PLIC"
+	default y
+	depends on INTC2_RISCV_CPU_INTC
+	# The intc2 dispatch loop completes a claimed line after its handler
+	# runs, which is wrong for edge-triggered lines (they must be
+	# acknowledged before handling); keep the legacy handler on such
+	# hardware until per-line trigger awareness is added.
+	depends on !PLIC_SUPPORTS_TRIG_EDGE
+	help
+	  Define an intc2 controller node for each PLIC instance and route
+	  its dispatch through the intc2 graph: the generated chain slot on
+	  the CPU-root node replaces the PLIC's legacy per-instance
+	  IRQ_CONNECT, and interrupts of devices behind the PLIC - including
+	  legacy connects using multilevel-encoded IRQ numbers - dispatch
+	  from the PLIC node's own table via claim/complete.
+
 endif # PLIC
