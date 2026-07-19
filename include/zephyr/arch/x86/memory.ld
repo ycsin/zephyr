@@ -112,5 +112,12 @@ MEMORY
 
     IDT_LIST        : ORIGIN = 0xFFFF1000, LENGTH = 2K
 #endif /* !CONFIG_X86_64 */
+#if defined(CONFIG_X86_64) && defined(CONFIG_INTC2)
+    /*
+     * On 64-bit x86 the region is only needed as the (equally fake and
+     * stripped) home of the intc2 first-pass records.
+     */
+    IDT_LIST        : ORIGIN = 0xFFFF1000, LENGTH = 2K
+#endif
     }
 #endif /* ARCH_X86_MEMORY_LD */
