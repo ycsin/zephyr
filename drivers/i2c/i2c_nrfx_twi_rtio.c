@@ -6,6 +6,7 @@
  */
 
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/i2c/rtio.h>
 #include <zephyr/dt-bindings/i2c/i2c.h>
 #include <zephyr/pm/device.h>
@@ -194,7 +195,7 @@ static DEVICE_API(i2c, i2c_nrfx_twi_rtio_driver_api) = {
 	};                                                                                        \
 	static int twi_##idx##_init(const struct device *dev)                                     \
 	{                                                                                         \
-		IRQ_CONNECT(DT_INST_IRQN(idx), DT_INST_IRQ(idx, priority),                        \
+		INTC2_DT_INST_CONNECT_INLINE(idx, DT_INST_IRQ(idx, priority),                        \
 				nrfx_twi_irq_handler, &twi_##idx##_data.twi, 0);                  \
 		const struct i2c_nrfx_twi_config *config = dev->config;                           \
 		const struct i2c_nrfx_twi_rtio_data *dev_data = dev->data;                        \

@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 #include <zephyr/pm/policy.h>
+#include <zephyr/intc2.h>
 
 #define DT_DRV_COMPAT nuvoton_npcx_i2c_ctrl
 
@@ -1214,12 +1215,12 @@ static int i2c_ctrl_init(const struct device *dev)
 		int ret;                                                       \
 									       \
 		ret = i2c_ctrl_init(dev);                                      \
-		IRQ_CONNECT(DT_INST_IRQN(inst),		                       \
+		INTC2_DT_INST_CONNECT_INLINE(inst,		                       \
 			DT_INST_IRQ(inst, priority),                           \
 			i2c_ctrl_isr,                                          \
 			DEVICE_DT_INST_GET(inst),                              \
 			0);                                                    \
-		irq_enable(DT_INST_IRQN(inst));                                \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                \
 									       \
 		return ret;                                                    \
 	}

@@ -9,6 +9,7 @@
 
 #include <soc.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/dt-bindings/interrupt-controller/mchp-xec-ecia.h>
@@ -1332,9 +1333,9 @@ static int i2c_xec_v2_init(const struct device *dev)
                                                                                                    \
 	static void i2c_xec_irq_config_func_##n(void)                                              \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), i2c_xec_v2_isr,             \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), i2c_xec_v2_isr,             \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(I2C_XEC_DEVICE)

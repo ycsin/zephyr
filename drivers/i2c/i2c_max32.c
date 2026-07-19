@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/clock_control/adi_max32_clock_control.h>
 #include <zephyr/irq.h>
@@ -973,7 +974,7 @@ static int i2c_max32_init(const struct device *dev)
 #define I2C_MAX32_IRQ_CONFIG_FUNC(n)                                                               \
 	static void i2c_max32_irq_config_func_##n(const struct device *dev)                        \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), i2c_max32_isr,              \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), i2c_max32_isr,              \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
 	}
 #else

@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <soc.h>
 #include <fsl_i2c.h>
@@ -593,12 +594,12 @@ static DEVICE_API(i2c, i2c_mcux_driver_api) = {
 									\
 	static void i2c_mcux_config_func_ ## n(const struct device *dev) \
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n),				\
+		INTC2_DT_INST_CONNECT_INLINE(n,				\
 			DT_INST_IRQ(n, priority),			\
 			i2c_mcux_isr,					\
 			DEVICE_DT_INST_GET(n), 0);			\
 									\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(I2C_DEVICE_INIT_MCUX)

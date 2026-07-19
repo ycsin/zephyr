@@ -14,6 +14,7 @@
 #include <infineon_kconfig.h>
 
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/clock_control/clock_control_ifx_cat1.h>
 #include <zephyr/dt-bindings/clock/ifx_clock_source_common.h>
@@ -996,7 +997,7 @@ static DEVICE_API(i2c, i2c_cat1_driver_api) = {
 #define I2C_CAT1_INIT_FUNC(n)                                                                      \
 	static void ifx_cat1_i2c_irq_config_func_##n(const struct device *dev)                     \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), i2c_isr_handler,            \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), i2c_isr_handler,            \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
 	}
 

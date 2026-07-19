@@ -11,6 +11,7 @@
 #define DT_DRV_COMPAT openisa_rv32m1_lpi2c
 
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/irq.h>
 #include <fsl_lpi2c.h>
@@ -289,11 +290,11 @@ static DEVICE_API(i2c, rv32m1_lpi2c_driver_api) = {
 			    &rv32m1_lpi2c_driver_api);	                       \
 	static void rv32m1_lpi2c_irq_config_func_##id(const struct device *dev)      \
 	{                                                                      \
-		IRQ_CONNECT(DT_INST_IRQN(id),                                  \
+		INTC2_DT_INST_CONNECT_INLINE(id,                                  \
 			    0,						       \
 			    rv32m1_lpi2c_isr, DEVICE_DT_INST_GET(id),	       \
 			    0);                                                \
-		irq_enable(DT_INST_IRQN(id));                                  \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(id));                                  \
 	}                                                                      \
 
 DT_INST_FOREACH_STATUS_OKAY(RV32M1_LPI2C_DEVICE)

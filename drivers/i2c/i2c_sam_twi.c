@@ -17,6 +17,7 @@
 
 #include <errno.h>
 #include <zephyr/sys/__assert.h>
+#include <zephyr/intc2.h>
 #include <stdbool.h>
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
@@ -376,7 +377,7 @@ static DEVICE_API(i2c, i2c_sam_twi_driver_api) = {
 	PINCTRL_DT_INST_DEFINE(n);					\
 	static void i2c##n##_sam_irq_config(void)			\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),	\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),	\
 			    i2c_sam_twi_isr,				\
 			    DEVICE_DT_INST_GET(n), 0);			\
 	}								\

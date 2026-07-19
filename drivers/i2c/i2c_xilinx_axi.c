@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/irq.h>
@@ -658,10 +659,10 @@ static DEVICE_API(i2c, i2c_xilinx_axi_driver_api) = {
 	{                                                                                          \
 		ARG_UNUSED(dev);                                                                   \
                                                                                                    \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), i2c_xilinx_axi_isr,         \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), i2c_xilinx_axi_isr,         \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
                                                                                                    \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}
 
 #define DT_DRV_COMPAT xlnx_xps_iic_2_1

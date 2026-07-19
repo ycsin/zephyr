@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT brcm_bcm2711_i2c
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/arch/cpu.h>
 #include <zephyr/irq.h>
 #include <zephyr/drivers/i2c.h>
@@ -435,9 +436,9 @@ static DEVICE_API(i2c, bcm2711_i2c_driver_api) = {
 	static void bcm2711_i2c_irq_config_func_##n(const struct device *dev)                      \
 	{                                                                                          \
 		ARG_UNUSED(dev);                                                                   \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), bcm2711_i2c_isr,            \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), bcm2711_i2c_isr,            \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}
 
 #define BCM2711_I2C_DEV_DATA(n) static struct bcm2711_i2c_data bcm2711_i2c_data_##n

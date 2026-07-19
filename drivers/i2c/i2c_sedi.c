@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <sedi_driver_i2c.h>
 #include <zephyr/pm/device.h>
@@ -271,9 +272,9 @@ static void i2c_sedi_isr(const struct device *dev)
 	static void i2c_sedi_irq_config_##n(const struct device *dev)                              \
 	{                                                                                          \
 		ARG_UNUSED(dev);                                                                   \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), i2c_sedi_isr,               \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), i2c_sedi_isr,               \
 			    DEVICE_DT_INST_GET(n), I2C_SEDI_IRQ_FLAGS(n));                         \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	};                                                                                         \
 	static void i2c_sedi_set_bus_data_##n(void)                                                \
 	{                                                                                          \

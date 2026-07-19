@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/pm/device.h>
 #include <zephyr/pm/policy.h>
@@ -474,9 +475,9 @@ static int i2c_ambiq_pm_action(const struct device *dev, enum pm_device_action a
 	PINCTRL_DT_INST_DEFINE(n);                                                                 \
 	static void i2c_irq_config_func_##n(void)                                                  \
 	{                                                                                          \
-		IRQ_CONNECT(DT_IRQN(DT_INST_PARENT(n)), DT_IRQ(DT_INST_PARENT(n), priority),       \
+		INTC2_DT_CONNECT_INLINE(DT_INST_PARENT(n), DT_IRQ(DT_INST_PARENT(n), priority),       \
 			    i2c_ambiq_isr, DEVICE_DT_INST_GET(n), 0);                              \
-		irq_enable(DT_IRQN(DT_INST_PARENT(n)));                                            \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_INST_PARENT(n)));                                            \
 	};                                                                                         \
 	IF_ENABLED(DT_PROP(DT_INST_PARENT(n), dma_mode),                                           \
 	(static uint32_t i2c_ambiq_cmdq##n[DT_PROP_OR(DT_INST_PARENT(n), cmdq_buffer_size, 1024)]  \

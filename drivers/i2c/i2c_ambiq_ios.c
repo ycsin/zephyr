@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ambiq_ios_i2c
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/logging/log.h>
@@ -456,9 +457,9 @@ static DEVICE_API(i2c, i2c_ambiq_ios_api) = {
 #define AMBIQ_I2C_IOS_IRQ_CFG(n)                                                       \
 	static void i2c_ambiq_ios_irq_cfg_##n(void)                                        \
 	{                                                                                  \
-		IRQ_CONNECT(DT_IRQN(DT_INST_PARENT(n)), DT_IRQ(DT_INST_PARENT(n), priority),   \
+		INTC2_DT_CONNECT_INLINE(DT_INST_PARENT(n), DT_IRQ(DT_INST_PARENT(n), priority),   \
 			i2c_ambiq_ios_isr, DEVICE_DT_INST_GET(n), 0);                              \
-		irq_enable(DT_IRQN(DT_INST_PARENT(n)));                                        \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_INST_PARENT(n)));                                        \
 	}
 
 #define AMBIQ_I2C_IOS_ACC_IRQ_CFG(n)                                               \

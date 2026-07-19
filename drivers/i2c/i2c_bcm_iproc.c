@@ -11,6 +11,7 @@
 #include <stdint.h>
 
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/logging/log.h>
 
@@ -932,10 +933,10 @@ static DEVICE_API(i2c, iproc_i2c_driver_api) = {
 	static void iproc_i2c_irq_config_func_##n(const struct device *dev)                        \
 	{                                                                                          \
 		ARG_UNUSED(dev);                                                                   \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), iproc_i2c_isr,              \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), iproc_i2c_isr,              \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
                                                                                                    \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
                                                                                                    \
 	static const struct iproc_i2c_config iproc_i2c_config_##n = {                              \

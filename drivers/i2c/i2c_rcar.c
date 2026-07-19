@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/clock_control.h>
@@ -379,12 +380,12 @@ static DEVICE_API(i2c, i2c_rcar_driver_api) = {
 			      );					       \
 	static void i2c_rcar_##n##_init(const struct device *dev)	       \
 	{								       \
-		IRQ_CONNECT(DT_INST_IRQN(n),				       \
+		INTC2_DT_INST_CONNECT_INLINE(n,				       \
 			    0,						       \
 			    i2c_rcar_isr,				       \
 			    DEVICE_DT_INST_GET(n), 0);			       \
 									       \
-		irq_enable(DT_INST_IRQN(n));				       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				       \
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(I2C_RCAR_INIT)

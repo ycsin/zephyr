@@ -9,6 +9,7 @@
 #define DT_DRV_COMPAT ti_cc32xx_i2c
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <errno.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -405,7 +406,7 @@ I2C_DEVICE_DT_INST_DEFINE(0, i2c_cc32xx_init, NULL,
 
 static void configure_i2c_irq(const struct i2c_cc32xx_config *config)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    i2c_cc32xx_isr, DEVICE_DT_INST_GET(0), 0);
 

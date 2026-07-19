@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ti_cc23x0_i2c
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/pm/device.h>
@@ -308,10 +309,10 @@ static DEVICE_API(i2c, i2c_cc23x0_driver_api) = {.configure = i2c_cc23x0_configu
                                                                                                    \
 		CLKCTLEnable(CLKCTL_BASE, CLKCTL_I2C0);                                            \
                                                                                                    \
-		IRQ_CONNECT(DT_INST_IRQN(id), DT_INST_IRQ(id, priority), i2c_cc23x0_isr,           \
+		INTC2_DT_INST_CONNECT_INLINE(id, DT_INST_IRQ(id, priority), i2c_cc23x0_isr,           \
 			    DEVICE_DT_INST_GET(id), 0);                                            \
                                                                                                    \
-		irq_enable(DT_INST_IRQN(id));                                                      \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(id));                                                      \
                                                                                                    \
 		err = pinctrl_apply_state(config->pcfg, PINCTRL_STATE_DEFAULT);                    \
 		if (err < 0) {                                                                     \

@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT bflb_i2c
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <soc.h>
@@ -794,12 +795,12 @@ static DEVICE_API(i2c, i2c_bflb_api) = {
 #define I2C_BFLB_IRQ_HANDLER(n)							\
 	static void i2c_bflb_config_func_##n(const struct device *dev)		\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(n),					\
+		INTC2_DT_INST_CONNECT_INLINE(n,					\
 			    DT_INST_IRQ(n, priority),				\
 			    i2c_bflb_isr,					\
 			    DEVICE_DT_INST_GET(n),				\
 			    0);							\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}
 
 #define I2C_BFLB_INIT(n) \

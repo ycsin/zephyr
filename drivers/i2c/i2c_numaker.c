@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nuvoton_numaker_i2c
 
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/clock_control_numaker.h>
 #include <zephyr/drivers/reset.h>
@@ -743,10 +744,10 @@ static DEVICE_API(i2c, i2c_numaker_driver_api) = {
                                                                                                    \
 	static void i2c_numaker_irq_config_func_##inst(const struct device *dev)                   \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), i2c_numaker_isr,      \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), i2c_numaker_isr,      \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
                                                                                                    \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 	}                                                                                          \
                                                                                                    \
 	static const struct i2c_numaker_config i2c_numaker_config_##inst = {                       \

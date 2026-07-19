@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/dt-bindings/i2c/i2c.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/logging/log.h>
@@ -1473,10 +1474,10 @@ static DEVICE_API(i2c, cdns_i2c_driver_api) = {
                                                                                                    \
 	static void cdns_i2c_config_func_##compat##_##n(void)                                      \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), cdns_i2c_isr,               \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), cdns_i2c_isr,               \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
                                                                                                    \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}
 
 #define DT_DRV_COMPAT cdns_i2c

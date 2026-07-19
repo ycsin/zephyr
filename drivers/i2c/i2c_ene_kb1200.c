@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ene_kb1200_i2c
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <errno.h>
@@ -353,9 +354,9 @@ static void kb1200_fsmbm_irq_init(void)
 {
 	if (init_irq) {
 		init_irq = false;
-		IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), i2c_kb1200_isr_wrap, NULL,
+		INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), i2c_kb1200_isr_wrap, NULL,
 			    0);
-		irq_enable(DT_INST_IRQN(0));
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	}
 }
 

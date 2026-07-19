@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_lpc11u6x_i2c
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/irq.h>
@@ -372,11 +373,11 @@ I2C_DEVICE_DT_INST_DEFINE(idx,						      \
 									      \
 static void lpc11u6x_i2c_isr_config_##idx(const struct device *dev)		      \
 {									      \
-	IRQ_CONNECT(DT_INST_IRQN(idx),					      \
+	INTC2_DT_INST_CONNECT_INLINE(idx,					      \
 		    DT_INST_IRQ(idx, priority),				      \
 		    lpc11u6x_i2c_isr, DEVICE_DT_INST_GET(idx), 0);	      \
 									      \
-	irq_enable(DT_INST_IRQN(idx));					      \
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(idx));					      \
 }
 
 DT_INST_FOREACH_STATUS_OKAY(LPC11U6X_I2C_INIT);

@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ite_it8xxx2_i2c
 
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/irq.h>
@@ -1328,7 +1329,7 @@ DT_INST_FOREACH_STATUS_OKAY(I2C_IT8XXX2_CHECK_SUPPORTED_CLOCK)
 										\
 	static void i2c_it8xxx2_config_func_##inst(void)                        \
 	{                                                                       \
-		IRQ_CONNECT(DT_INST_IRQN(inst),                                 \
+		INTC2_DT_INST_CONNECT_INLINE(inst,                                 \
 			0,                                                      \
 			i2c_it8xxx2_isr,                                        \
 			DEVICE_DT_INST_GET(inst), 0);                           \

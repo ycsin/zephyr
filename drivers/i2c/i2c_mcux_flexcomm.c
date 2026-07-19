@@ -9,6 +9,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <fsl_i2c.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -741,12 +742,12 @@ static DEVICE_API(i2c, mcux_flexcomm_driver_api) = {
 			    &mcux_flexcomm_driver_api);			\
 	static void mcux_flexcomm_config_func_##id(const struct device *dev) \
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(id),				\
+		INTC2_DT_INST_CONNECT_INLINE(id,				\
 			    DT_INST_IRQ(id, priority),			\
 			    mcux_flexcomm_isr,				\
 			    DEVICE_DT_INST_GET(id),			\
 			    0);						\
-		irq_enable(DT_INST_IRQN(id));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(id));				\
 	}								\
 
 DT_INST_FOREACH_STATUS_OKAY(I2C_MCUX_FLEXCOMM_DEVICE)

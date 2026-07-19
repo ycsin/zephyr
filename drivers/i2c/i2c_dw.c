@@ -8,6 +8,7 @@
  */
 
 #include <zephyr/arch/cpu.h>
+#include <zephyr/intc2.h>
 #ifdef CONFIG_CPU_CORTEX_M
 #include <cmsis_core.h>
 #endif
@@ -1565,9 +1566,9 @@ static int i2c_dw_initialize(const struct device *dev)
 	static void i2c_config_##n(const struct device *port)                                      \
 	{                                                                                          \
 		ARG_UNUSED(port);                                                                  \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), i2c_dw_isr,                 \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), i2c_dw_isr,                 \
 			    DEVICE_DT_INST_GET(n), I2C_DW_IRQ_FLAGS(n));                           \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}
 
 /* PCI(e) with auto IRQ detection */

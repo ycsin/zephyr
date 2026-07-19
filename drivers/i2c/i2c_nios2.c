@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <zephyr/kernel.h>
 #include <soc.h>
@@ -188,9 +189,9 @@ static int i2c_nios2_init(const struct device *dev)
 	/* clear ISR register content */
 	alt_avalon_i2c_int_clear(&data->i2c_dev,
 			ALT_AVALON_I2C_ISR_ALL_CLEARABLE_INTS_MSK);
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 			i2c_nios2_isr, DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 	return 0;
 }
 

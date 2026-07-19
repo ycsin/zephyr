@@ -12,6 +12,7 @@
 #define DT_DRV_COMPAT infineon_xmc4xxx_i2c
 
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(i2c_infineon_xmc4, CONFIG_I2C_LOG_LEVEL);
 
 #include <zephyr/drivers/i2c.h>
@@ -447,7 +448,7 @@ static DEVICE_API(i2c, i2c_xmc4_driver_api) = {
 												   \
 		XMC_I2C_CH_EnableEvent(config->i2c, I2C_XMC_EVENTS_MASK);                          \
 												   \
-		IRQ_CONNECT(DT_INST_IRQN(index), DT_INST_IRQ(index, priority), i2c_xmc4_isr,       \
+		INTC2_DT_INST_CONNECT_INLINE(index, DT_INST_IRQ(index, priority), i2c_xmc4_isr,       \
 			    DEVICE_DT_INST_GET(index), 0);                                         \
 												   \
 		irq_enable(irq_num);                                                               \

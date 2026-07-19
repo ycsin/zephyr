@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT litex_litei2c
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/minmax.h>
@@ -472,10 +473,10 @@ static DEVICE_API(i2c, i2c_litex_litei2c_driver_api) = {
 												   \
 	static void i2c_litex_irq_config##n(const struct device *dev)				   \
 	{											   \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), i2c_litex_irq_handler,	   \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), i2c_litex_irq_handler,	   \
 			    DEVICE_DT_INST_GET(n), 0);						   \
 												   \
-		irq_enable(DT_INST_IRQN(n));							   \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));							   \
 	};
 
 #define I2C_LITEC_IRQ_DATA(n)									   \
