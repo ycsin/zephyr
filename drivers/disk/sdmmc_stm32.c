@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT st_stm32_sdmmc
 
 #include <zephyr/devicetree.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/disk.h>
 #include <zephyr/drivers/disk/sdmmc_stm32.h>
 #include <zephyr/drivers/clock_control.h>
@@ -1010,11 +1011,11 @@ PINCTRL_DT_INST_DEFINE(0);
 
 static void stm32_sdmmc_irq_config_func(const struct device *dev)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		DT_INST_IRQ(0, priority),
 		stm32_sdmmc_isr, DEVICE_DT_INST_GET(0),
 		0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 
 static struct stm32_pclken pclken_sdmmc[] = STM32_DT_INST_CLOCKS(0);
