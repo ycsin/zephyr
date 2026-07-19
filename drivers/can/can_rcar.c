@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT renesas_rcar_can
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <errno.h>
 #include <zephyr/drivers/can.h>
 #include <zephyr/drivers/can/transceiver.h>
@@ -1210,12 +1211,12 @@ static DEVICE_API(can, can_rcar_driver_api) = {
 				  );						\
 	static void can_rcar_##n##_init(const struct device *dev)		\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(n),					\
+		INTC2_DT_INST_CONNECT_INLINE(n,					\
 			    0,							\
 			    can_rcar_isr,					\
 			    DEVICE_DT_INST_GET(n), 0);				\
 										\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(CAN_RCAR_INIT)

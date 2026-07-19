@@ -9,6 +9,7 @@
 #include "can_sja1000.h"
 
 #include <zephyr/drivers/can.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pcie/pcie.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/util.h>
@@ -181,9 +182,9 @@ DEVICE_API(can, can_kvaser_pci_driver_api) = {
                                                                                                    \
 	static void can_kvaser_pci_config_func_##inst(const struct device *dev)                    \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), can_sja1000_isr,      \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), can_sja1000_isr,      \
 			    DEVICE_DT_INST_GET(inst), DT_INST_IRQ(inst, flags));                   \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(CAN_KVASER_PCI_INIT)

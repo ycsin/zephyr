@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT infineon_xmc4xxx_can_node
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/can.h>
 #include <zephyr/drivers/can/transceiver.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -914,9 +915,9 @@ static DEVICE_API(can, can_xmc4xxx_api_funcs) = {
 #define CAN_XMC4XXX_INIT(inst)                                                                     \
 	static void can_xmc4xxx_irq_config_##inst(void)                                            \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), can_xmc4xxx_isr,      \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), can_xmc4xxx_isr,      \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 	}                                                                                          \
                                                                                                    \
 	PINCTRL_DT_INST_DEFINE(inst);                                                              \

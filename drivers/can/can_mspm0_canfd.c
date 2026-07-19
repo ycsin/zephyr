@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 
 #include <zephyr/drivers/can.h>
@@ -258,11 +259,11 @@ static const struct can_mcan_ops can_mspm0_canfd_ops = {
 #define CAN_MSPM0_CANFD_INIT(inst)								\
 	static void can_mspm0_canfd_irq_cfg_##inst(void)					\
 	{											\
-		IRQ_CONNECT(DT_INST_IRQN(inst),							\
+		INTC2_DT_INST_CONNECT_INLINE(inst,							\
 			    DT_INST_IRQ(inst, priority),					\
 			    can_mspm0_canfd_isr,						\
 			    DEVICE_DT_INST_GET(inst), 0);					\
-		irq_enable(DT_INST_IRQN(inst));							\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));							\
 	}											\
 												\
 	static const struct mspm0_sys_clock can_mspm0_canfd_sys_clock_##inst =			\

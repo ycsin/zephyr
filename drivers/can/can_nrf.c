@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 #include <zephyr/arch/cpu.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/can.h>
@@ -179,9 +180,9 @@ static int can_nrf_init(const struct device *dev)
                                                                                                    \
 	static inline void can_nrf_irq_configure##n(void)                                          \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), can_nrf_irq_handler,        \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), can_nrf_irq_handler,        \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
                                                                                                    \
 	static const struct can_nrf_config can_nrf_config##n = {                                   \
