@@ -84,7 +84,7 @@ zephyr_linker_include_var(VAR CMAKE_VERBOSE_MAKEFILE VALUE ${CMAKE_VERBOSE_MAKEF
 # existing variable to allow slowly cleanup of linking stage handling.
 # Three stage linking active: pre0 -> pre1 -> final, this will correspond to `pre1`
 # Two stage linking active:   pre0 -> final, this will correspond to `pre0`
-if(CONFIG_USERSPACE OR CONFIG_DEVICE_DEPS)
+if(CONFIG_USERSPACE OR CONFIG_DEVICE_DEPS OR CONFIG_INTC2)
   set(ZEPHYR_PREBUILT_EXECUTABLE zephyr_pre1)
 else()
   set(ZEPHYR_PREBUILT_EXECUTABLE zephyr_pre0)
@@ -1398,7 +1398,7 @@ if(CONFIG_USERSPACE)
   endforeach()
 endif()
 
-if(CONFIG_USERSPACE OR CONFIG_DEVICE_DEPS)
+if(CONFIG_USERSPACE OR CONFIG_DEVICE_DEPS OR CONFIG_INTC2)
   configure_linker_script(
     ${ZEPHYR_CURRENT_LINKER_CMD}
     "${LINKER_PASS_${ZEPHYR_CURRENT_LINKER_PASS}_DEFINE}"
@@ -1440,6 +1440,14 @@ if(CONFIG_USERSPACE OR CONFIG_DEVICE_DEPS)
   add_dependencies(${ZEPHYR_LINK_STAGE_EXECUTABLE} linker_zephyr_pre${ZEPHYR_CURRENT_LINKER_PASS}_script)
 
   math(EXPR ZEPHYR_CURRENT_LINKER_PASS "1 + ${ZEPHYR_CURRENT_LINKER_PASS}")
+
+  if(CONFIG_INTC2)
+    # The intc2 dispatch tables are generated from the pass-0 ELF and are
+    # part of every subsequent link stage, so that tools consuming
+    # ${ZEPHYR_PREBUILT_EXECUTABLE} raw addresses (x86 gen_idt/gen_mmu,
+    # the gen_isr_tables C-arrays parser, ...) see the final layout.
+    list(APPEND LINKER_PASS_${ZEPHYR_CURRENT_LINKER_PASS}_DEFINE "LINKER_INTC2_TABLES")
+  endif()
 endif()
 
 set(ZEPHYR_CURRENT_LINKER_CMD  linker_zephyr_pre${ZEPHYR_CURRENT_LINKER_PASS}.cmd)
@@ -1477,23 +1485,29 @@ endif()
 
 if(CONFIG_INTC2)
   # intc2_tables.c and the intc2_tables.ld layout fragment are generated
-  # from the .intc2_list records of ${ZEPHYR_LINK_STAGE_EXECUTABLE} by
-  # gen_intc2_tables.py
+  # from the .intc2_list records of the pass-0 ELF by gen_intc2_tables.py.
+  # They are compiled/included from the second link stage onwards (see
+  # LINKER_INTC2_TABLES above): CONFIG_INTC2 forces three-stage linking so
+  # that ${ZEPHYR_PREBUILT_EXECUTABLE} already has the final layout for
+  # tools that extract raw addresses from it.
   add_custom_command(
     OUTPUT intc2_tables.c intc2_tables.ld
     COMMAND ${PYTHON_EXECUTABLE}
     ${ZEPHYR_BASE}/scripts/build/gen_intc2_tables.py
     --output-source intc2_tables.c
     --output-linker intc2_tables.ld
-    --kernel $<TARGET_FILE:${ZEPHYR_LINK_STAGE_EXECUTABLE}>
+    --kernel $<TARGET_FILE:zephyr_pre0>
     --intlist-section .intc2_list
     --intlist-section intc2_list
+    --entry-size $<IF:$<BOOL:${CONFIG_64BIT}>,16,8>
+    $<$<BOOL:${CONFIG_INTC2_SHARED}>:--shared>
+    $<$<BOOL:${CONFIG_INTC2_DYNAMIC}>:--dynamic>
     $<$<BOOL:${CONFIG_BIG_ENDIAN}>:--big-endian>
     $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:--debug>
-    DEPENDS ${ZEPHYR_LINK_STAGE_EXECUTABLE}
+    DEPENDS zephyr_pre0
     COMMAND_EXPAND_LISTS
     )
-  set_property(GLOBAL APPEND PROPERTY GENERATED_KERNEL_SOURCE_FILES intc2_tables.c)
+  set_property(GLOBAL APPEND PROPERTY GENERATED_APP_SOURCE_FILES intc2_tables.c)
 endif()
 
 if(CONFIG_SYMTAB)

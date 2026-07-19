@@ -18,7 +18,7 @@
  */
 
 . = ALIGN(8);
-#if LINKER_ZEPHYR_FINAL
+#if defined(LINKER_ZEPHYR_FINAL) || defined(LINKER_INTC2_TABLES)
 INCLUDE intc2_tables.ld
 #else
 KEEP(*(.intc2_entry.*))
