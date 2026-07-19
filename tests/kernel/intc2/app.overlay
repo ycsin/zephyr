@@ -35,4 +35,19 @@
 		compatible = "vnd,intc2-emul-dev";
 		interrupts-extended = <&intc2_l2 2 6>;
 	};
+
+	/* 32-line controller with a single consumer: gets a sparse
+	 * dispatch table (unless CONFIG_INTC2_DYNAMIC forces dense).
+	 */
+	intc2_wide: intc2-wide {
+		compatible = "vnd,intc2-emul-wide";
+		interrupt-controller;
+		#interrupt-cells = <2>;
+		interrupts-extended = <&intc2_root 4>;
+	};
+
+	test_dev_w: test-dev-w {
+		compatible = "vnd,intc2-emul-dev";
+		interrupts-extended = <&intc2_wide 20 3>;
+	};
 };

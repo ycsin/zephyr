@@ -16,8 +16,12 @@
 #define DEV_B_NODE DT_NODELABEL(test_dev_b)
 #define DEV_C_NODE DT_NODELABEL(test_dev_c)
 
+#define WIDE_NODE  DT_NODELABEL(intc2_wide)
+#define DEV_W_NODE DT_NODELABEL(test_dev_w)
+
 #define ROOT INTC2_NODE_DT_GET(ROOT_NODE)
 #define L2   INTC2_NODE_DT_GET(L2_NODE)
+#define WIDE INTC2_NODE_DT_GET(WIDE_NODE)
 
 #define DEV_A_PRIO 2
 
@@ -56,6 +60,17 @@ static void dev_b_isr(const void *arg)
 INTC2_DT_CONNECT(DEV_A_NODE, DEV_A_PRIO, dev_a_isr, &a_token, 0);
 INTC2_DT_CONNECT(DEV_B_NODE, DT_IRQ_BY_IDX(DEV_B_NODE, 0, priority), dev_b_isr, NULL, 0);
 
+static volatile uint32_t w_count;
+
+static void dev_w_isr(const void *arg)
+{
+	ARG_UNUSED(arg);
+
+	w_count++;
+}
+
+INTC2_DT_CONNECT(DEV_W_NODE, DT_IRQ_BY_IDX(DEV_W_NODE, 0, priority), dev_w_isr, NULL, 0);
+
 #ifdef CONFIG_INTC2_SHARED
 static void dev_c_isr(const void *arg)
 {
@@ -88,10 +103,12 @@ static void intc2_test_before(void *fixture)
 
 	emul_intc_regs(ROOT)->pending = 0;
 	emul_intc_regs(L2)->pending = 0;
+	emul_intc_regs(WIDE)->pending = 0;
 	seq = 0;
 	a_count = 0;
 	b_count = 0;
 	c_count = 0;
+	w_count = 0;
 	dyn_count = 0;
 	spurious_count = 0;
 }
@@ -184,6 +201,41 @@ ZTEST(intc2_base, test_dispatch_level2)
 	zassert_equal(emul_intc_regs(L2)->eoi_cnt, l2_eoi + 1, "no l2 EOI");
 
 	intc2_disable(spec_b);
+}
+
+ZTEST(intc2_base, test_wide_dispatch)
+{
+	struct intc2_spec spec_w = INTC2_DT_SPEC_GET(DEV_W_NODE);
+
+	/* sparse unless CONFIG_INTC2_DYNAMIC forces the dense layout */
+	if (!IS_ENABLED(CONFIG_INTC2_DYNAMIC)) {
+		zassert_not_null(WIDE->lines, "wide node table should be sparse");
+		zassert_equal(WIDE->lines[0], 1);
+		zassert_equal(WIDE->lines[1], 20);
+	} else {
+		zassert_is_null(WIDE->lines, "dynamic must force dense tables");
+	}
+
+	zassert_equal(spec_w.node, WIDE);
+	zassert_equal(spec_w.line, 20);
+	zassert_true(emul_intc_regs(WIDE)->inited);
+	zassert_equal(emul_intc_regs(WIDE)->prio[20],
+		      DT_IRQ_BY_IDX(DEV_W_NODE, 0, priority));
+
+	intc2_enable(spec_w);
+	trigger(WIDE, 20);
+	zassert_equal(w_count, 1, "sparse-table ISR not invoked exactly once");
+	intc2_disable(spec_w);
+}
+
+ZTEST(intc2_base, test_wide_spurious_miss)
+{
+	struct intc2_spec unconnected = {.node = WIDE, .line = 7};
+
+	intc2_enable(unconnected);
+	trigger(WIDE, 7);
+	zassert_equal(spurious_count, 1, "sparse lookup miss must be spurious");
+	intc2_disable(unconnected);
 }
 
 ZTEST(intc2_base, test_spurious)

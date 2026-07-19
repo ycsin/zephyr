@@ -30,7 +30,7 @@ static int emul_intc_set_priority(const struct intc2_node *node, uint32_t line,
 {
 	ARG_UNUSED(flags);
 
-	if (line >= EMUL_INTC_NLINES) {
+	if (line >= node->nlines) {
 		return -EINVAL;
 	}
 
@@ -91,10 +91,14 @@ void emul_intc_raise(const struct intc2_node *node, uint32_t line)
 	}
 }
 
-#define EMUL_INTC_DEFINE(node_id)                                                                  \
+#define EMUL_INTC_DEFINE_N(node_id, nlines)                                                        \
 	static struct emul_intc_regs _CONCAT(emul_regs_, DT_DEP_ORD(node_id));                     \
 	INTC2_NODE_DT_DEFINE(node_id, &emul_intc_api, &_CONCAT(emul_regs_, DT_DEP_ORD(node_id)),   \
-			     EMUL_INTC_NLINES, 0);
+			     nlines, 0);
+
+#define EMUL_INTC_DEFINE(node_id)      EMUL_INTC_DEFINE_N(node_id, EMUL_INTC_NLINES)
+#define EMUL_INTC_WIDE_DEFINE(node_id) EMUL_INTC_DEFINE_N(node_id, EMUL_INTC_WIDE_NLINES)
 
 DT_FOREACH_STATUS_OKAY(vnd_intc2_emul, EMUL_INTC_DEFINE)
 DT_FOREACH_STATUS_OKAY(vnd_intc2_emul_l2, EMUL_INTC_DEFINE)
+DT_FOREACH_STATUS_OKAY(vnd_intc2_emul_wide, EMUL_INTC_WIDE_DEFINE)
