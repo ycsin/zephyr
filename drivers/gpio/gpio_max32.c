@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/drivers/clock_control.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/gpio/gpio_utils.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -245,9 +246,9 @@ static int gpio_max32_init(const struct device *dev)
 #define MAX32_GPIO_INIT(_num)                                                                      \
 	static void gpio_max32_irq_init_##_num(void)                                               \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(_num), DT_INST_IRQ(_num, priority), gpio_max32_isr,       \
+		INTC2_DT_INST_CONNECT_INLINE(_num, DT_INST_IRQ(_num, priority), gpio_max32_isr,       \
 			    DEVICE_DT_INST_GET(_num), 0);                                          \
-		irq_enable(DT_INST_IRQN(_num));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(_num));                                                    \
 	}                                                                                          \
 	static struct max32_gpio_data max32_gpio_data_##_num;                                      \
 	static const struct max32_gpio_config max32_gpio_config_##_num = {                         \

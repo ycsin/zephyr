@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/arch/cpu.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/irq.h>
@@ -283,12 +284,12 @@ static DEVICE_API(gpio, gpio_stellaris_driver_api) = {
 											\
 	static void port_## n ##_stellaris_config_func(const struct device *dev)		\
 	{										\
-		IRQ_CONNECT(DT_INST_IRQN(n),			\
+		INTC2_DT_INST_CONNECT_INLINE(n,			\
 			    DT_INST_IRQ(n, priority),		\
 			    gpio_stellaris_isr,						\
 			    DEVICE_DT_INST_GET(n), 0);					\
 											\
-		irq_enable(DT_INST_IRQN(n));			\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));			\
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(STELLARIS_GPIO_DEVICE)

@@ -11,6 +11,7 @@
 #include <ameba_soc.h>
 
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/gpio/gpio_utils.h>
 #include <zephyr/irq.h>
 
@@ -265,9 +266,9 @@ static DEVICE_API(gpio, gpio_ameba_driver_api) = {
 #define GPIO_AMEBA_INIT(n)                                                                         \
 	static int gpio_ameba_port##n##_init(const struct device *dev)                             \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), gpio_ameba_isr,             \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), gpio_ameba_isr,             \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
                                                                                                    \
 		return 0;                                                                          \
 	}                                                                                          \

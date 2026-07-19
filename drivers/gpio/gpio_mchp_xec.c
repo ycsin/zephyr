@@ -9,6 +9,7 @@
 
 #include <soc.h>
 #include <zephyr/arch/cpu.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/gpio/gpio_utils.h>
@@ -532,9 +533,9 @@ static DEVICE_API(gpio, gpio_xec_driver_api) = {
 			return 0;                                                                  \
 		}                                                                                  \
 		soc_ecia_girq_aggr_ctrl(devcfg->girq, 1u);                                         \
-		IRQ_CONNECT(DT_INST_IRQN(i), DT_INST_IRQ(i, priority), gpio_xec_port_isr,          \
+		INTC2_DT_INST_CONNECT_INLINE(i, DT_INST_IRQ(i, priority), gpio_xec_port_isr,          \
 			    DEVICE_DT_INST_GET(i), 0u);                                            \
-		irq_enable(DT_INST_IRQN(i));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(i));                                                       \
 		return 0;                                                                          \
 	}                                                                                          \
 	static struct gpio_xec_data gpio_xec_port_data##i;                                         \

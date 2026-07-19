@@ -9,6 +9,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio/gpio_utils.h>
 #include <zephyr/irq.h>
@@ -594,7 +595,7 @@ gpio_pin_t ambiq_gpio_get_pinnum(const struct device *dev, gpio_pin_t pin)
 #define AMBIQ_GPIO_CONFIG_FUNC(n)                                                                  \
 	static void ambiq_gpio_cfg_func_##n(void)                                                  \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), ambiq_gpio_isr,             \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), ambiq_gpio_isr,             \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
                                                                                                    \
 		return;                                                                            \

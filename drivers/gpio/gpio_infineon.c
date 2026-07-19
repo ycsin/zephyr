@@ -11,6 +11,7 @@
 #define DT_DRV_COMPAT infineon_gpio
 
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/gpio/gpio_utils.h>
 #include <zephyr/irq.h>
 
@@ -348,9 +349,9 @@ static DEVICE_API(gpio, gpio_ifx_api) = {
 #define GPIO_PORT_DEFINE(n)                                                                        \
 	static int gpio_ifx##n##_init(const struct device *dev)                                    \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), gpio_ifx_isr,               \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), gpio_ifx_isr,               \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
                                                                                                    \
 		return 0;                                                                          \
 	}                                                                                          \
@@ -411,9 +412,9 @@ static __maybe_unused void gpio_shared_isr(const struct device *dev)
                                                                                                    \
 	static int gpio_shared##n##_init(const struct device *dev)                                 \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), gpio_shared_isr,            \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), gpio_shared_isr,            \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 		return 0;                                                                          \
 	}                                                                                          \
                                                                                                    \

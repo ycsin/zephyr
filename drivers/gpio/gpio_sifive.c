@@ -12,6 +12,7 @@
 
 #include <errno.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <soc.h>
 #include <zephyr/drivers/gpio.h>
@@ -371,7 +372,7 @@ DEVICE_DT_INST_DEFINE(0,
 		    &gpio_sifive_driver);
 
 #define		IRQ_INIT(n)					\
-IRQ_CONNECT(DT_INST_IRQN_BY_IDX(0, n),				\
+INTC2_DT_INST_CONNECT_INLINE_BY_IDX(0, n,				\
 		DT_INST_IRQ_BY_IDX(0, n, priority),		\
 		gpio_sifive_irq_handler,			\
 		DEVICE_DT_INST_GET(0),				\

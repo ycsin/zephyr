@@ -8,6 +8,7 @@
 #define DT_DRV_COMPAT arm_cmsdk_gpio
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 
 #include <zephyr/device.h>
 #include <errno.h>
@@ -304,12 +305,12 @@ static int gpio_cmsdk_ahb_init(const struct device *dev)
 										\
 	static void gpio_cmsdk_port_##n##_config_func(const struct device *dev)	\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(n),					\
+		INTC2_DT_INST_CONNECT_INLINE(n,					\
 			    DT_INST_IRQ(n, priority),				\
 			    gpio_cmsdk_ahb_isr,					\
 			    DEVICE_DT_INST_GET(n), 0);				\
 										\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(CMSDK_AHB_GPIO_DEVICE)

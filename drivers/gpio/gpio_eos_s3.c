@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <soc.h>
 #include <eoss3_hal_gpio.h>
@@ -411,13 +412,13 @@ static DEVICE_API(gpio, gpio_eos_s3_driver_api) = {
 static int gpio_eos_s3_init(const struct device *dev)
 {
 	ARG_UNUSED(dev);
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    gpio_eos_s3_isr,
 		    DEVICE_DT_INST_GET(0),
 		    0);
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	return 0;
 }

@@ -7,6 +7,7 @@
  */
 
 #include <zephyr/devicetree.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/irq.h>
 #include <zephyr/drivers/gpio/gpio_utils.h>
@@ -140,9 +141,9 @@ static const struct gpio_xlnx_ps_dev_cfg gpio_xlnx_ps##idx##_cfg = {\
 static void gpio_xlnx_ps##idx##_irq_config(const struct device *dev)\
 {\
 	ARG_UNUSED(dev);\
-	IRQ_CONNECT(DT_INST_IRQN(idx), DT_INST_IRQ(idx, priority),\
+	INTC2_DT_INST_CONNECT_INLINE(idx, DT_INST_IRQ(idx, priority),\
 		    gpio_xlnx_ps_isr, DEVICE_DT_INST_GET(idx), 0);\
-	irq_enable(DT_INST_IRQN(idx));\
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(idx));\
 }
 
 /* Device definition macro */

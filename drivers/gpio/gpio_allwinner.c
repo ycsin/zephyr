@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT allwinner_sunxi_gpio
 
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/gpio/gpio_utils.h>
 #include <zephyr/sys/sys_io.h>
 #include <zephyr/sys/device_mmio.h>
@@ -325,9 +326,9 @@ static void gpio_allwinner_init(const struct device *port)
 	static int gpio_allwinner_init_##n(const struct device *port)                              \
 	{                                                                                          \
 		gpio_allwinner_init(port);                                                         \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),                             \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),                             \
 			    gpio_allwinner_isr, DEVICE_DT_INST_GET(n), 0);                         \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 		return 0;                                                                          \
 	}                                                                                          \
 	DEVICE_DT_INST_DEFINE(n, gpio_allwinner_init_##n, NULL, &gpio_allwinner_data_##n,          \

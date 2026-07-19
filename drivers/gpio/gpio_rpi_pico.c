@@ -7,6 +7,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 
 /* pico-sdk includes */
@@ -451,10 +452,10 @@ static int gpio_rpi_bank_init(const struct device *dev)
 	IF_ENABLED(IS_GPIO_RPI_LO_NODE(DT_DRV_INST(idx)), (                                        \
 		static void bank_##idx##_config_func(void)                                         \
 		{                                                                                  \
-			IRQ_CONNECT(DT_IRQN(DT_INST_PARENT(idx)),                                  \
+			INTC2_DT_CONNECT_INLINE(DT_INST_PARENT(idx),                                  \
 				    DT_IRQ(DT_INST_PARENT(idx), priority),                         \
 				    gpio_rpi_isr, DEVICE_DT_INST_GET(idx), 0);                     \
-			irq_enable(DT_IRQN(DT_INST_PARENT(idx)));                                  \
+			intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_INST_PARENT(idx)));                                  \
 		}                                                                                  \
 	))                                                                                         \
 	static const struct gpio_rpi_config gpio_rpi_##idx##_config = {                            \

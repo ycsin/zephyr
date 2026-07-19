@@ -9,6 +9,7 @@
 
 #include <errno.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/reset.h>
@@ -469,9 +470,9 @@ static void gpio_mcux_shared_cluster_isr(const struct device *ports[])
                                                                                                    \
 	static int gpio_mcux_shared_interrupt_init##node_id(void)                                  \
 	{                                                                                          \
-		IRQ_CONNECT(DT_IRQN(node_id), DT_IRQ(node_id, priority),                           \
+		INTC2_DT_CONNECT_INLINE(node_id, DT_IRQ(node_id, priority),                           \
 			    gpio_mcux_shared_cluster_isr, shared_array##node_id, 0);               \
-		irq_enable(DT_IRQN(node_id));                                                      \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(node_id));                                                      \
                                                                                                    \
 		return 0;                                                                          \
 	}                                                                                          \
@@ -521,10 +522,10 @@ static DEVICE_API(gpio, gpio_mcux_driver_api) = {
 
 #define GPIO_MCUX_IRQ_INIT(n)                                                                      \
 	do {                                                                                       \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), gpio_mcux_port_isr,         \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), gpio_mcux_port_isr,         \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
                                                                                                    \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	} while (false)
 
 #if defined(CONFIG_PINCTRL_NXP_IOCON)

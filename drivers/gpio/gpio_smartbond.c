@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT renesas_smartbond_gpio
 
 #include <zephyr/drivers/gpio/gpio_utils.h>
+#include <zephyr/intc2.h>
 
 #include <stdint.h>
 #include <zephyr/drivers/gpio.h>
@@ -420,11 +421,11 @@ static DEVICE_API(gpio, gpio_smartbond_drv_api_funcs) = {
 	{										\
 		da1469x_pd_acquire(MCU_PD_DOMAIN_COM);					\
 		gpio_smartbond_wkup_init();						\
-		IRQ_CONNECT(DT_INST_IRQN(id),						\
+		INTC2_DT_INST_CONNECT_INLINE(id,						\
 			    DT_INST_IRQ(id, priority),					\
 			    gpio_smartbond_isr,						\
 			    DEVICE_DT_INST_GET(id), 0);					\
-		irq_enable(DT_INST_IRQN(id));						\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(id));						\
 		return 0;								\
 	}										\
 											\

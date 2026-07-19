@@ -8,6 +8,7 @@
 #define DT_DRV_COMPAT bflb_bl60x_70x_gpio
 
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <zephyr/dt-bindings/pinctrl/bflb-common-pinctrl.h>
 #include <zephyr/drivers/gpio/gpio_utils.h>
@@ -386,13 +387,13 @@ static DEVICE_API(gpio, gpio_bflb_api) = {
 										\
 	static void port_##n##_bflb_irq_config_func(const struct device *dev)	\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),		\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),		\
 			    gpio_bflb_isr,					\
 			    DEVICE_DT_INST_GET(n), 0);				\
 	}									\
 	static void port_##n##_bflb_irq_enable_func(const struct device *dev)	\
 	{									\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(GPIO_BFLB_INIT)

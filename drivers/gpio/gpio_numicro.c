@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/irq.h>
 #include <zephyr/drivers/gpio.h>
@@ -251,11 +252,11 @@ static DEVICE_API(gpio, gpio_numicro_driver_api) = {
 #define GPIO_NUMICRO_INIT(n)						\
 	static int gpio_numicro_port##n##_init(const struct device *dev)\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n),				\
+		INTC2_DT_INST_CONNECT_INLINE(n,				\
 			    DT_INST_IRQ(n, priority),			\
 			    gpio_numicro_isr,				\
 			    DEVICE_DT_INST_GET(n), 0);			\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 		return 0;						\
 	}								\
 									\

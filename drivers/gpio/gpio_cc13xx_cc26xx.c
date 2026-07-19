@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ti_cc13xx_cc26xx_gpio
 
 #include <zephyr/types.h>
+#include <zephyr/intc2.h>
 #include <zephyr/sys/__assert.h>
 #include <zephyr/device.h>
 #include <errno.h>
@@ -251,10 +252,10 @@ static int gpio_cc13xx_cc26xx_init(const struct device *dev)
 		AON_EVENT_MCUWUSEL_WU1_EV_PAD;
 
 	/* Enable IRQ */
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    gpio_cc13xx_cc26xx_isr, DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	/* Peripheral should not be accessed until power domain is on. */
 	while (PRCMPowerDomainsAllOn(PRCM_DOMAIN_PERIPH) !=

@@ -8,6 +8,7 @@
 #include <errno.h>
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/init.h>
 #include <zephyr/kernel.h>
@@ -245,12 +246,12 @@ static DEVICE_API(gpio, api_funcs) = {
 	{								     \
 		ARG_UNUSED(dev);					     \
 									     \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),	     \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),	     \
 			gpio_cc32xx_port_isr, DEVICE_DT_INST_GET(n),         \
 			0);						     \
 									     \
 		MAP_IntPendClear(DT_INST_IRQN(n) + 16);			     \
-		irq_enable(DT_INST_IRQN(n));				     \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				     \
 									     \
 		return 0;						     \
 	}

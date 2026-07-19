@@ -8,6 +8,7 @@
 #define DT_DRV_COMPAT ti_cc23x0_gpio
 
 #include <zephyr/types.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/irq.h>
 #include <zephyr/drivers/gpio.h>
@@ -271,10 +272,10 @@ static int gpio_cc23x0_init(const struct device *dev)
 	CLKCTLEnable(CLKCTL_BASE, CLKCTL_GPIO);
 
 	/* Enable IRQ */
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), gpio_cc23x0_isr,
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), gpio_cc23x0_isr,
 		    DEVICE_DT_INST_GET(0), 0);
 
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	return 0;
 }

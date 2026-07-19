@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 #include <zephyr/arch/cpu.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/gpio/gpio_utils.h>
 #include <zephyr/drivers/clock_control/sf32lb.h>
@@ -324,9 +325,9 @@ static int gpio_sf32lb_init(const struct device *dev)
 
 		(void)sf32lb_clock_control_on_dt(&clk);
 
-		IRQ_CONNECT(DT_IRQN(DT_INST_PARENT(0)), DT_IRQ(DT_INST_PARENT(0), priority),
+		INTC2_DT_CONNECT_INLINE(DT_INST_PARENT(0), DT_IRQ(DT_INST_PARENT(0), priority),
 			    gpio_sf32lb_irq, NULL, 0);
-		irq_enable(DT_IRQN(DT_INST_PARENT(0)));
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_INST_PARENT(0)));
 
 		shared_initialized = true;
 	}

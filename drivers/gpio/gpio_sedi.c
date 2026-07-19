@@ -7,6 +7,7 @@
 
 #include "sedi_driver_gpio.h"
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio/gpio_utils.h>
 #include <zephyr/pm/device.h>
@@ -317,10 +318,10 @@ static int gpio_sedi_init(const struct device *dev)
 	static struct gpio_sedi_data gpio##n##_data;	               \
 	static void gpio_sedi_irq_config_##n(void)		       \
 	{							       \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), \
 			    gpio_isr, n,			       \
 			    GPIO_SEDI_IRQ_FLAGS(n));		       \
-		irq_enable(DT_INST_IRQN(n));			       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));			       \
 	};							       \
 	static const struct gpio_sedi_config gpio##n##_config = {      \
 		DEVICE_MMIO_ROM_INIT(DT_DRV_INST(n)),                  \

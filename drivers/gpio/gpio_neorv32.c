@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT neorv32_gpio
 
 #include <zephyr/arch/cpu.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/syscon.h>
@@ -284,9 +285,9 @@ static DEVICE_API(gpio, neorv32_gpio_driver_api) = {
 #define NEORV32_GPIO_INIT(n)						\
 	static void neorv32_gpio_config_func_##n(void)			\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),	\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),	\
 			    neorv32_gpio_isr, DEVICE_DT_INST_GET(n), 0);\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}								\
 									\
 	static struct neorv32_gpio_data neorv32_gpio_##n##_data = {	\

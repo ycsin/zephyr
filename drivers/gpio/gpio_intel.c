@@ -21,6 +21,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/intc2.h>
 #include <soc.h>
 #include <zephyr/sys/sys_io.h>
 #include <zephyr/sys/__assert.h>
@@ -667,12 +668,12 @@ static int gpio_intel_dts_init(const struct device *dev)
 		/* Note that all controllers are using the same IRQ line.
 		 * So we can just use the values from the first instance.
 		 */
-		IRQ_CONNECT(DT_INST_IRQN(0),
+		INTC2_DT_INST_CONNECT_INLINE(0,
 			    DT_INST_IRQ(0, priority),
 			    gpio_intel_isr, dev,
 			    DT_INST_IRQ(0, flags));
 
-		irq_enable(DT_INST_IRQN(0));
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 		first_inst = false;
 	}

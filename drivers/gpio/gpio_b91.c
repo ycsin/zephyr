@@ -7,6 +7,7 @@
 #include "analog.h"
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/irq.h>
 #include <zephyr/drivers/gpio/gpio_utils.h>
@@ -483,7 +484,7 @@ static DEVICE_API(gpio, gpio_b91_driver_api) = {
 static void gpio_b91_irq_connect_0(void)
 {
 	#if IS_INST_IRQ_EN(0)
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		    gpio_b91_irq_handler,
 		    DEVICE_DT_INST_GET(0), 0);
 	#endif
@@ -495,7 +496,7 @@ static void gpio_b91_irq_connect_0(void)
 static void gpio_b91_irq_connect_1(void)
 {
 	#if IS_INST_IRQ_EN(1)
-	IRQ_CONNECT(DT_INST_IRQN(1), DT_INST_IRQ(1, priority),
+	INTC2_DT_INST_CONNECT_INLINE(1, DT_INST_IRQ(1, priority),
 		    gpio_b91_irq_handler,
 		    DEVICE_DT_INST_GET(1), 0);
 	#endif
@@ -507,7 +508,7 @@ static void gpio_b91_irq_connect_1(void)
 static void gpio_b91_irq_connect_2(void)
 {
 	#if IS_INST_IRQ_EN(2)
-	IRQ_CONNECT(DT_INST_IRQN(2), DT_INST_IRQ(2, priority),
+	INTC2_DT_INST_CONNECT_INLINE(2, DT_INST_IRQ(2, priority),
 		    gpio_b91_irq_handler,
 		    DEVICE_DT_INST_GET(2), 0);
 	#endif
@@ -519,7 +520,7 @@ static void gpio_b91_irq_connect_2(void)
 static void gpio_b91_irq_connect_3(void)
 {
 	#if IS_INST_IRQ_EN(3)
-	IRQ_CONNECT(DT_INST_IRQN(3), DT_INST_IRQ(3, priority),
+	INTC2_DT_INST_CONNECT_INLINE(3, DT_INST_IRQ(3, priority),
 		    gpio_b91_irq_handler,
 		    DEVICE_DT_INST_GET(3), 0);
 	#endif
@@ -531,7 +532,7 @@ static void gpio_b91_irq_connect_3(void)
 static void gpio_b91_irq_connect_4(void)
 {
 	#if IS_INST_IRQ_EN(4)
-	IRQ_CONNECT(DT_INST_IRQN(4), DT_INST_IRQ(4, priority),
+	INTC2_DT_INST_CONNECT_INLINE(4, DT_INST_IRQ(4, priority),
 		    gpio_b91_irq_handler,
 		    DEVICE_DT_INST_GET(4), 0);
 	#endif

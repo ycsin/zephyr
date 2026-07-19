@@ -8,6 +8,7 @@
 #define DT_DRV_COMPAT brcm_iproc_gpio
 
 #include <zephyr/arch/common/sys_bitops.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/gpio/gpio_utils.h>
@@ -202,9 +203,9 @@ int gpio_iproc_init(const struct device *dev)
 #define GPIO_IPROC_INIT(n)                                                                         \
 	static void port_iproc_config_func_##n(const struct device *dev)                           \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), gpio_iproc_isr,             \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), gpio_iproc_isr,             \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
                                                                                                    \
 	static const struct gpio_iproc_config gpio_port_config_##n = {                             \

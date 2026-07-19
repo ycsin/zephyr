@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT xlnx_xps_gpio_1_00_a
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/irq.h>
 #include <zephyr/sys/sys_io.h>
@@ -444,10 +445,10 @@ static DEVICE_API(gpio, gpio_xlnx_axi_driver_api) = {
 		    {                                                                              \
 			   ARG_UNUSED(dev);                                                        \
                                                                                                    \
-			   IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),                  \
+			   INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),                  \
 				       gpio_xlnx_axi_isr, DEVICE_DT_INST_GET(n), 0);               \
                                                                                                    \
-			   irq_enable(DT_INST_IRQN(n));                                            \
+			   intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                            \
 		   }))                                                                             \
                                                                                                    \
 	DEVICE_DT_INST_DEFINE(n, gpio_xlnx_axi_init, NULL, &gpio_xlnx_axi_##n##_data,              \

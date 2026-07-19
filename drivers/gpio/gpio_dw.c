@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/dt-bindings/gpio/snps-designware-gpio.h>
 #include <zephyr/drivers/gpio/gpio_utils.h>
 
@@ -519,10 +520,10 @@ static int gpio_dw_initialize(const struct device *port)
 	COND_CODE_1(DT_INST_IRQ_HAS_CELL(n, flags), (DT_INST_IRQ(n, flags)), (0))
 
 #define GPIO_DW_CFG_IRQ(idx, n)									\
-		IRQ_CONNECT(DT_INST_IRQN_BY_IDX(n, idx),					\
+		INTC2_DT_INST_CONNECT_INLINE_BY_IDX(n, idx,					\
 			    DT_INST_IRQ(n, priority), gpio_dw_isr,				\
 			    DEVICE_DT_INST_GET(n), INST_IRQ_FLAGS(n));				\
-		irq_enable(DT_INST_IRQN_BY_IDX(n, idx));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_IDX(n, idx));					\
 
 #define GPIO_DW_RESET_SPEC_INIT(n)								\
 	.reset = RESET_DT_SPEC_INST_GET(n),							\

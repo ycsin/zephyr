@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/dt-bindings/gpio/andestech-atcgpio100.h>
@@ -401,7 +402,7 @@ static int gpio_atcgpio100_init(const struct device *port)
 									\
 	static void gpio_atcgpio100_cfg_func_##n(void)			\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n),				\
+		INTC2_DT_INST_CONNECT_INLINE(n,				\
 			    DT_INST_IRQ(n, priority),			\
 			    gpio_atcgpio100_irq_handler,		\
 			    DEVICE_DT_INST_GET(n),	                \

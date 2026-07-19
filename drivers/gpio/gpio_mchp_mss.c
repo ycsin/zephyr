@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/sys/util.h>
@@ -265,12 +266,12 @@ static void mss_gpio_irq_handler(const struct device *dev)
 	\
 	static void gpio_mss_gpio_cfg_func_##n(void)	\
 	{	\
-		IRQ_CONNECT(DT_INST_IRQN(n),	\
+		INTC2_DT_INST_CONNECT_INLINE(n,	\
 				DT_INST_IRQ(n, priority),	\
 				mss_gpio_irq_handler,	\
 				DEVICE_DT_INST_GET(n),	\
 				0);	\
-		irq_enable(DT_INST_IRQN(n));	\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));	\
 	}	\
 
 DT_INST_FOREACH_STATUS_OKAY(MSS_GPIO_INIT)

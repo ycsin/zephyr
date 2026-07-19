@@ -11,6 +11,7 @@
 #include <soc.h>
 
 #include <zephyr/arch/common/sys_bitops.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>
@@ -282,12 +283,12 @@ static DEVICE_API(gpio, gpio_aesc_driver_api) = {
 	static struct gpio_aesc_data gpio_aesc_dev_data_##no;		      \
 	static void gpio_aesc_irq_config_##no(const struct device *dev)	      \
 	{								      \
-		IRQ_CONNECT(DT_INST_IRQN(no),				      \
+		INTC2_DT_INST_CONNECT_INLINE(no,				      \
 			    DT_INST_IRQ(no, priority),			      \
 			    gpio_aesc_isr,				      \
 			    DEVICE_DT_INST_GET(no),			      \
 			    0);						      \
-		irq_enable(DT_INST_IRQN(no));				      \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(no));				      \
 	}								      \
 	static const struct gpio_aesc_config gpio_aesc_dev_cfg_##no = {	      \
 		.common = GPIO_COMMON_CONFIG_FROM_DT_INST(no),		      \

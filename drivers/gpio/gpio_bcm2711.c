@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT brcm_bcm2711_gpio
 
 #include <zephyr/arch/cpu.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/gpio/gpio_utils.h>
@@ -335,9 +336,9 @@ static DEVICE_API(gpio, gpio_bcm2711_api) = {
                                                                                                    \
 	static void gpio_bcm2711_irq_config_func_##n(void)                                         \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), gpio_bcm2711_isr,           \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), gpio_bcm2711_isr,           \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
                                                                                                    \
 	static const struct gpio_bcm2711_config gpio_bcm2711_cfg_##n = {                           \
