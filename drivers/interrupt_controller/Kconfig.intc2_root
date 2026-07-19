@@ -37,3 +37,28 @@ config INTC2_ROOT_OR1K_PIC
 	depends on INTC2 && OPENRISC && DT_HAS_OPENCORES_OR1K_PIC_LEVEL_ENABLED
 	depends on !ISR_TABLES_LOCAL_DECLARATION
 	select INTC2_ROOT_GENERIC
+
+config INTC2_ROOT_ARCV2
+	# opt-in pending bridge validation: test_nested_isr fails (suspected FIRQ path interplay)
+	bool "intc2 root node for the ARCv2 interrupt unit"
+	depends on INTC2 && ARC && DT_HAS_SNPS_ARCV2_INTC_ENABLED
+	depends on !ISR_TABLES_LOCAL_DECLARATION
+	select INTC2_ROOT_GENERIC
+
+config INTC2_ROOT_RX_ICU
+	# opt-in pending bridge validation: early CPU exception (suspected start-vector/ABI interplay)
+	bool "intc2 root node for the Renesas RX ICU"
+	depends on INTC2 && RX && DT_HAS_RENESAS_RX_ICU_ENABLED
+	depends on !ISR_TABLES_LOCAL_DECLARATION
+	select INTC2_ROOT_GENERIC
+
+config INTC2_ROOT_XTENSA_CORE_INTC
+	# opt-in pending bridge validation: hangs at boot
+	bool "intc2 root node for the Xtensa core interrupt controller"
+	depends on INTC2 && XTENSA && DT_HAS_CDNS_XTENSA_CORE_INTC_ENABLED
+	depends on !ISR_TABLES_LOCAL_DECLARATION
+	# only the flat dc233c core for now: SoCs with level-2 aggregators
+	# (referencing MULTI_LEVEL_INTERRUPTS here would create a Kconfig
+	# dependency loop through GEN_SW_ISR_TABLE) keep the legacy path
+	depends on SOC_XTENSA_DC233C
+	select INTC2_ROOT_GENERIC

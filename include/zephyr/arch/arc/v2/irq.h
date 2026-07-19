@@ -48,6 +48,11 @@ extern void z_irq_priority_set(unsigned int irq, unsigned int prio,
  * We additionally set the priority in the interrupt controller at
  * runtime.
  */
+#ifdef CONFIG_INTC2_LEGACY_BRIDGE
+/* The intc2 CPU-root node */
+#define Z_INTC2_ROOT_NODE DT_INST(0, snps_arcv2_intc)
+#endif
+
 #define ARCH_IRQ_CONNECT(irq_p, priority_p, isr_p, isr_param_p, flags_p) \
 { \
 	Z_ISR_DECLARE(irq_p, 0, isr_p, isr_param_p); \

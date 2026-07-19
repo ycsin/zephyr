@@ -131,6 +131,11 @@ __syscall void xtensa_user_fault(unsigned int reason);
 /* internal routine documented in C file, needed by IRQ_CONNECT() macro */
 void z_irq_priority_set(uint32_t irq, uint32_t prio, uint32_t flags);
 
+#ifdef CONFIG_INTC2_LEGACY_BRIDGE
+/* The intc2 CPU-root node */
+#define Z_INTC2_ROOT_NODE DT_INST(0, cdns_xtensa_core_intc)
+#endif
+
 #define ARCH_IRQ_CONNECT(irq_p, priority_p, isr_p, isr_param_p, flags_p) \
 	{ \
 		Z_ISR_DECLARE(irq_p, flags_p, isr_p, isr_param_p); \

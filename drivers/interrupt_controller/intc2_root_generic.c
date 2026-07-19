@@ -54,4 +54,10 @@ INTC2_ROOT_GENERIC_DEFINE(DT_INST(0, gaisler_irqmp));
 INTC2_ROOT_GENERIC_DEFINE(DT_INST(0, mti_cpu_intc));
 #elif defined(CONFIG_INTC2_ROOT_OR1K_PIC)
 INTC2_ROOT_GENERIC_DEFINE(DT_INST(0, opencores_or1k_pic_level));
+#elif defined(CONFIG_INTC2_ROOT_ARCV2)
+INTC2_ROOT_GENERIC_DEFINE(DT_INST(0, snps_arcv2_intc));
+#elif defined(CONFIG_INTC2_ROOT_RX_ICU)
+INTC2_ROOT_GENERIC_DEFINE(DT_INST(0, renesas_rx_icu));
+#elif defined(CONFIG_INTC2_ROOT_XTENSA_CORE_INTC)
+INTC2_ROOT_GENERIC_DEFINE(DT_INST(0, cdns_xtensa_core_intc));
 #endif
