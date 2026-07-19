@@ -11,6 +11,7 @@
 
 #include <errno.h>
 #include <zephyr/sys/__assert.h>
+#include <zephyr/intc2.h>
 #include <soc.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/dac.h>
@@ -204,7 +205,7 @@ static DEVICE_API(dac, dac_sam_driver_api) = {
 
 static void dacc_irq_config(void)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), dac_sam_isr,
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), dac_sam_isr,
 		    DEVICE_DT_INST_GET(0), 0);
 }
 
