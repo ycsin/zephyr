@@ -227,6 +227,9 @@ def emit_linker(model):
         node = model.nodes[ord_]
         out.append(f". = ALIGN({align});")
         out.append(f"__intc2_table_dts_ord_{ord_} = .;")
+        # alias for toolchains that prefix C symbols with an underscore
+        # (only materializes when referenced, harmless elsewhere)
+        out.append(f"PROVIDE(___intc2_table_dts_ord_{ord_} = __intc2_table_dts_ord_{ord_});")
         for line in range(node.nlines):
             count = line_clients(node, line)
             if count == 0:
@@ -246,6 +249,8 @@ def emit_linker(model):
                 continue
             out.append(f". = ALIGN({align});")
             out.append(f"__intc2_fanin_cl_{ord_}_{line} = .;")
+            out.append(f"PROVIDE(___intc2_fanin_cl_{ord_}_{line} = "
+                       f"__intc2_fanin_cl_{ord_}_{line});")
             out.extend(entry_keeps(node, line))
 
     # Safety net: any stray entry/slot section that validation did not
@@ -337,35 +342,18 @@ def emit_source(model):
     return "\n".join(out)
 
 
-def get_symbols(elf):
-    from elftools.elf.sections import SymbolTableSection
-
-    for section in elf.iter_sections():
-        if isinstance(section, SymbolTableSection):
-            return {sym.name: sym.entry.st_value
-                    for sym in section.iter_symbols()}
-
-    raise GenError("intc2: no symbol table found in the pass-1 ELF")
-
-
 def read_intlist(path, section_names):
     from elftools.elf.elffile import ELFFile
 
     with open(path, "rb") as fp:
         elf = ELFFile(fp)
 
-        data = None
         for name in section_names:
             section = elf.get_section_by_name(name)
             if section is not None:
-                data = section.data()
-                break
-        if data is None:
-            raise GenError(f"intc2: no {section_names} section in {path}")
+                return section.data()
 
-        syms = get_symbols(elf)
-
-    return data, syms
+    raise GenError(f"intc2: no {section_names} section in {path}")
 
 
 def parse_args(argv):
@@ -383,6 +371,12 @@ def parse_args(argv):
                         help="Generated linker fragment")
     parser.add_argument("--big-endian", action="store_true",
                         help="Target is big-endian")
+    parser.add_argument("--shared", action="store_true",
+                        help="CONFIG_INTC2_SHARED is enabled")
+    parser.add_argument("--dynamic", action="store_true",
+                        help="CONFIG_INTC2_DYNAMIC is enabled")
+    parser.add_argument("--entry-size", type=int, default=8, choices=(8, 16),
+                        help="sizeof(struct intc2_entry) on the target")
     parser.add_argument("--debug", action="store_true",
                         help="Print debug information")
     return parser.parse_args(argv)
@@ -392,14 +386,11 @@ def main(argv=None):
     args = parse_args(argv)
 
     try:
-        data, syms = read_intlist(args.kernel, args.intlist_section)
+        data = read_intlist(args.kernel, args.intlist_section)
         node_recs, conn_recs = parse_intlist(data, args.big_endian)
 
-        shared = "CONFIG_INTC2_SHARED" in syms
-        dynamic = "CONFIG_INTC2_DYNAMIC" in syms
-        entry_size = 16 if "CONFIG_64BIT" in syms else 8
-
-        model = build_model(node_recs, conn_recs, shared, dynamic, entry_size)
+        model = build_model(node_recs, conn_recs, args.shared, args.dynamic,
+                            args.entry_size)
     except GenError as err:
         sys.exit(str(err))
 
