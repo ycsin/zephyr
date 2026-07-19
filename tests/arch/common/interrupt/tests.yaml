@@ -96,6 +96,20 @@ tests:
       - CONFIG_ISR_TABLES_LOCAL_DECLARATION=y
       - CONFIG_LTO=y
       - CONFIG_SPEED_OPTIMIZATIONS=y
+  arch.interrupt.intc2_bridge:
+    # legacy interrupt machinery running on the bridged intc2 root table
+    platform_allow: qemu_cortex_m3
+    integration_platforms:
+      - qemu_cortex_m3
+    extra_configs:
+      - CONFIG_INTC2=y
+  arch.shared_interrupt.intc2_bridge:
+    platform_allow: qemu_cortex_m3
+    integration_platforms:
+      - qemu_cortex_m3
+    extra_configs:
+      - CONFIG_INTC2=y
+      - CONFIG_SHARED_INTERRUPTS=y
   arch.interrupt.multilevel:
     filter: CONFIG_MULTI_LEVEL_INTERRUPTS
     extra_args:

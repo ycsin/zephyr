@@ -19,7 +19,7 @@ static void dyn_isr(const void *arg)
 	handler_has_run++;
 }
 
-#if defined(CONFIG_GEN_SW_ISR_TABLE)
+#if defined(CONFIG_GEN_SW_ISR_TABLE) || defined(CONFIG_INTC2_LEGACY_BRIDGE)
 extern
 #ifndef CONFIG_DYNAMIC_INTERRUPTS
 const
