@@ -10,4 +10,10 @@
 		interrupts = <25 2>;
 		interrupt-parent = <&nvic>;
 	};
+
+	shim_dev_i: shim-dev-i {
+		compatible = "vnd,intc2-shim-dev";
+		interrupts = <26 2>;
+		interrupt-parent = <&nvic>;
+	};
 };

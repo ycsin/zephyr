@@ -50,4 +50,10 @@
 		compatible = "vnd,intc2-emul-dev";
 		interrupts-extended = <&intc2_wide 20 3>;
 	};
+
+	/* Connected from function position via INTC2_DT_CONNECT_INLINE() */
+	test_dev_i: test-dev-i {
+		compatible = "vnd,intc2-emul-dev";
+		interrupts-extended = <&intc2_root 2>;
+	};
 };

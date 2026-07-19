@@ -203,6 +203,31 @@ ZTEST(intc2_base, test_dispatch_level2)
 	intc2_disable(spec_b);
 }
 
+static volatile uint32_t i_count;
+
+static void dev_i_isr(const void *arg)
+{
+	ARG_UNUSED(arg);
+
+	i_count++;
+}
+
+/* Mimics a legacy per-instance driver configuration function */
+static void dev_i_config_func(void)
+{
+	INTC2_DT_CONNECT_INLINE(DT_NODELABEL(test_dev_i), 1, dev_i_isr, NULL, 0);
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_NODELABEL(test_dev_i)));
+}
+
+ZTEST(intc2_base, test_inline_connect)
+{
+	i_count = 0;
+	dev_i_config_func();
+	trigger(ROOT, 2);
+	zassert_equal(i_count, 1, "inline-connected ISR not invoked exactly once");
+	intc2_disable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_NODELABEL(test_dev_i)));
+}
+
 ZTEST(intc2_base, test_wide_dispatch)
 {
 	struct intc2_spec spec_w = INTC2_DT_SPEC_GET(DEV_W_NODE);
