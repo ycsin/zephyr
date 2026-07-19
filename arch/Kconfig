@@ -718,6 +718,38 @@ config SRAM_SW_ISR_TABLE
 	  The option specifies that the software interrupts vector table will be
 	  placed inside SRAM instead of the flash.
 
+config INTC2
+	bool "DAG-based interrupt core (intc2) [EXPERIMENTAL]"
+	select EXPERIMENTAL
+	help
+	  Enable the devicetree-derived interrupt controller graph core.
+	  Interrupt controllers become const graph nodes and interrupts are
+	  addressed by compile-time (node, line) specs instead of encoded IRQ
+	  numbers. Dispatch tables are per-node, generated at build time by
+	  gen_intc2_tables.py, and fully ROM-resident in the base
+	  configuration. Currently supported with GNU ld only.
+
+config INTC2_SHARED
+	bool "intc2 static shared-line (fan-in) support"
+	depends on INTC2
+	help
+	  Allow multiple static INTC2_DT_CONNECT() registrations on the same
+	  (controller, line) input. Clients are recorded in a build-time
+	  generated const list and invoked in registration order; without
+	  this option a shared line is a build error. ROM-only: no RAM is
+	  used for static sharing.
+
+config INTC2_DYNAMIC
+	bool "intc2 runtime interrupt connection"
+	depends on INTC2
+	help
+	  Enable intc2_connect_dynamic()/intc2_disconnect_dynamic(). All
+	  generated intc2 dispatch tables are placed in RAM (initialized
+	  data) instead of ROM, and are forced to the dense layout. This is
+	  all-or-nothing by design: per-node granularity would require
+	  devicetree properties that describe software policy rather than
+	  hardware.
+
 config IRQ_OFFLOAD_NESTED
 	bool "irq_offload() supports nested IRQs"
 	depends on IRQ_OFFLOAD

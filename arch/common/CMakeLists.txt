@@ -34,6 +34,8 @@ zephyr_library_sources_ifdef(
 
 zephyr_library_sources_ifdef(CONFIG_SHARED_INTERRUPTS shared_irq.c)
 
+zephyr_library_sources_ifdef(CONFIG_INTC2 intc2.c)
+
 if(NOT CONFIG_ARCH_HAS_TIMING_FUNCTIONS AND
     NOT CONFIG_SOC_HAS_TIMING_FUNCTIONS AND
     NOT CONFIG_BOARD_HAS_TIMING_FUNCTIONS)
@@ -53,6 +55,19 @@ zephyr_linker_sources_ifdef(CONFIG_ISR_TABLES_LOCAL_DECLARATION
   SECTIONS
   ${ZEPHYR_BASE}/include/zephyr/linker/isr-local-drop-unused.ld
 )
+
+zephyr_linker_sources_ifdef(CONFIG_INTC2
+  SECTIONS
+  ${ZEPHYR_BASE}/include/zephyr/linker/intc2-list.ld
+)
+
+if(CONFIG_INTC2)
+  if(CONFIG_INTC2_DYNAMIC)
+    zephyr_linker_sources(RWDATA ${ZEPHYR_BASE}/include/zephyr/linker/intc2-tables.ld)
+  else()
+    zephyr_linker_sources(RODATA ${ZEPHYR_BASE}/include/zephyr/linker/intc2-tables.ld)
+  endif()
+endif()
 
 zephyr_linker_sources_ifdef(CONFIG_GEN_IRQ_VECTOR_TABLE
   ROM_START
