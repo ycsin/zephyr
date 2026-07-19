@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ti_cc13xx_cc26xx_trng
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/entropy.h>
 #include <zephyr/irq.h>
@@ -325,11 +326,11 @@ static int entropy_cc13xx_cc26xx_init(const struct device *dev)
 
 	start_trng(data);
 
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    entropy_cc13xx_cc26xx_isr,
 		    DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	return 0;
 }
