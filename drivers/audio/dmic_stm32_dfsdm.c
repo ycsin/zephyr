@@ -4,6 +4,7 @@
  */
 
 #include <zephyr/sys/util_macro.h>
+#include <zephyr/intc2.h>
 #include <zephyr/arch/common/ffs.h>
 #include <zephyr/audio/dmic.h>
 #include <zephyr/device.h>
@@ -1040,9 +1041,9 @@ static int dmic_stm32_dfsdm_pm_action(const struct device *dev, enum pm_device_a
                                                                                                    \
 	static void dmic_stm32_dfsdm_irq_cfg_func_##flt(const struct device *dev)                  \
 	{                                                                                          \
-		IRQ_CONNECT(DT_IRQN(flt), DT_IRQ(flt, priority), dmic_stm32_dfsdm_isr,             \
+		INTC2_DT_CONNECT_INLINE(flt, DT_IRQ(flt, priority), dmic_stm32_dfsdm_isr,             \
 			    DEVICE_DT_GET(flt), 0);                                                \
-		irq_enable(DT_IRQN(flt));                                                          \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(flt));                                                          \
 	}                                                                                          \
                                                                                                    \
 	static const struct dmic_stm32_dfsdm_filter_cfg dmic_stm32_dfsdm_filter_##flt = {          \

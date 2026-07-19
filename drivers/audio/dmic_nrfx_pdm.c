@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nordic_nrf_pdm
 
 #include <zephyr/audio/dmic.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control/nrf_clock_control.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/dt-bindings/clock/nrf-auxpll.h>
@@ -516,7 +517,7 @@ static DEVICE_API(dmic, dmic_ops) = {
 	};                                                                                         \
 	static int pdm_nrfx_init##inst(const struct device *dev)                                   \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), nrfx_pdm_irq_handler, \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), nrfx_pdm_irq_handler, \
 			    &dmic_nrfx_pdm_data##inst.pdm, 0);                                     \
 		const struct dmic_nrfx_pdm_drv_cfg *drv_cfg = dev->config;                         \
 		int err = pinctrl_apply_state(drv_cfg->pcfg, PINCTRL_STATE_DEFAULT);               \

@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include "mic_privacy_registers.h"
 #include <zephyr/drivers/mic_privacy/intel/mic_privacy.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <zephyr/device.h>
 #include <zephyr/logging/log.h>
@@ -50,13 +51,13 @@ static void mic_privacy_enable_fw_managed_irq(bool enable_irq, const void *fn)
 	}
 	sys_write16(pv_ccs.full, DFFWMICPVCCS_ADDRESS);
 
-	if (enable_irq && !irq_is_enabled(DT_INST_IRQN(0))) {
+	if (enable_irq && !intc2_is_enabled((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0))) {
 
 		irq_connect_dynamic(DT_INST_IRQN(0), 0,
 			fn,
 			DEVICE_DT_INST_GET(0), 0);
 
-		irq_enable(DT_INST_IRQN(0));
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 		ace_mic_priv_intc_unmask();
 	}
 }

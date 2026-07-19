@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/audio/dmic.h>
 #include <zephyr/logging/log.h>
@@ -623,9 +624,9 @@ static DEVICE_API(dmic, dmic_ops) = {
 #define NXP_MICFIL_IRQ_CONFIG(inst)							\
 	static void _CONCAT(irq_config, inst)(const struct device *dev)			\
 	{										\
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority),		\
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority),		\
 			nxp_micfil_isr, DEVICE_DT_INST_GET(inst), 0);			\
-		irq_enable(DT_INST_IRQN(inst));						\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));						\
 	}
 
 /* Build per-hardware-channel DC cutoff array from DT child nodes. */
