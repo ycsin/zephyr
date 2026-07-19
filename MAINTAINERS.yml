@@ -3498,12 +3498,20 @@ Intel Platforms (Xtensa):
     - include/zephyr/irq*
     - include/zephyr/sw_isr_table.h
     - include/zephyr/shared_irq.h
+    - include/zephyr/intc2.h
+    - include/zephyr/linker/intc2-*.ld
+    - arch/common/intc2.c
+    - scripts/build/gen_intc2_tables.py
+    - scripts/tests/build/test_gen_intc2_tables.py
     - tests/drivers/interrupt_controller/
     - tests/drivers/build_all/interrupt_controller/
+    - tests/kernel/intc2/
+    - tests/kernel/intc2_shim/
   labels:
     - "area: Interrupt Controller"
   tests:
     - drivers.interrupt_controller
+    - kernel.intc2
 
 JSON Web Token:
   status: maintained
