@@ -57,6 +57,11 @@ int z_sparc_int_get_source(int irl);
 void z_irq_spurious(const void *unused);
 
 
+#ifdef CONFIG_INTC2_LEGACY_BRIDGE
+/* The intc2 CPU-root node */
+#define Z_INTC2_ROOT_NODE DT_INST(0, gaisler_irqmp)
+#endif
+
 #define ARCH_IRQ_CONNECT(irq_p, priority_p, isr_p, isr_param_p, flags_p) \
 	{								 \
 		Z_ISR_DECLARE(irq_p, 0, isr_p, isr_param_p);		 \

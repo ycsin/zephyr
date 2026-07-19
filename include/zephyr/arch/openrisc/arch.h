@@ -53,6 +53,11 @@ extern "C" {
  * @return The vector assigned to this interrupt
  */
 
+#ifdef CONFIG_INTC2_LEGACY_BRIDGE
+/* The intc2 CPU-root node */
+#define Z_INTC2_ROOT_NODE DT_INST(0, opencores_or1k_pic_level)
+#endif
+
 #define ARCH_IRQ_CONNECT(irq_p, priority_p, isr_p, isr_param_p, flags_p) \
 	{								 \
 		Z_ISR_DECLARE(irq_p, 0, isr_p, isr_param_p);		 \

@@ -116,6 +116,11 @@ extern void z_arm_interrupt_init(void);
  */
 #define IRQ_ZERO_LATENCY	BIT(0)
 
+#if defined(CONFIG_INTC2_LEGACY_BRIDGE) && defined(CONFIG_CPU_AARCH32_CORTEX_A)
+/* The intc2 CPU-root node: the GIC */
+#define Z_INTC2_ROOT_NODE DT_INST(0, arm_gic_v1)
+#endif
+
 #ifdef CONFIG_CPU_CORTEX_M
 
 #ifdef CONFIG_INTC2_LEGACY_BRIDGE

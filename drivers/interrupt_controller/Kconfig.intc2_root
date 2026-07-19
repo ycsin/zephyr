@@ -1,0 +1,39 @@
+# Copyright (c) 2026 Yong Cong Sin <yongcong.sin@gmail.com>
+# SPDX-License-Identifier: Apache-2.0
+
+# Generic intc2 CPU-root nodes: the architecture's dispatch reads the
+# bridged _sw_isr_table alias directly and line operations map to
+# arch_irq_*(), so one shared driver covers these roots.
+
+config INTC2_ROOT_GENERIC
+	bool
+	select INTC2_LEGACY_BRIDGE
+
+config INTC2_ROOT_GIC
+	bool "intc2 root node for the AArch32 GIC"
+	# opt-in: GIC bridging (banked SGI/PPI semantics, EOI flow) is
+	# validated together with the arm64 GIC work
+	depends on INTC2 && CPU_AARCH32_CORTEX_A && DT_HAS_ARM_GIC_V1_ENABLED
+	depends on !ISR_TABLES_LOCAL_DECLARATION
+	select INTC2_ROOT_GENERIC
+
+config INTC2_ROOT_IRQMP
+	bool "intc2 root node for the LEON IRQMP"
+	default y
+	depends on INTC2 && SPARC && DT_HAS_GAISLER_IRQMP_ENABLED
+	depends on !ISR_TABLES_LOCAL_DECLARATION
+	select INTC2_ROOT_GENERIC
+
+config INTC2_ROOT_MIPS_CPU_INTC
+	bool "intc2 root node for the MIPS CPU interrupt controller"
+	default y
+	depends on INTC2 && MIPS && DT_HAS_MTI_CPU_INTC_ENABLED
+	depends on !ISR_TABLES_LOCAL_DECLARATION
+	select INTC2_ROOT_GENERIC
+
+config INTC2_ROOT_OR1K_PIC
+	bool "intc2 root node for the OpenRISC PIC"
+	default y
+	depends on INTC2 && OPENRISC && DT_HAS_OPENCORES_OR1K_PIC_LEVEL_ENABLED
+	depends on !ISR_TABLES_LOCAL_DECLARATION
+	select INTC2_ROOT_GENERIC
