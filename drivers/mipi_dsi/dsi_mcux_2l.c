@@ -9,6 +9,7 @@
 #define DT_DRV_COMPAT nxp_mipi_dsi_2l
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/display.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/mipi_dsi.h>
@@ -829,9 +830,9 @@ static int mcux_mipi_dsi_init(const struct device *dev)
 	COND_CODE_1(CONFIG_MIPI_DSI_MCUX_2L_SMARTDMA,						\
 	(), (static void mipi_dsi_##n##_irq_config_func(const struct device *dev)		\
 	{											\
-		IRQ_CONNECT(DT_INST_IRQN(id), DT_INST_IRQ(id, priority),			\
+		INTC2_DT_INST_CONNECT_INLINE(id, DT_INST_IRQ(id, priority),			\
 			mipi_dsi_isr, DEVICE_DT_INST_GET(id), 0);				\
-			irq_enable(DT_INST_IRQN(id));						\
+			intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(id));						\
 	}))											\
 												\
 	static const struct mcux_mipi_dsi_config mipi_dsi_config_##id = {			\
