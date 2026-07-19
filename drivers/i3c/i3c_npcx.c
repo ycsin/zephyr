@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <zephyr/sys/__assert.h>
 #include <zephyr/sys/sys_io.h>
@@ -3121,9 +3122,9 @@ static DEVICE_API(i3c, npcx_i3c_driver_api) = {
 	PINCTRL_DT_INST_DEFINE(id);                                                                \
 	static void npcx_i3c_config_func_##id(const struct device *dev)                            \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(id), DT_INST_IRQ(id, priority), npcx_i3c_isr,             \
+		INTC2_DT_INST_CONNECT_INLINE(id, DT_INST_IRQ(id, priority), npcx_i3c_isr,             \
 			    DEVICE_DT_INST_GET(id), 0);                                            \
-		irq_enable(DT_INST_IRQN(id));                                                      \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(id));                                                      \
 	};                                                                                         \
 	static struct i3c_device_desc npcx_i3c_device_array_##id[] = I3C_DEVICE_ARRAY_DT_INST(id); \
 	static struct i3c_i2c_device_desc npcx_i3c_i2c_device_array_##id[] =                       \

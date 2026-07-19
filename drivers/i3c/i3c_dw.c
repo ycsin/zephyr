@@ -6,6 +6,7 @@
  */
 
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/i3c.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/pm/device.h>
@@ -2839,9 +2840,9 @@ static DEVICE_API(i3c, dw_i3c_api) = {
 #define I3C_DW_IRQ_HANDLER(n)                                                                      \
 	static void i3c_dw_irq_config_##n(void)                                                    \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), i3c_dw_irq,                 \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), i3c_dw_irq,                 \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}
 
 #if defined(CONFIG_PINCTRL)

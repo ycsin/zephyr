@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ite_it51xxx_i3cs
 
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 #include <zephyr/logging/log_instance.h>
 LOG_MODULE_REGISTER(i3cs_it51xxx);
 
@@ -868,8 +869,8 @@ static void it51xxx_i3cs_isr(const struct device *dev)
 	PINCTRL_DT_INST_DEFINE(n);                                                                 \
 	static void it51xxx_i3cs_config_func_##n(const struct device *dev)                         \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), 0, it51xxx_i3cs_isr, DEVICE_DT_INST_GET(n), 0);       \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		INTC2_DT_INST_CONNECT_INLINE(n, 0, it51xxx_i3cs_isr, DEVICE_DT_INST_GET(n), 0);       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	};                                                                                         \
 	static const struct it51xxx_i3cs_config i3c_config_##n = {                                 \
 		.base = DT_INST_REG_ADDR(n),                                                       \

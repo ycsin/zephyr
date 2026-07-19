@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/i3c.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/gpio.h>
@@ -2503,9 +2504,9 @@ static DEVICE_API(i3c, i3c_stm32_driver_api) = {
 #ifdef CONFIG_I3C_STM32_COMBINED_INTERRUPT
 #define STM32_I3C_IRQ_CONNECT_AND_ENABLE(index)                                                    \
 	do {                                                                                       \
-		IRQ_CONNECT(DT_INST_IRQN(index), DT_INST_IRQ(index, priority),                     \
+		INTC2_DT_INST_CONNECT_INLINE(index, DT_INST_IRQ(index, priority),                     \
 			    i3c_stm32_combined_isr, DEVICE_DT_INST_GET(index), 0);                 \
-		irq_enable(DT_INST_IRQN(index));                                                   \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(index));                                                   \
 	} while (false)
 #else  /* CONFIG_I3C_STM32_COMBINED_INTERRUPT */
 #define STM32_I3C_IRQ_CONNECT_AND_ENABLE(index)                                                    \

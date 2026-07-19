@@ -7,6 +7,7 @@
 #include <errno.h>
 
 #include <zephyr/drivers/i3c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/init.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -4162,9 +4163,9 @@ static DEVICE_API(i3c, api) = {
 			      POST_KERNEL, CONFIG_I3C_CONTROLLER_INIT_PRIORITY, &api);             \
 	static void cdns_i3c_config_func_##n(const struct device *dev)                             \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), cdns_i3c_irq_handler,       \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), cdns_i3c_irq_handler,       \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	};
 
 #define DT_DRV_COMPAT cdns_i3c
