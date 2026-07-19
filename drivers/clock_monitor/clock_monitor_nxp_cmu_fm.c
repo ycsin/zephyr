@@ -10,6 +10,7 @@
 #define DT_DRV_COMPAT nxp_cmu_fm
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_monitor.h>
 #include <zephyr/irq.h>
@@ -317,9 +318,9 @@ static DEVICE_API(clock_monitor, nxp_cmu_fm_api) = {
 #define NXP_CMU_FM_IRQ_WIRE(inst)                                              \
 	static void nxp_cmu_fm_irq_cfg_##inst(const struct device *dev)        \
 	{                                                                      \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority),   \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority),   \
 			    nxp_cmu_fm_isr, DEVICE_DT_INST_GET(inst), 0);      \
-		irq_enable(DT_INST_IRQN(inst));                                \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                \
 	}
 
 #define NXP_CMU_FM_DEVICE_INIT(inst)                                           \
