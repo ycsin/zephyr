@@ -446,22 +446,14 @@ const struct device *riscv_plic_get_dev(void)
 }
 
 #ifdef CONFIG_PLIC_IRQ_AFFINITY
-/**
- * @brief Set riscv PLIC-specific interrupt enable by cpu bitmask
- *
- * @param irq IRQ number for which to set smp irq affinity
- * @param cpumask Bitmask to specific which cores can handle IRQ
- */
-int riscv_plic_irq_set_affinity(uint32_t irq, uint32_t cpumask)
+static int local_irq_set_affinity(const struct device *dev, uint32_t local_irq, uint32_t cpumask)
 {
-	const struct device *dev = get_plic_dev_from_irq(irq);
-	struct plic_data *data = dev->data;
 	__maybe_unused const struct plic_config *config = dev->config;
-	const uint32_t local_irq = irq_from_level_2(irq);
+	struct plic_data *data = dev->data;
 	k_spinlock_key_t key;
 
 	if (local_irq >= config->nr_irqs) {
-		__ASSERT(false, "overflow: irq %d, local_irq %d", irq, local_irq);
+		__ASSERT(false, "overflow: local_irq %d", local_irq);
 		return -EINVAL;
 	}
 
@@ -476,11 +468,25 @@ int riscv_plic_irq_set_affinity(uint32_t irq, uint32_t cpumask)
 
 	/* If irq is enabled, apply the new irq affinity */
 	if (local_irq_is_enabled(dev, local_irq)) {
-		plic_irq_enable_set_state(irq, true);
+		local_irq_enable_set_state(dev, local_irq, true);
 	}
 	k_spin_unlock(&data->lock, key);
 
 	return 0;
+}
+
+/**
+ * @brief Set riscv PLIC-specific interrupt enable by cpu bitmask
+ *
+ * @param irq IRQ number for which to set smp irq affinity
+ * @param cpumask Bitmask to specific which cores can handle IRQ
+ */
+int riscv_plic_irq_set_affinity(uint32_t irq, uint32_t cpumask)
+{
+	const struct device *dev = get_plic_dev_from_irq(irq);
+	const uint32_t local_irq = irq_from_level_2(irq);
+
+	return local_irq_set_affinity(dev, local_irq, cpumask);
 }
 #endif /* CONFIG_PLIC_IRQ_AFFINITY */
 
@@ -756,11 +762,36 @@ static void plic_intc2_init(const struct intc2_node *node)
 	plic_hw_init(node->config);
 }
 
+#if defined(CONFIG_INTC2_AFFINITY) && defined(CONFIG_PLIC_IRQ_AFFINITY)
+static int plic_intc2_set_affinity(const struct intc2_node *node, uint32_t line, uint32_t cpumask)
+{
+	return local_irq_set_affinity(node->config, line, cpumask);
+}
+
+static int plic_intc2_get_affinity(const struct intc2_node *node, uint32_t line, uint32_t *cpumask)
+{
+	const struct device *dev = node->config;
+	const struct plic_config *config = dev->config;
+
+	if (line >= config->nr_irqs) {
+		return -EINVAL;
+	}
+
+	*cpumask = get_irq_cpumask(dev, line);
+
+	return 0;
+}
+#endif /* CONFIG_INTC2_AFFINITY && CONFIG_PLIC_IRQ_AFFINITY */
+
 static DEVICE_API(intc2, plic_intc2_api) = {
 	.enable = plic_intc2_enable,
 	.disable = plic_intc2_disable,
 	.is_enabled = plic_intc2_is_enabled,
 	.set_priority = plic_intc2_set_priority,
+#if defined(CONFIG_INTC2_AFFINITY) && defined(CONFIG_PLIC_IRQ_AFFINITY)
+	.set_affinity = plic_intc2_set_affinity,
+	.get_affinity = plic_intc2_get_affinity,
+#endif
 	.get_pending = plic_intc2_get_pending,
 	.eoi = plic_intc2_eoi,
 	.init = plic_intc2_init,
@@ -1067,9 +1098,12 @@ SHELL_CMD_REGISTER(plic, &plic_cmds, "PLIC shell commands", NULL);
 #define PLIC_INTC_IRQ_FUNC_DECLARE(n)
 #define PLIC_INTC_IRQ_FUNC_DEFINE(n)
 #define PLIC_INTC_CONFIG_IRQ_INIT(n)
+/* Per-hart enable bits deliver a line to arbitrary CPU sets */
+#define PLIC_INTC2_NODE_FLAGS                                                                      \
+	(IS_ENABLED(CONFIG_PLIC_IRQ_AFFINITY) ? INTC2_NODE_AFFINITY_MULTI_TARGET : 0)
 #define PLIC_INTC2_NODE_DEFINE(n)                                                                  \
 	INTC2_NODE_DT_DEFINE(DT_DRV_INST(n), &plic_intc2_api, DEVICE_DT_INST_GET(n),               \
-			     PLIC_MIN_IRQ_NUM(n), 0);
+			     PLIC_MIN_IRQ_NUM(n), PLIC_INTC2_NODE_FLAGS);
 #else
 #define PLIC_INTC_IRQ_FUNC_DECLARE(n) static void plic_irq_config_func_##n(void);
 

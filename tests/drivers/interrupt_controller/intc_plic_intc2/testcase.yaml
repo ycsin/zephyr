@@ -17,3 +17,11 @@ tests:
     extra_configs:
       - CONFIG_INTC2=y
       - CONFIG_INTC2_DYNAMIC=y
+  drivers.interrupt_controller.intc_plic_intc2.affinity:
+    # SMP variants: icount off, CONFIG_SMP=y and two CPUs from the board
+    platform_allow:
+      - qemu_riscv32/qemu_virt_riscv32/smp
+      - qemu_riscv64/qemu_virt_riscv64/smp
+    extra_configs:
+      - CONFIG_INTC2=y
+      - CONFIG_INTC2_AFFINITY=y

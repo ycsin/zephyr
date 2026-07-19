@@ -55,12 +55,15 @@ config PLIC_IRQ_AFFINITY
 	bool "Configure IRQ affinity"
 	depends on SMP
 	depends on MP_MAX_NUM_CPUS > 1
+	# the intc2 affinity ops are implemented on this machinery
+	default y if INTC2_PLIC && INTC2_AFFINITY
 	help
 	  Enable configuration of IRQ affinity.
 
 config PLIC_IRQ_AFFINITY_MASK
 	hex "Default IRQ affinity mask"
 	depends on PLIC_IRQ_AFFINITY
+	default INTC2_AFFINITY_DEFAULT_MASK if INTC2_AFFINITY
 	default 0x1
 	help
 	  Default mask for the driver when IRQ affinity is enabled.

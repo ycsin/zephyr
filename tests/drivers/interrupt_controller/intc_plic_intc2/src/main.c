@@ -26,6 +26,7 @@
 static const struct device *const console_dev = DEVICE_DT_GET(CONSOLE_NODE);
 static volatile int tx_ready_count;
 static volatile unsigned int claimed_line;
+static volatile int handled_cpu;
 
 static void uart_cb(const struct device *dev, void *user_data)
 {
@@ -36,11 +37,13 @@ static void uart_cb(const struct device *dev, void *user_data)
 	if (uart_irq_tx_ready(dev)) {
 		tx_ready_count++;
 		claimed_line = riscv_plic_get_irq();
+		handled_cpu = (int)arch_curr_cpu()->id;
 		uart_irq_tx_disable(dev);
 	}
 }
 
-ZTEST(intc_plic_intc2, test_uart_irq_dispatch_via_plic)
+/* Enable the console TX-ready interrupt and wait for it to dispatch */
+static void pulse_tx_irq(void)
 {
 	tx_ready_count = 0;
 
@@ -54,6 +57,11 @@ ZTEST(intc_plic_intc2, test_uart_irq_dispatch_via_plic)
 
 	uart_irq_tx_disable(console_dev);
 	uart_irq_callback_set(console_dev, NULL);
+}
+
+ZTEST(intc_plic_intc2, test_uart_irq_dispatch_via_plic)
+{
+	pulse_tx_irq();
 
 	zassert_true(tx_ready_count > 0,
 		     "console TX interrupt did not dispatch through the PLIC");
@@ -120,6 +128,44 @@ ZTEST(intc_plic_intc2, test_console_spec_resolves_to_plic_node)
 	 */
 	zassert_true(intc2_is_enabled(spec) > 0,
 		     "console line not enabled on the PLIC node");
+}
+
+ZTEST(intc_plic_intc2, test_uart_irq_affinity_routing)
+{
+#if !defined(CONFIG_INTC2_AFFINITY) || (CONFIG_MP_MAX_NUM_CPUS < 2)
+	ztest_test_skip();
+#else
+	struct intc2_spec spec = INTC2_DT_SPEC_GET(CONSOLE_NODE);
+	uint32_t mask;
+
+	zassert_equal(spec.node->flags & INTC2_NODE_AFFINITY_MASK,
+		      INTC2_NODE_AFFINITY_MULTI_TARGET,
+		      "PLIC node does not advertise multi-target routing");
+
+	/* lines boot routed to the default mask */
+	zassert_ok(intc2_get_affinity(spec, &mask));
+	zassert_equal(mask, CONFIG_INTC2_AFFINITY_DEFAULT_MASK);
+
+	/* route the live console line to each CPU in turn and check
+	 * the ISR actually runs there
+	 */
+	for (int cpu = 0; cpu < 2; cpu++) {
+		handled_cpu = -1;
+		zassert_ok(intc2_set_affinity(spec, BIT(cpu)));
+
+		pulse_tx_irq();
+
+		zassert_true(tx_ready_count > 0,
+			     "TX interrupt did not dispatch while routed to CPU %d", cpu);
+		zassert_equal(handled_cpu, cpu,
+			      "line routed to CPU %d but handled on CPU %d", cpu, handled_cpu);
+		zassert_ok(intc2_get_affinity(spec, &mask));
+		zassert_equal(mask, BIT(cpu));
+	}
+
+	/* restore the boot default */
+	zassert_ok(intc2_set_affinity(spec, CONFIG_INTC2_AFFINITY_DEFAULT_MASK));
+#endif
 }
 #endif /* CONFIG_INTC2 */
 
