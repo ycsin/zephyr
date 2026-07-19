@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT ambiq_adc
 
 #include <zephyr/drivers/adc.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/pm/device.h>
 #include <zephyr/pm/device_runtime.h>
@@ -543,9 +544,9 @@ static int adc_ambiq_pm_action(const struct device *dev, enum pm_device_action a
 	ADC_AMBIQ_DRIVER_API(n);                                                                   \
 	static void adc_irq_config_func_##n(void)                                                  \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), adc_ambiq_isr,              \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), adc_ambiq_isr,              \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	};                                                                                         \
 	IF_ENABLED(DT_INST_PROP(n, dma_mode),                                           \
 	(static uint32_t adc_ambiq_dma_buf##n[DT_INST_PROP_OR(n, dma_buffer_size, 128)]  \

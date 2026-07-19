@@ -8,6 +8,7 @@
 #include "adc_context.h"
 #include <nrfx_adc.h>
 #include <zephyr/dt-bindings/adc/nrf-adc.h>
+#include <zephyr/intc2.h>
 
 #define LOG_LEVEL CONFIG_ADC_LOG_LEVEL
 #include <zephyr/logging/log.h>
@@ -273,7 +274,7 @@ static int init_adc(const struct device *dev)
 		return result;
 	}
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		    nrfx_isr, nrfx_adc_irq_handler, 0);
 
 	adc_context_unlock_unconditionally(&m_data.ctx);

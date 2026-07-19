@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <soc.h>
 #include <zephyr/drivers/adc.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/dt-bindings/interrupt-controller/mchp-xec-ecia.h>
 #include <zephyr/irq.h>
@@ -435,10 +436,10 @@ static int adc_xec_init(const struct device *dev)
 	adc_xec_girq_clr(cfg->girq_single, cfg->girq_single_pos);
 	adc_xec_girq_en(cfg->girq_single, cfg->girq_single_pos);
 
-	IRQ_CONNECT(DT_INST_IRQN(0),
+	INTC2_DT_INST_CONNECT_INLINE(0,
 		    DT_INST_IRQ(0, priority),
 		    adc_xec_single_isr, DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	adc_context_unlock_unconditionally(&data->ctx);
 

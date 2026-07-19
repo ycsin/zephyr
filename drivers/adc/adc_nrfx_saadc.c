@@ -7,6 +7,7 @@
 #include "adc_context.h"
 #include <nrfx_saadc.h>
 #include <zephyr/dt-bindings/adc/nrf-saadc.h>
+#include <zephyr/intc2.h>
 #include <zephyr/linker/devicetree_regions.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/irq.h>
@@ -699,7 +700,7 @@ static int init_saadc(const struct device *dev)
 		return -EIO;
 	}
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), nrfx_isr, nrfx_saadc_irq_handler, 0);
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), nrfx_isr, nrfx_saadc_irq_handler, 0);
 
 	adc_context_unlock_unconditionally(&m_data.ctx);
 

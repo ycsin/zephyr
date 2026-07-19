@@ -8,6 +8,7 @@
 
 #include <assert.h>
 #include <zephyr/drivers/adc.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/adc/adc_npcx_threshold.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -986,9 +987,9 @@ static int adc_npcx_init(const struct device *dev)
 										\
 	static void adc_npcx_irq_cfg_func_##n(void)				\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),		\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),		\
 			    adc_npcx_isr, DEVICE_DT_INST_GET(n), 0);		\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}									\
 										\
 	static DEVICE_API(adc, adc_npcx_driver_api_##n) = {			\

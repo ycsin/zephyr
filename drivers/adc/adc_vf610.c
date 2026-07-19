@@ -7,6 +7,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/adc.h>
+#include <zephyr/intc2.h>
 #include <adc_imx6sx.h>
 
 #include <zephyr/logging/log.h>
@@ -265,11 +266,11 @@ static DEVICE_API(adc, vf610_adc_driver_api) = {
 									\
 	static void vf610_adc_config_func_##n(const struct device *dev)	\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),	\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),	\
 			    vf610_adc_isr,				\
 			    DEVICE_DT_INST_GET(n), 0);			\
 									\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(VF610_ADC_INIT)

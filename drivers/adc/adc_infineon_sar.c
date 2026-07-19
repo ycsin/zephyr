@@ -8,6 +8,7 @@
 #define DT_DRV_COMPAT infineon_sar_adc
 
 #include <zephyr/drivers/adc.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/logging/log.h>
@@ -1115,9 +1116,9 @@ static int ifx_sar_init(const struct device *dev)
 #define IFX_SAR_INIT(n)                                                                            \
 	static void ifx_sar_config_func_##n(const struct device *dev)                              \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), ifx_sar_isr,                \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), ifx_sar_isr,                \
 				DEVICE_DT_INST_GET(n), 0);                                         \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
 	static struct ifx_sar_data ifx_sar_data_##n = {                                            \
 		ADC_CONTEXT_INIT_TIMER(ifx_sar_data_##n, ctx),                                     \

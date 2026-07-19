@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nuvoton_numaker_adc
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/reset.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/adc.h>
@@ -367,12 +368,12 @@ done:
 #define ADC_NUMAKER_IRQ_CONFIG_FUNC(n)                                                       \
 	static void adc_numaker_irq_config_func_##n(const struct device *dev)                \
 	{                                                                                    \
-		IRQ_CONNECT(DT_INST_IRQN(n),                                                 \
+		INTC2_DT_INST_CONNECT_INLINE(n,                                                 \
 			    DT_INST_IRQ(n, priority),                                        \
 			    adc_numaker_isr,                                                 \
 			    DEVICE_DT_INST_GET(n), 0);                                       \
 											     \
-		irq_enable(DT_INST_IRQN(n));                                                 \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                 \
 	}
 
 #define ADC_NUMAKER_INIT(inst)						                     \

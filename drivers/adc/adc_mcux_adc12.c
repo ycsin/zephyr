@@ -10,6 +10,7 @@
 #define DT_DRV_COMPAT nxp_adc12
 
 #include <zephyr/drivers/adc.h>
+#include <zephyr/intc2.h>
 #include <fsl_adc12.h>
 #include <zephyr/drivers/pinctrl.h>
 
@@ -313,11 +314,11 @@ static int mcux_adc12_init(const struct device *dev)
 									\
 	static void mcux_adc12_config_func_##n(const struct device *dev) \
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n),				\
+		INTC2_DT_INST_CONNECT_INLINE(n,				\
 			    DT_INST_IRQ(n, priority), mcux_adc12_isr,	\
 			    DEVICE_DT_INST_GET(n), 0);			\
 									\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(ACD12_MCUX_INIT)

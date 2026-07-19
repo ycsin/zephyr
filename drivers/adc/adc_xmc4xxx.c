@@ -12,6 +12,7 @@
 #include <xmc_scu.h>
 #include <xmc_vadc.h>
 #include <zephyr/drivers/adc.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/irq.h>
 
@@ -312,10 +313,10 @@ static DEVICE_API(adc, api_xmc4xxx_driver_api) = {
 #define ADC_XMC4XXX_CONFIG(index)						\
 static void adc_xmc4xxx_cfg_func_##index(void)					\
 {										\
-	IRQ_CONNECT(DT_INST_IRQN(index),					\
+	INTC2_DT_INST_CONNECT_INLINE(index,					\
 		    DT_INST_IRQ(index, priority),				\
 		    adc_xmc4xxx_isr, DEVICE_DT_INST_GET(index), 0);		\
-	irq_enable(DT_INST_IRQN(index));					\
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(index));					\
 }										\
 										\
 static const struct adc_xmc4xxx_cfg adc_xmc4xxx_cfg_##index = {			\

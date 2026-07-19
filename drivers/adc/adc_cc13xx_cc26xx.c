@@ -10,6 +10,7 @@
 
 #define LOG_LEVEL CONFIG_ADC_LOG_LEVEL
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(adc_cc13xx_cc26xx);
 
 #include <zephyr/device.h>
@@ -335,9 +336,9 @@ static DEVICE_API(adc, cc13xx_cc26xx_driver_api) = {
 										 \
 	static void adc_cc13xx_cc26xx_cfg_func_##index(void)			 \
 	{									 \
-		IRQ_CONNECT(DT_INST_IRQN(index), DT_INST_IRQ(index, priority),	 \
+		INTC2_DT_INST_CONNECT_INLINE(index, DT_INST_IRQ(index, priority),	 \
 				adc_cc13xx_cc26xx_isr, DEVICE_DT_INST_GET(index), 0); \
-		irq_enable(DT_INST_IRQN(index));				 \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(index));				 \
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(CC13XX_CC26XX_ADC_INIT)

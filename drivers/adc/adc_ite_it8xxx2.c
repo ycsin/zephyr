@@ -8,6 +8,7 @@
 
 #define LOG_LEVEL CONFIG_ADC_LOG_LEVEL
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(adc_ite_it8xxx2);
 
 #include <zephyr/drivers/adc.h>
@@ -159,7 +160,7 @@ static void adc_disable_measurement(uint32_t ch)
 	adc_regs->ADCCFG &= ~IT8XXX2_ADC_ADCEN;
 
 	/* disable adc interrupt */
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 
 static int adc_data_valid(const struct device *dev)
@@ -259,10 +260,10 @@ static void adc_enable_measurement(uint32_t ch)
 		adc_poll_valid_data();
 	} else {
 		/* Enable adc interrupt */
-		irq_enable(DT_INST_IRQN(0));
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 		/* Wait for an interrupt to read valid data. */
 		if (k_sem_take(&data->sem, IT8XXX2_ADC_READING_TIMEOUT)) {
-			irq_disable(DT_INST_IRQN(0));
+			intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 			adc_it8xxx2_get_sample(dev);
 		}
@@ -478,7 +479,7 @@ static int adc_it8xxx2_init(const struct device *dev)
 	 */
 	adc_regs->ADCGCR |= IT8XXX2_ADC_DBKEN;
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		    adc_it8xxx2_isr, DEVICE_DT_INST_GET(0), 0);
 
 	k_sem_init(&data->sem, 0, 1);

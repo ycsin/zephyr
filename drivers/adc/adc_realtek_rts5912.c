@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT realtek_rts5912_adc
 
 #include <zephyr/drivers/adc.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/clock_control_rts5912.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -263,9 +264,9 @@ static int adc_rts5912_init(const struct device *dev)
 	regs->ctrl = ADC_CTRL_RST;
 
 	NVIC_ClearPendingIRQ(DT_INST_IRQN(0));
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), adc_rts5912_single_isr,
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), adc_rts5912_single_isr,
 		    DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 
 	adc_context_unlock_unconditionally(&data->ctx);
 

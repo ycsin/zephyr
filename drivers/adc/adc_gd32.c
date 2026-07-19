@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include <zephyr/drivers/clock_control.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control/gd32.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/adc.h>
@@ -446,31 +447,31 @@ static void adc_gd32_global_irq_cfg(void)
 
 #if ADC0_ENABLE
 	/* Shared irq config default to adc0. */
-	IRQ_CONNECT(DT_IRQN(ADC0_NODE),
+	INTC2_DT_CONNECT_INLINE(ADC0_NODE,
 		DT_IRQ(ADC0_NODE, priority),
 		adc_gd32_global_irq_handler,
 		DEVICE_DT_GET(ADC0_NODE),
 		0);
-	irq_enable(DT_IRQN(ADC0_NODE));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(ADC0_NODE));
 #elif ADC1_ENABLE
-	IRQ_CONNECT(DT_IRQN(ADC1_NODE),
+	INTC2_DT_CONNECT_INLINE(ADC1_NODE,
 		DT_IRQ(ADC1_NODE, priority),
 		adc_gd32_global_irq_handler,
 		DEVICE_DT_GET(ADC1_NODE),
 		0);
-	irq_enable(DT_IRQN(ADC1_NODE));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(ADC1_NODE));
 #endif
 
 #if (ADC0_ENABLE || ADC1_ENABLE) && \
 	defined(CONFIG_SOC_SERIES_GD32F4XX)
 	/* gd32f4xx adc2 share the same irq number with adc0 and adc1. */
 #elif ADC2_ENABLE
-	IRQ_CONNECT(DT_IRQN(ADC2_NODE),
+	INTC2_DT_CONNECT_INLINE(ADC2_NODE,
 		DT_IRQ(ADC2_NODE, priority),
 		adc_gd32_global_irq_handler,
 		DEVICE_DT_GET(ADC2_NODE),
 		0);
-	irq_enable(DT_IRQN(ADC2_NODE));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(ADC2_NODE));
 #endif
 }
 

@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT ti_am335x_adc
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/adc.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -396,9 +397,9 @@ static void ti_adc_isr(const struct device *dev)
                                                                                                    \
 	static void ti_adc_irq_setup_##n(const struct device *dev)                                 \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), ti_adc_isr,                 \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), ti_adc_isr,                 \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
                                                                                                    \
 	PINCTRL_DT_INST_DEFINE(n);                                                                 \

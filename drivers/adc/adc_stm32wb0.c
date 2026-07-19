@@ -34,6 +34,7 @@
 #include <stdbool.h>
 
 #include <zephyr/drivers/adc.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/clock_control/stm32_clock_control.h>
 #include <zephyr/device.h>
@@ -1098,9 +1099,9 @@ int adc_stm32wb0_init(const struct device *dev)
 
 #if !defined(CONFIG_ADC_STM32_DMA)
 	/* Attach ISR and enable ADC interrupt in NVIC */
-	IRQ_CONNECT(DT_IRQN(ADC_NODE), DT_IRQ(ADC_NODE, priority),
+	INTC2_DT_CONNECT_INLINE(ADC_NODE, DT_IRQ(ADC_NODE, priority),
 		adc_stm32wb0_isr, DEVICE_DT_GET(ADC_NODE), 0);
-	irq_enable(DT_IRQN(ADC_NODE));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(ADC_NODE));
 
 	/* Enable ADC interrupt after each sampling.
 	 * NOTE: enabling EOS interrupt is not necessary because

@@ -6,6 +6,7 @@
 
 #include <errno.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/adc.h>
 #include <zephyr/irq.h>
@@ -543,9 +544,9 @@ static DEVICE_API(adc, nxp_sar_adc_api) = {
 #define NXP_SAR_ADC_IRQ_CONFIG(inst)								\
 	static void nxp_sar_adc_irq_config_##inst(const struct device *dev)			\
 	{											\
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority),			\
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority),			\
 			nxp_sar_adc_isr, DEVICE_DT_INST_GET(inst), 0);				\
-		irq_enable(DT_INST_IRQN(inst));							\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));							\
 	}
 
 #define NXP_SAR_ADC_IRQ_FUNC(inst) .irq_config_func = nxp_sar_adc_irq_config_##inst,

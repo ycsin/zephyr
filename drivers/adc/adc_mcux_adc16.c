@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/adc.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #ifdef CONFIG_ADC_MCUX_ADC16_ENABLE_EDMA
 #include <zephyr/drivers/dma.h>
@@ -543,11 +544,11 @@ static DEVICE_API(adc, mcux_adc16_driver_api) = {
 #define ADC16_MCUX_IRQ_DECLARE(n)					\
 	static void mcux_adc16_config_func_##n(const struct device *dev) \
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),	\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),	\
 			    mcux_adc16_isr,				\
 			    DEVICE_DT_INST_GET(n), 0);			\
 									\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}
 #endif /* CONFIG_ADC_MCUX_ADC16_ENABLE_EDMA */
 

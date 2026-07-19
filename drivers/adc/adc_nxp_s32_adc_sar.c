@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/adc.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/irq.h>
@@ -353,10 +354,10 @@ static void adc_nxp_s32_isr(const struct device *dev)
 #define ADC_NXP_S32_IRQ_CONFIG(n)						\
 	static void adc_nxp_s32_adc_sar_config_func_##n(const struct device *dev)\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(n),					\
+		INTC2_DT_INST_CONNECT_INLINE(n,					\
 			DT_INST_IRQ(n, priority),				\
 			adc_nxp_s32_isr, DEVICE_DT_INST_GET(n), 0);		\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	};
 
 #define ADC_NXP_S32_CALLBACK_DEFINE(n)						\

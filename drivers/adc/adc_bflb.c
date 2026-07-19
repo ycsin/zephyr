@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT bflb_adc
 
 #include <zephyr/irq.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/adc.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/otp.h>
@@ -813,11 +814,11 @@ static DEVICE_API(adc, adc_bflb_api) = {
 	PINCTRL_DT_INST_DEFINE(n);					\
 	static void adc_bflb_irq_config_##n(const struct device *dev)	\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n),				\
+		INTC2_DT_INST_CONNECT_INLINE(n,				\
 			    DT_INST_IRQ(n, priority),			\
 			    adc_bflb_isr,				\
 			    DEVICE_DT_INST_GET(n), 0);			\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}								\
 	static const struct adc_bflb_config adc_bflb_config_##n = {	\
 		.reg_GPIP = DT_INST_REG_ADDR_BY_IDX(n, 0),		\

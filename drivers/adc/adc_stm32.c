@@ -14,6 +14,7 @@
 #include <errno.h>
 
 #include <zephyr/drivers/adc.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
@@ -2370,9 +2371,9 @@ static DEVICE_API(adc, api_stm32_driver_api) = {
                                                                                                    \
 	static void UTIL_CAT(ISR_FUNC(index), _init)(void)                                         \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(index), DT_INST_IRQ(index, priority), ISR_FUNC(index),    \
+		INTC2_DT_INST_CONNECT_INLINE(index, DT_INST_IRQ(index, priority), ISR_FUNC(index),    \
 			    NULL, 0);                                                              \
-		irq_enable(DT_INST_IRQN(index));                                                   \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(index));                                                   \
 	}
 
 /*

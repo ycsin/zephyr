@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT sifli_sf32lb_gpadc
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/adc.h>
 #include <zephyr/drivers/clock_control/sf32lb.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -330,9 +331,9 @@ static int adc_sf32lb_init(const struct device *dev)
 			      &adc_sf32lb_driver_api);                                             \
 	static void adc_sf32lb_irq_config_func_##n(void)                                           \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), adc_sf32lb_isr,             \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), adc_sf32lb_isr,             \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(ADC_SF32LB_DEFINE)

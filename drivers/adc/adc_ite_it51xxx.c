@@ -11,6 +11,7 @@
 #include <soc_dt.h>
 #include <soc.h>
 #include <zephyr/drivers/adc.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/irq.h>
 
@@ -154,7 +155,7 @@ static void adc_disable_measurement(const struct device *dev)
 	sys_write8(sys_read8(config->base + ADCCTL) & ~IT51XXX_ADC_ADCEN, config->base + ADCCTL);
 
 	/* disable adc interrupt */
-	irq_disable(DT_INST_IRQN(0));
+	intc2_disable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 
 static int adc_data_valid(const struct device *dev)
@@ -238,7 +239,7 @@ static void adc_enable_measurement(uint32_t ch)
 		adc_poll_valid_data();
 	} else {
 		/* Enable adc interrupt */
-		irq_enable(DT_INST_IRQN(0));
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 		/* Wait for an interrupt to read valid data. */
 		k_sem_take(&data->sem, K_FOREVER);
 	}
@@ -449,7 +450,7 @@ static int adc_it51xxx_init(const struct device *dev)
 	 */
 	sys_write8(sys_read8(config->base + ADCCTL2) | IT51XXX_ADC_DBKEN, config->base + ADCCTL2);
 
-	IRQ_CONNECT(DT_INST_IRQN(0), 0, adc_it51xxx_isr, DEVICE_DT_INST_GET(0), 0);
+	INTC2_DT_INST_CONNECT_INLINE(0, 0, adc_it51xxx_isr, DEVICE_DT_INST_GET(0), 0);
 
 	k_sem_init(&data->sem, 0, 1);
 	adc_context_unlock_unconditionally(&data->ctx);

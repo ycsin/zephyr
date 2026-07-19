@@ -11,6 +11,7 @@
 #include <da1469x_pd.h>
 #include "adc_context.h"
 #include <zephyr/dt-bindings/adc/smartbond-adc.h>
+#include <zephyr/intc2.h>
 
 #define LOG_LEVEL CONFIG_ADC_LOG_LEVEL
 #include <zephyr/logging/log.h>
@@ -378,7 +379,7 @@ static int adc_smartbond_init(const struct device *dev)
 
 #endif
 
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		    adc_smartbond_isr, DEVICE_DT_INST_GET(0), 0);
 
 	NVIC_ClearPendingIRQ(DT_INST_IRQN(0));

@@ -8,6 +8,7 @@
 
 #include <soc.h>
 #include <zephyr/drivers/adc.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/clock_control/atmel_sam_pmc.h>
 
@@ -378,11 +379,11 @@ static DEVICE_API(adc, adc_sam_api) = {
 	PINCTRL_DT_INST_DEFINE(n);					\
 	static void adc_sam_irq_config_##n(const struct device *dev)	\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n),				\
+		INTC2_DT_INST_CONNECT_INLINE(n,				\
 			    DT_INST_IRQ(n, priority),			\
 			    adc_sam_isr,				\
 			    DEVICE_DT_INST_GET(n), 0);			\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}								\
 	static const struct adc_sam_config adc_sam_config_##n = {	\
 		.regs = (Adc *)DT_INST_REG_ADDR(n),			\

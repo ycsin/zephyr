@@ -8,6 +8,7 @@
 
 #include <errno.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/adc.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -594,11 +595,11 @@ static DEVICE_API(adc, adc_max32_driver_api) = {
 	static void max32_adc_irq_init_##_num(void)                                                \
 	{                                                                                          \
 		COND_CODE_1(CONFIG_ADC_MAX32_STREAM,                                               \
-		(IRQ_CONNECT(DT_INST_IRQN(_num), DT_INST_IRQ(_num, priority), adc_max32_rtio_isr,  \
+		(INTC2_DT_INST_CONNECT_INLINE(_num, DT_INST_IRQ(_num, priority), adc_max32_rtio_isr,  \
 		DEVICE_DT_INST_GET(_num), 0)),                                                     \
-		(IRQ_CONNECT(DT_INST_IRQN(_num), DT_INST_IRQ(_num, priority), adc_max32_isr,       \
+		(INTC2_DT_INST_CONNECT_INLINE(_num, DT_INST_IRQ(_num, priority), adc_max32_isr,       \
 		DEVICE_DT_INST_GET(_num), 0)));                                                    \
-		irq_enable(DT_INST_IRQN(_num));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(_num));                                                    \
 	};                                                                                         \
 	static const struct max32_adc_config max32_adc_config_##_num = {                           \
 		.channel_count = DT_INST_PROP(_num, channel_count),                                \
