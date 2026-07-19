@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <string.h>
 #include <zephyr/sys/__assert.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/init.h>
@@ -1333,7 +1334,7 @@ static DEVICE_API(i2s, i2s_mcux_driver_api) = {
 		IRQ_CONNECT(DT_INST_IRQ_BY_IDX(i2s_id, 0, irq),                                    \
 			    DT_INST_IRQ_BY_IDX(i2s_id, 0, priority), i2s_mcux_isr,                 \
 			    DEVICE_DT_INST_GET(i2s_id), 0);                                        \
-		irq_enable(DT_INST_IRQN(i2s_id));                                                  \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(i2s_id));                                                  \
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(I2S_MCUX_INIT)

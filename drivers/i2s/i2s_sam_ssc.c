@@ -22,6 +22,7 @@
 #include <errno.h>
 #include <string.h>
 #include <zephyr/sys/__assert.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/ringq.h>
 #include <zephyr/device.h>
@@ -987,7 +988,7 @@ static const struct device *get_dev_from_dma_channel(uint32_t dma_channel)
 
 static void i2s0_sam_irq_config(void)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), i2s_sam_isr,
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), i2s_sam_isr,
 		    DEVICE_DT_INST_GET(0), 0);
 }
 

@@ -8,6 +8,7 @@
 
 #include <string.h>
 #include <zephyr/drivers/dma.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/i2s.h>
 #include <zephyr/drivers/clock_control.h>
 #include <fsl_i2s.h>
@@ -1018,9 +1019,9 @@ static int i2s_mcux_init(const struct device *dev)
 			      &i2s_mcux_driver_api);                                               \
 	static void i2s_mcux_config_func_##id(const struct device *dev)                            \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(id), DT_INST_IRQ(id, priority), i2s_mcux_isr,             \
+		INTC2_DT_INST_CONNECT_INLINE(id, DT_INST_IRQ(id, priority), i2s_mcux_isr,             \
 			    DEVICE_DT_INST_GET(id), 0);                                            \
-		irq_enable(DT_INST_IRQN(id));                                                      \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(id));                                                      \
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(I2S_MCUX_FLEXCOMM_DEVICE)

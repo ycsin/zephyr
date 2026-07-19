@@ -8,6 +8,7 @@
 
 #include <string.h>
 #include <zephyr/drivers/dma.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/i2s.h>
 #include <zephyr/drivers/dma/dma_stm32.h>
 #include <soc.h>
@@ -1021,10 +1022,10 @@ static const struct device *get_dev_from_tx_dma_channel(uint32_t dma_channel)
 										\
 	static void i2s_stm32_irq_config_func_##index(const struct device *dev)	\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(index),				\
+		INTC2_DT_INST_CONNECT_INLINE(index,				\
 			    DT_INST_IRQ(index, priority),			\
 			    i2s_stm32_isr, DEVICE_DT_INST_GET(index), 0);	\
-		irq_enable(DT_INST_IRQN(index));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(index));				\
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(I2S_STM32_INIT)

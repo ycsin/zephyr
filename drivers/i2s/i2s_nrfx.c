@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <zephyr/drivers/i2s.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control/nrf_clock_control.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <soc.h>
@@ -848,7 +849,7 @@ static DEVICE_API(i2s, i2s_nrf_drv_api) = {
 	};                                                                                         \
 	static int i2s_nrfx_init##inst(const struct device *dev)                                   \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), nrfx_i2s_irq_handler, \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), nrfx_i2s_irq_handler, \
 			    &i2s_nrfx_data##inst.i2s, 0);                                          \
 		const struct i2s_nrfx_drv_cfg *drv_cfg = dev->config;                              \
 		int err = pinctrl_apply_state(drv_cfg->pcfg, PINCTRL_STATE_DEFAULT);               \

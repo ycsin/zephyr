@@ -10,6 +10,7 @@
 #include <hal/nrf_tdm.h>
 #include <haly/nrfy_gpio.h>
 #include <zephyr/drivers/clock_control/nrf_clock_control.h>
+#include <zephyr/intc2.h>
 #include <zephyr/dt-bindings/clock/nrf-auxpll.h>
 #include <zephyr/drivers/i2s.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -1212,7 +1213,7 @@ static DEVICE_API(i2s, tdm_nrf_drv_api) = {
 	static struct tdm_drv_data tdm_nrf_data##idx;                                              \
 	static int tdm_nrf_init##idx(const struct device *dev)                                     \
 	{                                                                                          \
-		IRQ_CONNECT(DT_IRQN(TDM(idx)), DT_IRQ(TDM(idx), priority),                         \
+		INTC2_DT_CONNECT_INLINE(TDM(idx), DT_IRQ(TDM(idx), priority),                         \
 			    tdm_##idx##_irq_handler, DEVICE_DT_GET(TDM(idx)), 0);                  \
                                                                                                    \
 		int err = data_init(dev);                                                          \

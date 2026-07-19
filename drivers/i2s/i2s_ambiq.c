@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/drivers/pinctrl.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
 #include <soc.h>
@@ -578,9 +579,9 @@ static DEVICE_API(i2s, i2s_ambiq_driver_api) = {
 	PINCTRL_DT_INST_DEFINE(n);                                                                 \
 	static void i2s_irq_config_func_##n(void)                                                  \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), i2s_ambiq_isr,              \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), i2s_ambiq_isr,              \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}                                                                                          \
 	static uint32_t i2s_dma_tcb_buf##n[DT_INST_PROP_OR(n, i2s_buffer_size, 1536) * 2]          \
 		__attribute__((section(DT_INST_PROP_OR(n, i2s_buffer_location, ".data"))))         \

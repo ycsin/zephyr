@@ -6,6 +6,7 @@
 
 #include <string.h>
 #include <zephyr/drivers/i2s.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/byteorder.h>
 #include <soc.h>
@@ -603,12 +604,12 @@ static DEVICE_API(i2s, i2s_litex_driver_api) = {
 									       \
 	static void i2s_litex_irq_config_func_##dir(const struct device *dev)  \
 	{                                                                      \
-		IRQ_CONNECT(DT_IRQN(DT_NODELABEL(i2s_##dir)),                  \
+		INTC2_DT_CONNECT_INLINE(DT_NODELABEL(i2s_##dir),                  \
 					DT_IRQ(DT_NODELABEL(i2s_##dir),	       \
 						priority),		       \
 					i2s_litex_isr_##dir,		       \
 					DEVICE_DT_GET(DT_NODELABEL(i2s_##dir)), 0);\
-		irq_enable(DT_IRQN(DT_NODELABEL(i2s_##dir)));                  \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(DT_NODELABEL(i2s_##dir)));                  \
 	}
 
 #if DT_NODE_HAS_STATUS_OKAY(DT_NODELABEL(i2s_rx))
