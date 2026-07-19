@@ -17,6 +17,7 @@
 #endif
 
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 
 #include <zephyr/random/random.h>
@@ -379,7 +380,7 @@ static int b91_init(const struct device *dev)
 	rf_set_rxmode();
 
 	/* init IRQs */
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority), b91_rf_isr, 0, 0);
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority), b91_rf_isr, 0, 0);
 	riscv_plic_irq_enable(DT_INST_IRQN(0));
 	riscv_plic_set_priority(DT_INST_IRQN(0), DT_INST_IRQ(0, priority));
 	rf_set_irq_mask(FLD_RF_IRQ_RX | FLD_RF_IRQ_TX);
