@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/drivers/video.h>
@@ -464,9 +465,9 @@ static DEVICE_API(video, video_stm32_dcmi_driver_api) = {
 
 static void video_stm32_dcmi_irq_config_func(const struct device *dev)
 {
-	IRQ_CONNECT(DT_INST_IRQN(0), DT_INST_IRQ(0, priority),
+	INTC2_DT_INST_CONNECT_INLINE(0, DT_INST_IRQ(0, priority),
 		stm32_dcmi_isr, DEVICE_DT_INST_GET(0), 0);
-	irq_enable(DT_INST_IRQN(0));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(0));
 }
 
 #define DCMI_DMA_CHANNEL_INIT(index, src_dev, dest_dev)					\
