@@ -102,6 +102,9 @@ tests:
       - qemu_cortex_m3
       - qemu_riscv32
       - qemu_riscv64
+      - qemu_leon3
+      - qemu_malta
+      - qemu_or1k
     integration_platforms:
       - qemu_cortex_m3
     extra_configs:
@@ -111,6 +114,8 @@ tests:
       - qemu_cortex_m3
       - qemu_riscv32
       - qemu_riscv64
+      - qemu_leon3
+      - qemu_or1k
     integration_platforms:
       - qemu_cortex_m3
     extra_configs:
