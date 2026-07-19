@@ -107,6 +107,7 @@ tests:
       - qemu_malta
       - qemu_or1k
       - qemu_rx
+      - qemu_arc/qemu_arc_em
     integration_platforms:
       - qemu_cortex_m3
     extra_configs:
@@ -120,6 +121,7 @@ tests:
       - qemu_leon3
       - qemu_or1k
       - qemu_rx
+      - qemu_arc/qemu_arc_em
     integration_platforms:
       - qemu_cortex_m3
     extra_configs:

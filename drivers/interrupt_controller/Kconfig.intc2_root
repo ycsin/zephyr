@@ -38,8 +38,8 @@ config INTC2_ROOT_OR1K_PIC
 	select INTC2_ROOT_GENERIC
 
 config INTC2_ROOT_ARCV2
-	# opt-in pending bridge validation: test_nested_isr fails (suspected FIRQ path interplay)
 	bool "intc2 root node for the ARCv2 interrupt unit"
+	default y
 	depends on INTC2 && ARC && DT_HAS_SNPS_ARCV2_INTC_ENABLED
 	depends on !ISR_TABLES_LOCAL_DECLARATION
 	select INTC2_ROOT_GENERIC
