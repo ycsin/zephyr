@@ -1,0 +1,22 @@
+common:
+  tags:
+    - kernel
+    - interrupt
+  platform_allow:
+    - native_sim
+    - qemu_cortex_m3
+    - qemu_riscv32
+  integration_platforms:
+    - native_sim
+tests:
+  kernel.intc2.base: {}
+  kernel.intc2.shared:
+    extra_configs:
+      - CONFIG_INTC2_SHARED=y
+  kernel.intc2.dynamic:
+    extra_configs:
+      - CONFIG_INTC2_DYNAMIC=y
+  kernel.intc2.dynamic_shared:
+    extra_configs:
+      - CONFIG_INTC2_SHARED=y
+      - CONFIG_INTC2_DYNAMIC=y

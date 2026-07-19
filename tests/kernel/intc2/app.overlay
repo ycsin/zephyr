@@ -1,0 +1,38 @@
+/*
+ * Copyright (c) 2026 Yong Cong Sin <yongcong.sin@gmail.com>
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	intc2_root: intc2-root {
+		compatible = "vnd,intc2-emul";
+		interrupt-controller;
+		#interrupt-cells = <1>;
+	};
+
+	intc2_l2: intc2-l2 {
+		compatible = "vnd,intc2-emul-l2";
+		interrupt-controller;
+		#interrupt-cells = <2>;
+		interrupts-extended = <&intc2_root 3>;
+	};
+
+	test_dev_a: test-dev-a {
+		compatible = "vnd,intc2-emul-dev";
+		interrupts-extended = <&intc2_root 1>;
+	};
+
+	test_dev_b: test-dev-b {
+		compatible = "vnd,intc2-emul-dev";
+		interrupts-extended = <&intc2_l2 2 5>;
+	};
+
+	/* Shares intc2_l2 line 2 with test_dev_b; only connected when
+	 * CONFIG_INTC2_SHARED is enabled.
+	 */
+	test_dev_c: test-dev-c {
+		compatible = "vnd,intc2-emul-dev";
+		interrupts-extended = <&intc2_l2 2 6>;
+	};
+};
