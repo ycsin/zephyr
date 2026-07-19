@@ -8,6 +8,7 @@
 #define DT_DRV_COMPAT nxp_lpcmp
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/kernel.h>
@@ -423,9 +424,9 @@ static DEVICE_API(sensor, mcux_lpcmp_driver_api) = {
 #define MCUX_LPCMP_CONFIG_FUNC(n)                                                                  \
 	static void mcux_lpcmp_config_func_##n(const struct device *dev)                           \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority), mcux_lpcmp_isr,             \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority), mcux_lpcmp_isr,             \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQN(n));                                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                       \
 	}
 #define MCUX_LPCMP_CONFIG_FUNC_INIT(n) .irq_config_func = mcux_lpcmp_config_func_##n
 #define MCUX_LPCMP_INIT_CONFIG(n)      MCUX_LPCMP_DECLARE_CONFIG(n, MCUX_LPCMP_CONFIG_FUNC_INIT(n))

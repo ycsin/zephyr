@@ -8,6 +8,7 @@
 #define DT_DRV_COMPAT nxp_kinetis_acmp
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/sensor/mcux_acmp.h>
 #include <zephyr/logging/log.h>
@@ -552,11 +553,11 @@ static const struct mcux_acmp_config mcux_acmp_config_##n = {		\
 #define MCUX_ACMP_CONFIG_FUNC(n)					\
 	static void mcux_acmp_config_func_##n(const struct device *dev) \
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n),				\
+		INTC2_DT_INST_CONNECT_INLINE(n,				\
 			    DT_INST_IRQ(n, priority),			\
 			    mcux_acmp_isr,				\
 			    DEVICE_DT_INST_GET(n), 0);			\
-		irq_enable(DT_INST_IRQN(n));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));				\
 	}
 #define MCUX_ACMP_CONFIG_FUNC_INIT(n)					\
 	.irq_config_func = mcux_acmp_config_func_##n

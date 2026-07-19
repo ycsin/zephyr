@@ -8,6 +8,7 @@
 
 #include <stm32_bitops.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/pm/device.h>
 #include <zephyr/drivers/clock_control/stm32_clock_control.h>
 #include <zephyr/drivers/sensor.h>
@@ -261,10 +262,10 @@ static DEVICE_API(sensor, stm32_digi_temp_driver_api) = {
 #define STM32_DIGI_TEMP_INIT(index)								\
 	static void stm32_digi_temp_irq_config_func_##index(const struct device *dev)		\
 	{											\
-		IRQ_CONNECT(DT_INST_IRQN(index),						\
+		INTC2_DT_INST_CONNECT_INLINE(index,						\
 			    DT_INST_IRQ(index, priority),					\
 			    stm32_digi_temp_isr, DEVICE_DT_INST_GET(index), 0);			\
-		irq_enable(DT_INST_IRQN(index));						\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(index));						\
 	}											\
 												\
 	static struct stm32_digi_temp_data stm32_digi_temp_dev_data_##index;			\

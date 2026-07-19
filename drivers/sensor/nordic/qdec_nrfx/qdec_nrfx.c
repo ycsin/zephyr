@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/drivers/sensor.h>
+#include <zephyr/intc2.h>
 #include <zephyr/pm/device.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/dt-bindings/sensor/qdec_nrf.h>
@@ -301,7 +302,7 @@ static int qdec_nrfx_init(const struct device *dev)
 	};										    \
 	static void irq_connect##inst(void)						    \
 	{										    \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority),		    \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority),		    \
 			nrfx_qdec_irq_handler, &qdec_##inst##_data.qdec, 0);		    \
 	}										    \
 	PINCTRL_DT_DEFINE(DT_DRV_INST(inst));						    \

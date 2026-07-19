@@ -5,6 +5,7 @@
  */
 
 #include <zephyr/drivers/sensor.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/bee_clock_control.h>
@@ -281,9 +282,9 @@ static DEVICE_API(sensor, qdec_bee_driver_api) = {
 #define QDEC_BEE_IRQ_CONNECT_FUNC(inst)                                                            \
 	static void qdec_bee_irq_connect_##inst(void)                                              \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), qdec_bee_isr,         \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), qdec_bee_isr,         \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 	}
 #endif
 
