@@ -35,3 +35,7 @@ tests:
   kernel.intc2.affinity:
     extra_configs:
       - CONFIG_INTC2_AFFINITY=y
+  kernel.intc2.alloc:
+    extra_configs:
+      - CONFIG_INTC2_ALLOC=y
+      - CONFIG_INTC2_MSI=y

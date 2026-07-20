@@ -194,6 +194,16 @@ struct intc2_node;
 /** @} */
 
 /**
+ * @brief Node flag: lines are allocated at runtime (design delta D1).
+ *
+ * Set by controllers whose line space has no devicetree representation
+ * to allocate from -- a CPU's dynamic vector pool, an MSI doorbell --
+ * and that provide the optional alloc (and/or msi_alloc) op. The
+ * node's table, if any, lives in RAM by definition.
+ */
+#define INTC2_NODE_ALLOC BIT(3)
+
+/**
  * @name Line attributes, reported by the optional line_flags op
  * @{
  */
@@ -235,6 +245,20 @@ struct intc2_entry {
 	void (*isr)(const void *arg);
 };
 
+/**
+ * @brief Message-signaled interrupt target (design delta D2).
+ *
+ * The (address, data) pair a PCIe or other MSI-capable endpoint must
+ * be programmed with to raise the line an msi_alloc() call reserved.
+ * These lines never appear in a devicetree interrupts property.
+ */
+struct intc2_msi {
+	/** Address the endpoint posts a write to in order to interrupt */
+	uint64_t address;
+	/** Data value the endpoint's write must carry */
+	uint32_t data;
+};
+
 #ifdef CONFIG_INTC2_DYNAMIC
 #define Z_INTC2_TABLE_CONST
 #else
@@ -272,6 +296,17 @@ __subsystem struct intc2_driver_api {
 	/** Optional: report the CPU routing mask of @a line */
 	int (*get_affinity)(const struct intc2_node *node, uint32_t line,
 			    uint32_t *cpumask);
+#endif
+#ifdef CONFIG_INTC2_ALLOC
+	/** Optional: allocate a new line and connect @a isr to it */
+	int (*alloc)(const struct intc2_node *node, uint32_t prio, uint32_t flags,
+		    void (*isr)(const void *arg), const void *arg, struct intc2_spec *spec);
+#endif
+#ifdef CONFIG_INTC2_MSI
+	/** Optional: allocate an MSI line, yielding its message target */
+	int (*msi_alloc)(const struct intc2_node *node, uint32_t prio, uint32_t flags,
+			 void (*isr)(const void *arg), const void *arg,
+			 struct intc2_spec *spec, struct intc2_msi *msg);
 #endif
 	/** Claim the highest-precedence pending line, or a negative value */
 	int32_t (*get_pending)(const struct intc2_node *node);
@@ -736,6 +771,81 @@ static inline uint32_t intc2_line_flags(struct intc2_spec spec)
 	}
 
 	return api->line_flags(spec.node, spec.line);
+}
+
+/**
+ * @brief Allocate a new dynamic line on @a node and connect @a isr to it.
+ *
+ * For controllers whose line space has no devicetree representation to
+ * allocate from -- a CPU's per-priority vector pool, an interrupt-mux
+ * fabric -- rather than the fixed, statically-connected topology every
+ * other intc2 node models (design delta D1). @a node must have the
+ * INTC2_NODE_ALLOC flag and an alloc op; the returned spec's line is
+ * meaningful only to that node.
+ *
+ * @retval 0 on success, with @a spec filled in
+ * @retval -ENOSYS when CONFIG_INTC2_ALLOC is disabled
+ * @retval -ENOTSUP when @a node is not an allocator node
+ * @retval -ENOMEM when the node's line pool is exhausted
+ */
+static inline int intc2_line_alloc(const struct intc2_node *node, uint32_t prio, uint32_t flags,
+				   void (*isr)(const void *arg), const void *arg,
+				   struct intc2_spec *spec)
+{
+#ifdef CONFIG_INTC2_ALLOC
+	if (((node->flags & INTC2_NODE_ALLOC) == 0) || (node->api->alloc == NULL)) {
+		return -ENOTSUP;
+	}
+
+	return node->api->alloc(node, prio, flags, isr, arg, spec);
+#else
+	ARG_UNUSED(node);
+	ARG_UNUSED(prio);
+	ARG_UNUSED(flags);
+	ARG_UNUSED(isr);
+	ARG_UNUSED(arg);
+	ARG_UNUSED(spec);
+
+	return -ENOSYS;
+#endif
+}
+
+/**
+ * @brief Allocate a message-signaled interrupt line on @a node and
+ * connect @a isr to it.
+ *
+ * For MSI/MSI-X-capable controllers (PCIe endpoints, GICv3 ITS, the
+ * RISC-V IMSIC) whose lines are raised by a posted write rather than a
+ * physical wire (design delta D2) -- an allocator node whose msi_alloc
+ * op additionally yields the message target. @a node must have the
+ * INTC2_NODE_ALLOC flag and an msi_alloc op.
+ *
+ * @retval 0 on success, with @a spec and @a msg filled in
+ * @retval -ENOSYS when CONFIG_INTC2_MSI is disabled
+ * @retval -ENOTSUP when @a node has no msi_alloc op
+ * @retval -ENOMEM when the node's line pool is exhausted
+ */
+static inline int intc2_msi_alloc(const struct intc2_node *node, uint32_t prio, uint32_t flags,
+				  void (*isr)(const void *arg), const void *arg,
+				  struct intc2_spec *spec, struct intc2_msi *msg)
+{
+#ifdef CONFIG_INTC2_MSI
+	if (((node->flags & INTC2_NODE_ALLOC) == 0) || (node->api->msi_alloc == NULL)) {
+		return -ENOTSUP;
+	}
+
+	return node->api->msi_alloc(node, prio, flags, isr, arg, spec, msg);
+#else
+	ARG_UNUSED(node);
+	ARG_UNUSED(prio);
+	ARG_UNUSED(flags);
+	ARG_UNUSED(isr);
+	ARG_UNUSED(arg);
+	ARG_UNUSED(spec);
+	ARG_UNUSED(msg);
+
+	return -ENOSYS;
+#endif
 }
 
 /** @cond INTERNAL_HIDDEN */

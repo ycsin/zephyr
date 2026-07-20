@@ -5,6 +5,9 @@
  */
 
 #include "emul_intc.h"
+#ifdef CONFIG_INTC2_ALLOC
+#include "emul_alloc_intc.h"
+#endif
 
 #include <zephyr/intc2.h>
 #include <zephyr/irq_offload.h>
@@ -423,3 +426,142 @@ ZTEST(intc2_affinity, test_affinity_fixed_routing)
 	zassert_equal(intc2_get_affinity(spec, &mask), -ENOTSUP);
 #endif
 }
+
+#ifdef CONFIG_INTC2_ALLOC
+
+#define ALLOC_NODE (&emul_alloc_intc_node)
+
+static volatile uint32_t alloc_a_count, alloc_b_count;
+static volatile const void *alloc_a_arg;
+
+static void alloc_a_isr(const void *arg)
+{
+	alloc_a_count++;
+	alloc_a_arg = arg;
+}
+
+static void alloc_b_isr(const void *arg)
+{
+	ARG_UNUSED(arg);
+
+	alloc_b_count++;
+}
+
+static void intc2_alloc_test_before(void *fixture)
+{
+	ARG_UNUSED(fixture);
+
+	alloc_a_count = 0;
+	alloc_b_count = 0;
+	emul_alloc_intc_reset();
+}
+
+ZTEST_SUITE(intc2_alloc, NULL, NULL, intc2_alloc_test_before, NULL, NULL);
+
+ZTEST(intc2_alloc, test_alloc_connect_dispatch)
+{
+	struct intc2_spec spec;
+	static const uint32_t token = 0x5a;
+
+	zassert_equal(ALLOC_NODE->flags & INTC2_NODE_ALLOC, INTC2_NODE_ALLOC);
+
+	zassert_ok(intc2_line_alloc(ALLOC_NODE, 1, 0, alloc_a_isr, &token, &spec));
+	zassert_equal(spec.node, ALLOC_NODE);
+
+	zassert_equal(intc2_is_enabled(spec), 0);
+	intc2_enable(spec);
+	zassert_true(intc2_is_enabled(spec) != 0);
+
+	emul_alloc_intc_fire(spec.line);
+	zassert_equal(alloc_a_count, 1);
+	zassert_equal_ptr((const void *)alloc_a_arg, &token);
+
+	intc2_disable(spec);
+	zassert_equal(intc2_is_enabled(spec), 0);
+
+	/* disabled lines don't dispatch */
+	emul_alloc_intc_fire(spec.line);
+	zassert_equal(alloc_a_count, 1);
+}
+
+ZTEST(intc2_alloc, test_alloc_distinct_lines)
+{
+	struct intc2_spec spec_a, spec_b;
+
+	zassert_ok(intc2_line_alloc(ALLOC_NODE, 1, 0, alloc_a_isr, NULL, &spec_a));
+	zassert_ok(intc2_line_alloc(ALLOC_NODE, 1, 0, alloc_b_isr, NULL, &spec_b));
+	zassert_not_equal(spec_a.line, spec_b.line);
+
+	intc2_enable(spec_a);
+	intc2_enable(spec_b);
+
+	emul_alloc_intc_fire(spec_a.line);
+	zassert_equal(alloc_a_count, 1);
+	zassert_equal(alloc_b_count, 0);
+
+	emul_alloc_intc_fire(spec_b.line);
+	zassert_equal(alloc_a_count, 1);
+	zassert_equal(alloc_b_count, 1);
+
+	intc2_disable(spec_a);
+	intc2_disable(spec_b);
+}
+
+ZTEST(intc2_alloc, test_alloc_exhaustion)
+{
+	struct intc2_spec spec;
+	int allocated = 0;
+	int ret;
+
+	do {
+		ret = intc2_line_alloc(ALLOC_NODE, 1, 0, alloc_a_isr, NULL, &spec);
+		if (ret == 0) {
+			allocated++;
+		}
+	} while ((ret == 0) && (allocated <= EMUL_ALLOC_INTC_NLINES));
+
+	zassert_equal(ret, -ENOMEM, "allocator did not report exhaustion");
+	zassert_equal(allocated, EMUL_ALLOC_INTC_NLINES);
+}
+
+ZTEST(intc2_alloc, test_alloc_not_supported_on_non_alloc_node)
+{
+	struct intc2_spec spec;
+
+	/* the L2 node has no INTC2_NODE_ALLOC flag and no alloc op */
+	zassert_equal(L2->flags & INTC2_NODE_ALLOC, 0);
+	zassert_equal(intc2_line_alloc(L2, 1, 0, alloc_a_isr, NULL, &spec), -ENOTSUP);
+}
+
+ZTEST(intc2_alloc, test_msi_alloc)
+{
+#ifndef CONFIG_INTC2_MSI
+	ztest_test_skip();
+#else
+	struct intc2_spec spec;
+	struct intc2_msi msg = {0};
+
+	zassert_ok(intc2_msi_alloc(ALLOC_NODE, 1, 0, alloc_a_isr, NULL, &spec, &msg));
+	zassert_not_equal(msg.address, 0);
+
+	intc2_enable(spec);
+	emul_alloc_intc_fire(spec.line);
+	zassert_equal(alloc_a_count, 1);
+	intc2_disable(spec);
+#endif
+}
+
+ZTEST(intc2_alloc, test_msi_alloc_not_supported_on_plain_alloc_node)
+{
+#ifdef CONFIG_INTC2_MSI
+	ztest_test_skip();
+#else
+	struct intc2_spec spec;
+	struct intc2_msi msg;
+
+	/* CONFIG_INTC2_MSI is disabled: the call must report -ENOSYS */
+	zassert_equal(intc2_msi_alloc(ALLOC_NODE, 1, 0, alloc_a_isr, NULL, &spec, &msg), -ENOSYS);
+#endif
+}
+
+#endif /* CONFIG_INTC2_ALLOC */

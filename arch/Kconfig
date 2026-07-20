@@ -784,6 +784,29 @@ config INTC2_AFFINITY_DEFAULT_MASK
 	  CPU mask that controllers with routable lines apply to every
 	  line at init, before any intc2_set_affinity() call is made.
 
+config INTC2_ALLOC
+	bool "intc2 runtime line allocation"
+	depends on INTC2
+	help
+	  Enable the optional alloc controller op and the
+	  intc2_line_alloc() call, for controller nodes whose line space
+	  is allocated at runtime rather than fixed by devicetree (design
+	  delta D1): a CPU's dynamic vector pool, an interrupt-mux
+	  fabric. The op and all allocator state are compiled out when
+	  this option is disabled.
+
+config INTC2_MSI
+	bool "intc2 message-signaled interrupt lines"
+	depends on INTC2_ALLOC
+	help
+	  Enable the optional msi_alloc controller op and the
+	  intc2_msi_alloc() call, for message-signaled controllers
+	  (design delta D2) such as PCIe MSI/MSI-X, GICv3 ITS, or the
+	  RISC-V IMSIC: an allocator node whose lines are raised by a
+	  posted write rather than a physical wire, yielding the
+	  (address, data) pair the endpoint's message capability
+	  registers must be programmed with.
+
 config IRQ_OFFLOAD_NESTED
 	bool "irq_offload() supports nested IRQs"
 	depends on IRQ_OFFLOAD
