@@ -1,0 +1,22 @@
+# Copyright (c) 2026 Yong Cong Sin <yongcong.sin@gmail.com>
+# SPDX-License-Identifier: Apache-2.0
+
+config INTC2_X86_IRQ_ALLOC
+	bool "intc2 allocator node for the x86 dynamic IRQ/vector pool"
+	depends on INTC2_ALLOC && X86_64
+	select DYNAMIC_INTERRUPTS
+	# arch_irq_allocate()'s free-list linker section only exists
+	# under CONFIG_PCIE (arch/x86/core/pcie.c is its only in-tree
+	# caller today; the section is unconditionally referenced by
+	# arch_irq_allocate() itself regardless)
+	select PCIE
+	help
+	  Wrap arch_irq_allocate() + irq_connect_dynamic() as an intc2
+	  INTC2_NODE_ALLOC node (design delta D1), so consumers written
+	  against intc2_line_alloc() get a uniform (node, line) spec and
+	  the standard enable/disable/is_enabled ops instead of calling
+	  the arch allocator directly. The node has no dispatch table of
+	  its own: x86 vectors to the connected ISR exactly as it does
+	  today. Only intel64 implements arch_irq_allocate() today.
+	  Enable state is tracked in the node's own shadow bitmap since
+	  x86 does not implement arch_irq_is_enabled().

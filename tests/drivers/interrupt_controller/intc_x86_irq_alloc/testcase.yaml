@@ -1,0 +1,10 @@
+tests:
+  drivers.interrupt_controller.intc_x86_irq_alloc:
+    platform_allow:
+      - qemu_x86_64
+    integration_platforms:
+      - qemu_x86_64
+    tags:
+      - drivers
+      - interrupt
+      - intc2
