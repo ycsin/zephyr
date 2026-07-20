@@ -5,7 +5,7 @@ description: ARM Generic Interrupt Controller
 
 compatible: "arm,gic"
 
-include: base.yaml
+include: [base.yaml, interrupt-controller.yaml]
 
 properties:
   reg:
