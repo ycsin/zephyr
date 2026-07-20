@@ -5,3 +5,7 @@ config SOC_QEMU_VIRT_ARM64
 	select ARM64
 	select CPU_CORTEX_A
 	select ARMV8_A
+	# the virt machine has no EL3: the GIC runs with security
+	# extensions disabled (GICD_CTLR.DS=1), i.e. a single security
+	# state, and affinity routing is always in effect
+	select GIC_SINGLE_SECURITY_STATE if GIC_V3
