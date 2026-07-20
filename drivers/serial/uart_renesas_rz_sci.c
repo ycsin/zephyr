@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT renesas_rz_sci_uart
 
 #include <zephyr/drivers/uart.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/interrupt_controller/intc_rz_icu.h>
 #include <zephyr/logging/log.h>
@@ -481,10 +482,10 @@ static int uart_rz_init(const struct device *dev)
 
 #define UART_RZ_IRQ_CONNECT(n, irq_name, isr)                                                      \
 	do {                                                                                       \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(SCI_NODE(n), irq_name, irq),                            \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(SCI_NODE(n), irq_name,                            \
 			    DT_IRQ_BY_NAME(SCI_NODE(n), irq_name, priority), isr,                  \
 			    DEVICE_DT_INST_GET(n), GET_IRQ_FLAGS(SCI_NODE(n), irq_name));          \
-		irq_enable(DT_IRQ_BY_NAME(SCI_NODE(n), irq_name, irq));                            \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_NAME(SCI_NODE(n), irq_name));                            \
 	} while (0)
 
 #define UART_RZ_CONFIG_FUNC(n)                                                                     \

@@ -6,6 +6,7 @@
 
 #include "uart_rzt2m.h"
 #include <zephyr/spinlock.h>
+#include <zephyr/intc2.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -407,10 +408,10 @@ static void uart_rzt2m_isr(const struct device *dev)
 
 #define UART_RZT2M_IRQ_CONNECT(n, irq_name)                                                        \
 	do {                                                                                       \
-		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, irq_name, irq),                                 \
+		INTC2_DT_INST_CONNECT_INLINE_BY_NAME(n, irq_name,                                 \
 			    DT_INST_IRQ_BY_NAME(n, irq_name, priority), uart_rzt2m_isr,            \
 			    DEVICE_DT_INST_GET(n), DT_INST_IRQ_BY_NAME(n, irq_name, flags));       \
-		irq_enable(DT_INST_IRQ_BY_NAME(n, irq_name, irq));                                 \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(n, irq_name));                                 \
 	} while (false)
 
 #define UART_RZT2M_CONFIG_FUNC(n)                                                                  \

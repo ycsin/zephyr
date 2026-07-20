@@ -9,6 +9,7 @@
 
 #include <errno.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/irq.h>
@@ -406,11 +407,11 @@ static const struct uart_mcux_config uart_mcux_##n##_config = {		\
 
 #define UART_MCUX_IRQ_INIT(n, name)					\
 	do {								\
-		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, name, irq),	\
+		INTC2_DT_INST_CONNECT_INLINE_BY_NAME(n, name,	\
 			    DT_INST_IRQ_BY_NAME(n, name, priority),	\
 			    uart_mcux_isr, DEVICE_DT_INST_GET(n), 0);	\
 									\
-		irq_enable(DT_INST_IRQ_BY_NAME(n, name, irq));	\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(n, name));	\
 	} while (false)
 
 #define UART_MCUX_IRQ(n, name)						\

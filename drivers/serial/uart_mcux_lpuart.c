@@ -1625,7 +1625,7 @@ static DEVICE_API(uart, mcux_lpuart_driver_api) = {
 			    DT_INST_IRQ_BY_IDX(n, i, priority),		\
 			    mcux_lpuart_isr, DEVICE_DT_INST_GET(n), 0);	\
 									\
-		irq_enable(DT_INST_IRQ_BY_IDX(n, i, irq));		\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_IDX(n, i));		\
 	} while (false)
 #define MCUX_LPUART_IRQS_INSTALL(n)					\
 		IF_ENABLED(DT_INST_IRQ_HAS_IDX(n, 0),			\

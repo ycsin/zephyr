@@ -495,13 +495,13 @@ static DEVICE_API(uart, uart_cmsdk_apb_driver_api) = {
 #define CMSDK_UART_SPLIT_IRQ(n)                                                                    \
 	static void uart_cmsdk_apb_irq_config_func_##n(const struct device *dev)                   \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, tx, irq), DT_INST_IRQ_BY_NAME(n, tx, priority), \
+		INTC2_DT_INST_CONNECT_INLINE_BY_NAME(n, tx, DT_INST_IRQ_BY_NAME(n, tx, priority), \
 			    uart_cmsdk_apb_isr, DEVICE_DT_INST_GET(n), 0);                         \
-		irq_enable(DT_INST_IRQ_BY_NAME(n, tx, irq));                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(n, tx));                                       \
                                                                                                    \
-		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, rx, irq), DT_INST_IRQ_BY_NAME(n, rx, priority), \
+		INTC2_DT_INST_CONNECT_INLINE_BY_NAME(n, rx, DT_INST_IRQ_BY_NAME(n, rx, priority), \
 			    uart_cmsdk_apb_isr, DEVICE_DT_INST_GET(n), 0);                         \
-		irq_enable(DT_INST_IRQ_BY_NAME(n, rx, irq));                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(n, rx));                                       \
 	}
 
 #define CMSDK_UART_IRQ_HANDLER(n)                                                                  \

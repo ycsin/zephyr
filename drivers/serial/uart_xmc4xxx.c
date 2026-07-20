@@ -9,6 +9,7 @@
 
 #include <xmc_uart.h>
 #include <zephyr/drivers/dma.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/sys/util.h>
@@ -1185,14 +1186,14 @@ static DEVICE_API(uart, uart_xmc4xxx_driver_api) = {
 #define XMC4XXX_IRQ_HANDLER(index)                                                                 \
 	static void uart_xmc4xxx_irq_setup_##index(const struct device *dev)                       \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(index, tx, irq),                                   \
+		INTC2_DT_INST_CONNECT_INLINE_BY_NAME(index, tx,                                   \
 			    DT_INST_IRQ_BY_NAME(index, tx, priority), uart_xmc4xxx_isr,            \
 			    DEVICE_DT_INST_GET(index), 0);                                         \
-		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(index, rx, irq),                                   \
+		INTC2_DT_INST_CONNECT_INLINE_BY_NAME(index, rx,                                   \
 			    DT_INST_IRQ_BY_NAME(index, rx, priority), uart_xmc4xxx_isr,            \
 			    DEVICE_DT_INST_GET(index), 0);                                         \
-		irq_enable(DT_INST_IRQ_BY_NAME(index, tx, irq));                                   \
-		irq_enable(DT_INST_IRQ_BY_NAME(index, rx, irq));                                   \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(index, tx));                                   \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(index, rx));                                   \
 	}
 
 #define XMC4XXX_IRQ_STRUCT_INIT(index)                                                             \

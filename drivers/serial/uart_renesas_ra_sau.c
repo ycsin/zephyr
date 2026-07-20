@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT renesas_ra_uart_sau
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/clock_control.h>
@@ -501,9 +502,9 @@ static int uart_renesas_ra_sau_init(const struct device *dev)
 			    UART_RENESAS_RA_SAU_TX_IRQ_GET(idx, priority),                         \
 			    uart_renesas_ra_sau_isr, DEVICE_DT_INST_GET(idx), 0);                  \
                                                                                                    \
-		IRQ_CONNECT(DT_INST_IRQ(idx, irq), DT_INST_IRQ(idx, priority),                     \
+		INTC2_DT_INST_CONNECT_INLINE(idx, DT_INST_IRQ(idx, priority),                     \
 			    uart_renesas_ra_sau_isr, DEVICE_DT_INST_GET(idx), 0);                  \
-		irq_enable(DT_INST_IRQ(idx, irq));                                                 \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(idx));                                                 \
 	}
 
 #define UART_RENESAS_RA_SAU_IRQ_CONFIG_FUNC_GET(idx)                                               \

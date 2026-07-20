@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT neorv32_uart
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/syscon.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/irq.h>
@@ -479,17 +480,17 @@ static DEVICE_API(uart, neorv32_uart_driver_api) = {
 #define NEORV32_UART_CONFIG_FUNC(node_id, n)	\
 	static void neorv32_uart_config_func_##n(const struct device *dev) \
 	{								\
-		IRQ_CONNECT(DT_IRQ_BY_NAME(node_id, tx, irq),		\
+		INTC2_DT_CONNECT_INLINE_BY_NAME(node_id, tx,		\
 			    DT_IRQ_BY_NAME(node_id, tx, priority),	\
 			    neorv32_uart_isr,				\
 			    DEVICE_DT_GET(node_id), 0);			\
-		irq_enable(DT_IRQ_BY_NAME(node_id, tx, irq));		\
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_NAME(node_id, tx));		\
 									\
-		IRQ_CONNECT(DT_IRQ_BY_NAME(node_id, rx, irq),		\
+		INTC2_DT_CONNECT_INLINE_BY_NAME(node_id, rx,		\
 			    DT_IRQ_BY_NAME(node_id, rx, priority),	\
 			    neorv32_uart_isr,				\
 			    DEVICE_DT_GET(node_id), 0);			\
-		irq_enable(DT_IRQ_BY_NAME(node_id, rx, irq));		\
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_NAME(node_id, rx));		\
 	}
 #define NEORV32_UART_CONFIG_INIT(node_id, n)				\
 	.irq_config_func = neorv32_uart_config_func_##n,

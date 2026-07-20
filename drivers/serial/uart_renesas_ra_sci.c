@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT renesas_ra_sci_uart
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/irq.h>
@@ -1130,22 +1131,22 @@ static void uart_ra_sci_eri_isr(const struct device *dev)
 		R_ICU->IELSR[DT_IRQ_BY_NAME(DT_INST_PARENT(index), eri, irq)] =                    \
 			EVENT_SCI_ERI(DT_INST_PROP(index, channel));                               \
                                                                                                    \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), rxi, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), rxi,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), rxi, priority),                  \
 			    uart_ra_sci_rxi_isr, DEVICE_DT_INST_GET(index), 0);                    \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), txi, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), txi,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), txi, priority),                  \
 			    uart_ra_sci_txi_isr, DEVICE_DT_INST_GET(index), 0);                    \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), tei, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), tei,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), tei, priority),                  \
 			    uart_ra_sci_tei_isr, DEVICE_DT_INST_GET(index), 0);                    \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), eri, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), eri,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), eri, priority),                  \
 			    uart_ra_sci_eri_isr, DEVICE_DT_INST_GET(index), 0);                    \
                                                                                                    \
-		irq_enable(DT_IRQ_BY_NAME(DT_INST_PARENT(index), rxi, irq));                       \
-		irq_enable(DT_IRQ_BY_NAME(DT_INST_PARENT(index), txi, irq));                       \
-		irq_enable(DT_IRQ_BY_NAME(DT_INST_PARENT(index), tei, irq));                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_NAME(DT_INST_PARENT(index), rxi));                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_NAME(DT_INST_PARENT(index), txi));                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_NAME(DT_INST_PARENT(index), tei));                       \
 	}
 #else
 #define UART_RA_SCI_IRQ_INIT(index)

@@ -6,6 +6,7 @@
 #define DT_DRV_COMPAT renesas_ra8_uart_sci_b
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/sys/util.h>
@@ -1171,16 +1172,16 @@ static void uart_ra_sci_b_eri_isr(const struct device *dev)
 		BSP_ASSIGN_EVENT_TO_CURRENT_CORE(EVENT_SCI_TEI(DT_INST_PROP(index, channel)));     \
 		BSP_ASSIGN_EVENT_TO_CURRENT_CORE(EVENT_SCI_ERI(DT_INST_PROP(index, channel)));     \
                                                                                                    \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), rxi, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), rxi,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), rxi, priority),                  \
 			    uart_ra_sci_b_rxi_isr, DEVICE_DT_INST_GET(index), 0);                  \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), txi, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), txi,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), txi, priority),                  \
 			    uart_ra_sci_b_txi_isr, DEVICE_DT_INST_GET(index), 0);                  \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), tei, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), tei,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), tei, priority),                  \
 			    uart_ra_sci_b_tei_isr, DEVICE_DT_INST_GET(index), 0);                  \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), eri, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), eri,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), eri, priority),                  \
 			    uart_ra_sci_b_eri_isr, DEVICE_DT_INST_GET(index), 0);                  \
 	} while (0)

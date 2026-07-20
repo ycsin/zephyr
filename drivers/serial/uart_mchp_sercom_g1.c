@@ -10,6 +10,7 @@
  */
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/init.h>
 #include <zephyr/sys/__assert.h>
 #include <soc.h>
@@ -2342,10 +2343,10 @@ static DEVICE_API(uart, uart_mchp_driver_api) = {
 #if defined(CONFIG_UART_INTERRUPT_DRIVEN) || defined(CONFIG_UART_MCHP_ASYNC)
 #define UART_MCHP_IRQ_CONNECT(idx, inst)                                                           \
 	do {                                                                                       \
-		IRQ_CONNECT(DT_INST_IRQ_BY_IDX(inst, idx, irq),                                    \
+		INTC2_DT_INST_CONNECT_INLINE_BY_IDX(inst, idx,                                    \
 			    DT_INST_IRQ_BY_IDX(inst, idx, priority), uart_mchp_isr,                \
 			    DEVICE_DT_INST_GET(inst), 0);                                          \
-		irq_enable(DT_INST_IRQ_BY_IDX(inst, idx, irq));                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_IDX(inst, idx));                                    \
 	} while (false)
 
 #define UART_MCHP_IRQ_HANDLER_DECL(inst)                                                           \

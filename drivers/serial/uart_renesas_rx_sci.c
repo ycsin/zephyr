@@ -8,6 +8,7 @@
 #define DT_DRV_COMPAT renesas_rx_uart_sci
 
 #include <zephyr/drivers/uart.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/kernel.h>
@@ -1254,21 +1255,21 @@ static void uart_rx_sci_eri_isr(const struct device *dev)
 #ifndef CONFIG_RENESAS_RX_GRP_INTC
 #define UART_RX_SCI_IRQ_INIT(index)                                                                \
 	do {                                                                                       \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), rxi, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), rxi,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), rxi, priority),                  \
 			    uart_rx_sci_rxi_isr, DEVICE_DT_INST_GET(index), 0);                    \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), txi, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), txi,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), txi, priority),                  \
 			    uart_rx_sci_txi_isr, DEVICE_DT_INST_GET(index), 0);                    \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), tei, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), tei,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), tei, priority),                  \
 			    uart_rx_sci_tei_isr, DEVICE_DT_INST_GET(index), 0);                    \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), eri, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), eri,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), eri, priority),                  \
 			    uart_rx_sci_eri_isr, DEVICE_DT_INST_GET(index), 0);                    \
-		irq_enable(DT_IRQ_BY_NAME(DT_INST_PARENT(index), rxi, irq));                       \
-		irq_enable(DT_IRQ_BY_NAME(DT_INST_PARENT(index), txi, irq));                       \
-		irq_enable(DT_IRQ_BY_NAME(DT_INST_PARENT(index), tei, irq));                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_NAME(DT_INST_PARENT(index), rxi));                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_NAME(DT_INST_PARENT(index), txi));                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_NAME(DT_INST_PARENT(index), tei));                       \
 	} while (0)
 
 #define UART_RX_SCI_CONFIG_INIT(index)                                                             \
@@ -1279,14 +1280,14 @@ static void uart_rx_sci_eri_isr(const struct device *dev)
 #else
 #define UART_RX_SCI_IRQ_INIT(index)                                                                \
 	do {                                                                                       \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), rxi, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), rxi,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), rxi, priority),                  \
 			    uart_rx_sci_rxi_isr, DEVICE_DT_INST_GET(index), 0);                    \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), txi, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), txi,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), txi, priority),                  \
 			    uart_rx_sci_txi_isr, DEVICE_DT_INST_GET(index), 0);                    \
-		irq_enable(DT_IRQ_BY_NAME(DT_INST_PARENT(index), rxi, irq));                       \
-		irq_enable(DT_IRQ_BY_NAME(DT_INST_PARENT(index), txi, irq));                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_NAME(DT_INST_PARENT(index), rxi));                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_NAME(DT_INST_PARENT(index), txi));                       \
 	} while (0)
 
 #define UART_RX_SCI_CONFIG_INIT(index)                                                             \

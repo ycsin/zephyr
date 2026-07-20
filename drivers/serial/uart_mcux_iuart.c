@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_imx_iuart
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/irq.h>
@@ -281,11 +282,11 @@ static DEVICE_API(uart, mcux_iuart_driver_api) = {
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 #define MCUX_IUART_IRQ_INIT(n, i)					\
 	do {								\
-		IRQ_CONNECT(DT_INST_IRQ_BY_IDX(n, i, irq),		\
+		INTC2_DT_INST_CONNECT_INLINE_BY_IDX(n, i,		\
 			    DT_INST_IRQ_BY_IDX(n, i, priority),		\
 			    mcux_iuart_isr, DEVICE_DT_INST_GET(n), 0);	\
 									\
-		irq_enable(DT_INST_IRQ_BY_IDX(n, i, irq));		\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_IDX(n, i));		\
 	} while (false)
 #define IUART_MCUX_CONFIG_FUNC(n)					\
 	static void mcux_iuart_config_func_##n(const struct device *dev) \

@@ -7,6 +7,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/uart.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <zephyr/pm/device.h>
 #include <em_usart.h>
@@ -725,15 +726,15 @@ static DEVICE_API(uart, uart_gecko_driver_api) = {
 #define GECKO_UART_IRQ_HANDLER(idx)					       \
 	static void uart_gecko_config_func_##idx(const struct device *dev)     \
 	{								       \
-		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(idx, rx, irq),		       \
+		INTC2_DT_INST_CONNECT_INLINE_BY_NAME(idx, rx,		       \
 			    DT_INST_IRQ_BY_NAME(idx, rx, priority),	       \
 			    uart_gecko_isr, DEVICE_DT_INST_GET(idx), 0);       \
-		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(idx, tx, irq),		       \
+		INTC2_DT_INST_CONNECT_INLINE_BY_NAME(idx, tx,		       \
 			    DT_INST_IRQ_BY_NAME(idx, tx, priority),	       \
 			    uart_gecko_isr, DEVICE_DT_INST_GET(idx), 0);       \
 									       \
-		irq_enable(DT_INST_IRQ_BY_NAME(idx, rx, irq));		       \
-		irq_enable(DT_INST_IRQ_BY_NAME(idx, tx, irq));		       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(idx, rx));		       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(idx, tx));		       \
 	}
 #else /* CONFIG_UART_INTERRUPT_DRIVEN */
 #define GECKO_UART_IRQ_HANDLER_DECL(idx)
@@ -876,15 +877,15 @@ DT_INST_FOREACH_STATUS_OKAY(GECKO_UART_INIT)
 #define GECKO_USART_IRQ_HANDLER(idx)					       \
 	static void usart_gecko_config_func_##idx(const struct device *dev)    \
 	{								       \
-		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(idx, rx, irq),		       \
+		INTC2_DT_INST_CONNECT_INLINE_BY_NAME(idx, rx,		       \
 			    DT_INST_IRQ_BY_NAME(idx, rx, priority),	       \
 			    uart_gecko_isr, DEVICE_DT_INST_GET(idx), 0);       \
-		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(idx, tx, irq),		       \
+		INTC2_DT_INST_CONNECT_INLINE_BY_NAME(idx, tx,		       \
 			    DT_INST_IRQ_BY_NAME(idx, tx, priority),	       \
 			    uart_gecko_isr, DEVICE_DT_INST_GET(idx), 0);       \
 									       \
-		irq_enable(DT_INST_IRQ_BY_NAME(idx, rx, irq));		       \
-		irq_enable(DT_INST_IRQ_BY_NAME(idx, tx, irq));		       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(idx, rx));		       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(idx, tx));		       \
 	}
 #else
 #define GECKO_USART_IRQ_HANDLER_DECL(idx)

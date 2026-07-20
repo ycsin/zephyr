@@ -8,6 +8,7 @@
 #define DT_DRV_COMPAT atmel_sam0_uart
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <errno.h>
 #include <zephyr/init.h>
 #include <zephyr/sys/__assert.h>
@@ -1216,11 +1217,11 @@ static DEVICE_API(uart, uart_sam0_driver_api) = {
 
 #define SAM0_UART_IRQ_CONNECT(n, m)					\
 	do {								\
-		IRQ_CONNECT(DT_INST_IRQ_BY_IDX(n, m, irq),		\
+		INTC2_DT_INST_CONNECT_INLINE_BY_IDX(n, m,		\
 			    DT_INST_IRQ_BY_IDX(n, m, priority),		\
 			    uart_sam0_isr,				\
 			    DEVICE_DT_INST_GET(n), 0);			\
-		irq_enable(DT_INST_IRQ_BY_IDX(n, m, irq));		\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_IDX(n, m));		\
 	} while (false)
 
 #define UART_SAM0_IRQ_HANDLER_DECL(n)					\
