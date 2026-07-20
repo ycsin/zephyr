@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 #include <zephyr/arch/cpu.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 
 #define DT_DRV_COMPAT mediatek_adsp_intc
@@ -59,7 +60,7 @@ static void dev_init(const struct device *dev)
 }
 
 #define DEV_INIT(N) \
-	IRQ_CONNECT(DT_INST_IRQN(N), 0, intc_isr, DEVICE_DT_INST_GET(N), 0); \
+	INTC2_DT_INST_CONNECT_INLINE(N, 0, intc_isr, DEVICE_DT_INST_GET(N), 0); \
 	dev_init(DEVICE_DT_INST_GET(N));
 
 static int intc_init(void)
