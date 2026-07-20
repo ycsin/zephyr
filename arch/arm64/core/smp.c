@@ -62,6 +62,12 @@ static uint64_t cpu_map[CONFIG_MP_MAX_NUM_CPUS] = {
 	[0 ... (CONFIG_MP_MAX_NUM_CPUS - 1)] = INV_MPID
 };
 
+/* MPID of a core by CPU id; INV_MPID until that core has booted */
+uint64_t z_arm64_cpu_mpid(unsigned int cpu)
+{
+	return cpu_map[cpu];
+}
+
 /* Called from Zephyr initialization */
 void arch_cpu_start(int cpu_num, k_thread_stack_t *stack, int sz,
 		    arch_cpustart_t fn, void *arg)

@@ -19,9 +19,10 @@ config INTC2_ROOT_GIC
 config INTC2_ROOT_GIC_V3
 	bool "intc2 root node for the AArch64 GICv3"
 	default y
-	depends on INTC2 && ARM64 && DT_HAS_ARM_GIC_V3_ENABLED
+	depends on INTC2 && ARM64 && GIC_V3 && DT_HAS_ARM_GIC_V3_ENABLED
 	depends on !ISR_TABLES_LOCAL_DECLARATION
-	select INTC2_ROOT_GENERIC
+	# node lives in intc_gicv3.c: it owns the IROUTER-based affinity ops
+	select INTC2_LEGACY_BRIDGE
 
 config INTC2_ROOT_IRQMP
 	bool "intc2 root node for the LEON IRQMP"

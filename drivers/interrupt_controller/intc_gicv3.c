@@ -16,6 +16,54 @@
 #include <zephyr/drivers/interrupt_controller/gic.h>
 #include <zephyr/sys/barrier.h>
 #include "intc_gic_common_priv.h"
+
+#ifdef CONFIG_INTC2_ROOT_GIC_V3
+#include <zephyr/intc2.h>
+#endif
+
+/* Affinity routing (and with it IROUTER) is in effect in these states;
+ * otherwise the GIC runs legacy targeting and lines cannot re-route.
+ */
+#if defined(CONFIG_ARMV8_A_NS) || defined(CONFIG_ARMV7_A_NS) ||                                    \
+	defined(CONFIG_GIC_SINGLE_SECURITY_STATE)
+#define GIC_V3_HAS_IROUTER 1
+#else
+#define GIC_V3_HAS_IROUTER 0
+#endif
+
+#if defined(CONFIG_INTC2_ROOT_GIC_V3) && defined(CONFIG_INTC2_AFFINITY) && GIC_V3_HAS_IROUTER
+/*
+ * Runtime-selected target CPU of each routable line (SPIs; banked
+ * SGIs/PPIs never route). The GIC routes an SPI to exactly one PE
+ * (IROUTER), so the boot default is the first CPU of the default
+ * mask, and the enable path below routes to the selected target
+ * instead of the enabling PE.
+ */
+#define GIC_TARGET_CPU_DEFAULT                                                                     \
+	LOG2(CONFIG_INTC2_AFFINITY_DEFAULT_MASK & (0 - CONFIG_INTC2_AFFINITY_DEFAULT_MASK))
+
+static uint8_t gic_spi_target[CONFIG_NUM_IRQS] = {
+	[0 ... (CONFIG_NUM_IRQS - 1)] = GIC_TARGET_CPU_DEFAULT,
+};
+
+static uint64_t gic_route_target(unsigned int intid)
+{
+#ifdef CONFIG_SMP
+	if (intid < CONFIG_NUM_IRQS) {
+		uint64_t mpid = z_arm64_cpu_mpid(gic_spi_target[intid]);
+
+		if (mpid != UINT64_MAX) {
+			return mpid;
+		}
+		/* fall through: the target CPU has not booted yet */
+	}
+#endif
+
+	return MPIDR_TO_CORE(GET_MPIDR());
+}
+#else
+#define gic_route_target(intid) MPIDR_TO_CORE(GET_MPIDR())
+#endif /* CONFIG_INTC2_ROOT_GIC_V3 && CONFIG_INTC2_AFFINITY && GIC_V3_HAS_IROUTER */
 #include "intc_gicv3_priv.h"
 
 #include <string.h>
@@ -236,10 +284,11 @@ void arm_gic_irq_enable(unsigned int intid)
 	 * Affinity routing is enabled for Armv8-A and Armv7-A Non-secure states
 	 * (GICD_CTLR.ARE_NS is set to '1') and for GIC single security state
 	 * (GICD_CTRL.ARE is set to '1'), so need to set SPI's affinity, now set
-	 * it to be the PE on which it is enabled.
+	 * it to be the PE on which it is enabled, or the runtime-selected
+	 * target when CONFIG_INTC2_AFFINITY routing is active.
 	 */
 	if (GIC_IS_SPI(intid) || GIC_IS_ESPI(intid)) {
-		arm_gic_write_irouter(MPIDR_TO_CORE(GET_MPIDR()), intid);
+		arm_gic_write_irouter(gic_route_target(intid), intid);
 	}
 #endif
 
@@ -779,3 +828,99 @@ void arm_gic_secondary_init(void)
 #endif
 }
 #endif
+
+#ifdef CONFIG_INTC2_ROOT_GIC_V3
+
+/*
+ * intc2 CPU-root node (CONFIG_INTC2_LEGACY_BRIDGE): the arch dispatch
+ * reads the bridged _sw_isr_table alias, so the node only carries the
+ * line operations; hardware init stays with the legacy device init.
+ */
+
+static void gic_v3_intc2_enable(const struct intc2_node *node, uint32_t line)
+{
+	ARG_UNUSED(node);
+
+	arm_gic_irq_enable(line);
+}
+
+static void gic_v3_intc2_disable(const struct intc2_node *node, uint32_t line)
+{
+	ARG_UNUSED(node);
+
+	arm_gic_irq_disable(line);
+}
+
+static int gic_v3_intc2_is_enabled(const struct intc2_node *node, uint32_t line)
+{
+	ARG_UNUSED(node);
+
+	return arm_gic_irq_is_enabled(line);
+}
+
+#if defined(CONFIG_INTC2_AFFINITY) && GIC_V3_HAS_IROUTER
+static int gic_v3_intc2_set_affinity(const struct intc2_node *node, uint32_t line,
+				     uint32_t cpumask)
+{
+	uint32_t cpu = (uint32_t)(find_lsb_set(cpumask) - 1);
+
+	if (line >= node->nlines) {
+		return -EINVAL;
+	}
+
+	if (line < GIC_SPI_INT_BASE) {
+		/* SGIs and PPIs are banked per PE and never route */
+		return -ENOTSUP;
+	}
+
+	if (cpu >= arch_num_cpus()) {
+		return -EINVAL;
+	}
+
+	/* single-target hardware: deliver to the first CPU of the mask */
+	gic_spi_target[line] = (uint8_t)cpu;
+
+	if (arm_gic_irq_is_enabled(line)) {
+		arm_gic_write_irouter(gic_route_target(line), line);
+	}
+
+	return 0;
+}
+
+static int gic_v3_intc2_get_affinity(const struct intc2_node *node, uint32_t line,
+				     uint32_t *cpumask)
+{
+	if (line >= node->nlines) {
+		return -EINVAL;
+	}
+
+	if (line < GIC_SPI_INT_BASE) {
+		return -ENOTSUP;
+	}
+
+	*cpumask = BIT(gic_spi_target[line]);
+
+	return 0;
+}
+#endif /* CONFIG_INTC2_AFFINITY && GIC_V3_HAS_IROUTER */
+
+static DEVICE_API(intc2, gic_v3_intc2_api) = {
+	.enable = gic_v3_intc2_enable,
+	.disable = gic_v3_intc2_disable,
+	.is_enabled = gic_v3_intc2_is_enabled,
+#if defined(CONFIG_INTC2_AFFINITY) && GIC_V3_HAS_IROUTER
+	.set_affinity = gic_v3_intc2_set_affinity,
+	.get_affinity = gic_v3_intc2_get_affinity,
+#endif
+};
+
+#define GIC_V3_INTC2_NODE_FLAGS                                                                    \
+	(INTC2_NODE_ROOT_BRIDGE |                                                                  \
+	 ((IS_ENABLED(CONFIG_INTC2_AFFINITY) && GIC_V3_HAS_IROUTER)                                \
+		  ? INTC2_NODE_AFFINITY_SINGLE_TARGET                                              \
+		  : 0))
+
+INTC2_NODE_DT_DEFINE(DT_INST(0, arm_gic_v3), &gic_v3_intc2_api, NULL, CONFIG_NUM_IRQS,
+		     GIC_V3_INTC2_NODE_FLAGS);
+
+#endif /* CONFIG_INTC2_ROOT_GIC_V3 */

@@ -1,0 +1,24 @@
+common:
+  platform_allow:
+    - qemu_cortex_a53
+    - qemu_cortex_a53/qemu_cortex_a53/smp
+  integration_platforms:
+    - qemu_cortex_a53
+  tags:
+    - drivers
+    - interrupt
+    - gic
+    - intc2
+
+tests:
+  drivers.interrupt_controller.intc_gicv3_intc2.legacy: {}
+  drivers.interrupt_controller.intc_gicv3_intc2.bridge:
+    extra_configs:
+      - CONFIG_INTC2=y
+  drivers.interrupt_controller.intc_gicv3_intc2.affinity:
+    # the SMP variant runs two CPUs with icount off
+    platform_allow:
+      - qemu_cortex_a53/qemu_cortex_a53/smp
+    extra_configs:
+      - CONFIG_INTC2=y
+      - CONFIG_INTC2_AFFINITY=y

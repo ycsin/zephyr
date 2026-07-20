@@ -28,6 +28,13 @@ extern "C" {
 #define Z_INTC2_ROOT_NODE DT_INST(0, arm_gic_v3)
 #endif
 
+#if !defined(_ASMLANGUAGE) && defined(CONFIG_SMP)
+/* MPID of a core by CPU id (UINT64_MAX until that core has booted),
+ * for interrupt controllers routing IRQs to specific cores
+ */
+uint64_t z_arm64_cpu_mpid(unsigned int cpu);
+#endif
+
 #ifdef _ASMLANGUAGE
 GTEXT(arch_irq_enable)
 GTEXT(arch_irq_disable)

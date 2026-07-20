@@ -48,8 +48,6 @@ static DEVICE_API(intc2, intc2_root_generic_api) = {
 
 #if defined(CONFIG_INTC2_ROOT_GIC)
 INTC2_ROOT_GENERIC_DEFINE(DT_INST(0, arm_gic_v1));
-#elif defined(CONFIG_INTC2_ROOT_GIC_V3)
-INTC2_ROOT_GENERIC_DEFINE(DT_INST(0, arm_gic_v3));
 #elif defined(CONFIG_INTC2_ROOT_IRQMP)
 INTC2_ROOT_GENERIC_DEFINE(DT_INST(0, gaisler_irqmp));
 #elif defined(CONFIG_INTC2_ROOT_MIPS_CPU_INTC)
