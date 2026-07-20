@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT renesas_rx_rspi
 
 #include <zephyr/drivers/spi.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/irq.h>
 #include <soc.h>
@@ -994,18 +995,18 @@ error_callback:
 #if defined(CONFIG_SPI_RENESAS_RX_INTERRUPT)
 
 #define RX_RSPI_IRQ_CONFIG_INIT(n)                                                                 \
-	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, spri, irq), DT_INST_IRQ_BY_NAME(n, spri, priority),     \
+	INTC2_DT_INST_CONNECT_INLINE_BY_NAME(n, spri, DT_INST_IRQ_BY_NAME(n, spri, priority),     \
 		    rx_rspi_spri_isr, DEVICE_DT_INST_GET(n), 0);                                   \
-	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, spti, irq), DT_INST_IRQ_BY_NAME(n, spti, priority),     \
+	INTC2_DT_INST_CONNECT_INLINE_BY_NAME(n, spti, DT_INST_IRQ_BY_NAME(n, spti, priority),     \
 		    rx_rspi_spti_isr, DEVICE_DT_INST_GET(n), 0);                                   \
-	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, spii, irq), DT_INST_IRQ_BY_NAME(n, spii, priority),     \
+	INTC2_DT_INST_CONNECT_INLINE_BY_NAME(n, spii, DT_INST_IRQ_BY_NAME(n, spii, priority),     \
 		    rx_rspi_spii_isr, DEVICE_DT_INST_GET(n), 0);                                   \
-	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, spei, irq), DT_INST_IRQ_BY_NAME(n, spei, priority),     \
+	INTC2_DT_INST_CONNECT_INLINE_BY_NAME(n, spei, DT_INST_IRQ_BY_NAME(n, spei, priority),     \
 		    rx_rspi_spei_isr, DEVICE_DT_INST_GET(n), 0);                                   \
                                                                                                    \
-	irq_enable(DT_INST_IRQ_BY_NAME(n, spri, irq));                                             \
-	irq_enable(DT_INST_IRQ_BY_NAME(n, spti, irq));                                             \
-	irq_enable(DT_INST_IRQ_BY_NAME(n, spei, irq));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(n, spri));                                             \
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(n, spti));                                             \
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(n, spei));
 
 #else
 

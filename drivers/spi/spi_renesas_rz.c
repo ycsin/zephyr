@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT renesas_rz_spi
 
 #include <zephyr/irq.h>
+#include <zephyr/intc2.h>
 #include <zephyr/cache.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
@@ -916,10 +917,10 @@ static void intc_connect_irq_event(IRQn_Type irq, IRQSELn_Type event)
 #endif /* CONFIG_CPU_CORTEX_M */
 
 #define RZ_SPI_CONNECT_IRQ(n, irq_name, irq_handler)                                               \
-	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, irq_name, irq),                                         \
+	INTC2_DT_INST_CONNECT_INLINE_BY_NAME(n, irq_name,                                         \
 		    DT_INST_IRQ_BY_NAME(n, irq_name, priority), irq_handler,                       \
 		    DEVICE_DT_INST_GET(n), GET_SPI_IRQ_FLAGS(n, irq_name));                        \
-	irq_enable(DT_INST_IRQ_BY_NAME(n, irq_name, irq));
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(n, irq_name));
 
 #define RZ_SPI_IRQ_INIT_DEFAULT(n)                                                                 \
 	do {                                                                                       \
@@ -1048,8 +1049,7 @@ static void intc_connect_irq_event(IRQn_Type irq, IRQSELn_Type event)
 #endif /* CONFIG_CPU_CORTEX_M */
 
 #define RZ_SPI_CONNECT_DMA_IRQ(n, dir)                                                             \
-	IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_DMAS_CTLR_BY_NAME(n, dir),                              \
-				   UTIL_CAT(ch, DT_INST_DMAS_CELL_BY_NAME(n, dir, channel)), irq), \
+	INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_DMAS_CTLR_BY_NAME(n, dir),                              				   UTIL_CAT(ch, DT_INST_DMAS_CELL_BY_NAME(n, dir, channel)), \
 		    DT_IRQ_BY_NAME(DT_INST_DMAS_CTLR_BY_NAME(n, dir),                              \
 				   UTIL_CAT(ch, DT_INST_DMAS_CELL_BY_NAME(n, dir, channel)),       \
 				   priority),                                                      \

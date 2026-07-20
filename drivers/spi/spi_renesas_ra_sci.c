@@ -11,6 +11,7 @@
 #include <rp_sci_spi.h>
 #include <soc.h>
 #include <zephyr/drivers/clock_control/renesas_ra_cgc.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/spi.h>
 #include <zephyr/irq.h>
@@ -596,23 +597,23 @@ static DEVICE_API(spi, renesas_ra_sci_spi_driver_api) = {
 		R_ICU->IELSR[DT_IRQ_BY_NAME(DT_INST_PARENT(index), eri, irq)] =                    \
 			EVENT_SCI_ERI(DT_INST_PROP(index, channel));                               \
                                                                                                    \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), rxi, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), rxi,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), rxi, priority), sci_spi_rxi_isr, \
 			    DEVICE_DT_INST_GET(index), 0);                                         \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), txi, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), txi,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), txi, priority), sci_spi_txi_isr, \
 			    DEVICE_DT_INST_GET(index), 0);                                         \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), tei, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), tei,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), tei, priority), sci_spi_tei_isr, \
 			    DEVICE_DT_INST_GET(index), 0);                                         \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), eri, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), eri,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), eri, priority), sci_spi_eri_isr, \
 			    DEVICE_DT_INST_GET(index), 0);                                         \
                                                                                                    \
-		irq_enable(DT_IRQ_BY_NAME(DT_INST_PARENT(index), rxi, irq));                       \
-		irq_enable(DT_IRQ_BY_NAME(DT_INST_PARENT(index), txi, irq));                       \
-		irq_enable(DT_IRQ_BY_NAME(DT_INST_PARENT(index), eri, irq));                       \
-		irq_enable(DT_IRQ_BY_NAME(DT_INST_PARENT(index), tei, irq));                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_NAME(DT_INST_PARENT(index), rxi));                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_NAME(DT_INST_PARENT(index), txi));                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_NAME(DT_INST_PARENT(index), eri));                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_NAME(DT_INST_PARENT(index), tei));                       \
 	}
 #else
 

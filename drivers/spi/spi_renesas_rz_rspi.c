@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT renesas_rz_rspi
 
 #include <zephyr/irq.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/spi.h>
@@ -660,18 +661,12 @@ static int spi_rz_rspi_init(const struct device *dev)
 
 #define RZ_RSPI_IRQ_INIT(n)                                                                        \
 	do {                                                                                       \
-		IRQ_CONNECT(                                                                       \
-			DT_IRQ_BY_NAME(DT_INST_DMAS_CTLR_BY_NAME(n, rx),                           \
-				       UTIL_CAT(ch, DT_INST_DMAS_CELL_BY_NAME(n, rx, channel)),    \
-				       irq),                                                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_DMAS_CTLR_BY_NAME(n, rx),                           				       UTIL_CAT(ch, DT_INST_DMAS_CELL_BY_NAME(n, rx, channel)),                                                       \
 			DT_IRQ_BY_NAME(DT_INST_DMAS_CTLR_BY_NAME(n, rx),                           \
 				       UTIL_CAT(ch, DT_INST_DMAS_CELL_BY_NAME(n, rx, channel)),    \
 				       priority),                                                  \
 			dmac_b_int_isr, DEVICE_DT_INST_GET(n), 0);                                 \
-		IRQ_CONNECT(                                                                       \
-			DT_IRQ_BY_NAME(DT_INST_DMAS_CTLR_BY_NAME(n, tx),                           \
-				       UTIL_CAT(ch, DT_INST_DMAS_CELL_BY_NAME(n, tx, channel)),    \
-				       irq),                                                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_DMAS_CTLR_BY_NAME(n, tx),                           				       UTIL_CAT(ch, DT_INST_DMAS_CELL_BY_NAME(n, tx, channel)),                                                       \
 			DT_IRQ_BY_NAME(DT_INST_DMAS_CTLR_BY_NAME(n, tx),                           \
 				       UTIL_CAT(ch, DT_INST_DMAS_CELL_BY_NAME(n, tx, channel)),    \
 				       priority),                                                  \
@@ -681,16 +676,16 @@ static int spi_rz_rspi_init(const struct device *dev)
 #elif defined(CONFIG_SPI_RENESAS_RZ_RSPI_INTERRUPT)
 #define RZ_RSPI_IRQ_INIT(n)                                                                        \
 	do {                                                                                       \
-		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, rx, irq), DT_INST_IRQ_BY_NAME(n, rx, priority), \
+		INTC2_DT_INST_CONNECT_INLINE_BY_NAME(n, rx, DT_INST_IRQ_BY_NAME(n, rx, priority), \
 			    spi_rz_rspi_rxi_isr, DEVICE_DT_INST_GET(n), 0);                        \
-		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, tx, irq), DT_INST_IRQ_BY_NAME(n, tx, priority), \
+		INTC2_DT_INST_CONNECT_INLINE_BY_NAME(n, tx, DT_INST_IRQ_BY_NAME(n, tx, priority), \
 			    spi_rz_rspi_txi_isr, DEVICE_DT_INST_GET(n), 0);                        \
-		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(n, error, irq),                                    \
+		INTC2_DT_INST_CONNECT_INLINE_BY_NAME(n, error,                                    \
 			    DT_INST_IRQ_BY_NAME(n, error, priority), spi_rz_rspi_eri_isr,          \
 			    DEVICE_DT_INST_GET(n), 0);                                             \
-		irq_enable(DT_INST_IRQ_BY_NAME(n, rx, irq));                                       \
-		irq_enable(DT_INST_IRQ_BY_NAME(n, tx, irq));                                       \
-		irq_enable(DT_INST_IRQ_BY_NAME(n, error, irq));                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(n, rx));                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(n, tx));                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(n, error));                                    \
 	} while (0)
 #else
 #define RZ_RSPI_IRQ_INIT(n)

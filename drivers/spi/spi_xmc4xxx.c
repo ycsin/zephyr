@@ -8,6 +8,7 @@
 
 #define LOG_LEVEL CONFIG_SPI_LOG_LEVEL
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(spi_xmc4xxx);
 
 #include "spi_context.h"
@@ -657,7 +658,7 @@ static DEVICE_API(spi, spi_xmc4xxx_driver_api) = {
 		XMC_SPI_CH_EnableEvent(config->spi, XMC_SPI_CH_EVENT_STANDARD_RECEIVE |            \
 						    XMC_SPI_CH_EVENT_ALTERNATIVE_RECEIVE);         \
 												   \
-		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(index, rx, irq),                                   \
+		INTC2_DT_INST_CONNECT_INLINE_BY_NAME(index, rx,                                   \
 			    DT_INST_IRQ_BY_NAME(index, rx, priority), spi_xmc4xxx_isr,             \
 			    DEVICE_DT_INST_GET(index), 0);                                         \
 												   \

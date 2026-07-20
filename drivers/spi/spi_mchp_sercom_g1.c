@@ -6,6 +6,7 @@
 
 #include <soc.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/spi.h>
 #include "spi_rtio.h"
 #include <zephyr/drivers/pinctrl.h>
@@ -1130,9 +1131,9 @@ static DEVICE_API(spi, spi_mchp_api) = {
 
 #define MCHP_SPI_IRQ_CONNECT(n, m)                                                                 \
 	do {                                                                                       \
-		IRQ_CONNECT(DT_INST_IRQ_BY_IDX(n, m, irq), DT_INST_IRQ_BY_IDX(n, m, priority),     \
+		INTC2_DT_INST_CONNECT_INLINE_BY_IDX(n, m, DT_INST_IRQ_BY_IDX(n, m, priority),     \
 			    spi_mchp_isr, DEVICE_DT_INST_GET(n), 0);                               \
-		irq_enable(DT_INST_IRQ_BY_IDX(n, m, irq));                                         \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_IDX(n, m));                                         \
 	} while (false)
 
 #define SPI_MCHP_IRQ_HANDLER_DECL(n) static void spi_mchp_irq_config_##n(const struct device *dev)
