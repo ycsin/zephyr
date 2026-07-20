@@ -9,6 +9,7 @@
 #define MDDR_DISABLE 256
 
 #include <zephyr/devicetree.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -658,10 +659,10 @@ static DEVICE_API(i2c, renesas_ra_sci_b_i2c_driver_api) = {
 	R_ICU->IELSR[DT_IRQ_BY_NAME(DT_INST_PARENT(index), rxi, irq)] =                            \
 		EVENT_SCI_RXI(DT_INST_PROP(index, channel));                                       \
 	BSP_ASSIGN_EVENT_TO_CURRENT_CORE(EVENT_SCI_RXI(DT_INST_PROP(index, channel)));             \
-	IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), rxi, irq),                               \
+	INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), rxi,                               \
 		    DT_IRQ_BY_NAME(DT_INST_PARENT(index), rxi, priority), sci_b_i2c_rxi_isr,       \
 		    DEVICE_DT_INST_GET(index), 0);                                                 \
-	irq_enable(DT_IRQ_BY_NAME(DT_INST_PARENT(index), rxi, irq));
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_NAME(DT_INST_PARENT(index), rxi));
 #endif
 
 #define SCI_B_I2C_RA_INIT(index)                                                                   \
@@ -673,19 +674,19 @@ static DEVICE_API(i2c, renesas_ra_sci_b_i2c_driver_api) = {
 		R_ICU->IELSR[DT_IRQ_BY_NAME(DT_INST_PARENT(index), txi, irq)] =                    \
 			EVENT_SCI_TXI(DT_INST_PROP(index, channel));                               \
 		BSP_ASSIGN_EVENT_TO_CURRENT_CORE(EVENT_SCI_TXI(DT_INST_PROP(index, channel)));     \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), txi, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), txi,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), txi, priority),                  \
 			    sci_b_i2c_txi_isr, DEVICE_DT_INST_GET(index), 0);                      \
-		irq_enable(DT_IRQ_BY_NAME(DT_INST_PARENT(index), txi, irq));                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_NAME(DT_INST_PARENT(index), txi));                       \
                                                                                                    \
 		/* tei */                                                                          \
 		R_ICU->IELSR[DT_IRQ_BY_NAME(DT_INST_PARENT(index), tei, irq)] =                    \
 			EVENT_SCI_TEI(DT_INST_PROP(index, channel));                               \
 		BSP_ASSIGN_EVENT_TO_CURRENT_CORE(EVENT_SCI_TEI(DT_INST_PROP(index, channel)));     \
-		IRQ_CONNECT(DT_IRQ_BY_NAME(DT_INST_PARENT(index), tei, irq),                       \
+		INTC2_DT_CONNECT_INLINE_BY_NAME(DT_INST_PARENT(index), tei,                       \
 			    DT_IRQ_BY_NAME(DT_INST_PARENT(index), tei, priority),                  \
 			    sci_b_i2c_tei_isr, DEVICE_DT_INST_GET(index), 0);                      \
-		irq_enable(DT_IRQ_BY_NAME(DT_INST_PARENT(index), tei, irq));                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_NAME(DT_INST_PARENT(index), tei));                       \
 	}                                                                                          \
 	PINCTRL_DT_DEFINE(DT_INST_PARENT(index));                                                  \
                                                                                                    \

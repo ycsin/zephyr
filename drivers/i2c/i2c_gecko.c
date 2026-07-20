@@ -9,6 +9,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/util.h>
@@ -311,9 +312,9 @@ void i2c_gecko_isr(const struct device *dev)
 #define GECKO_I2C_IRQ_HANDLER(idx)                                                                 \
 	static void i2c_gecko_config_func_##idx(const struct device *dev)                          \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQ(idx, irq), DT_INST_IRQ(idx, priority), i2c_gecko_isr,      \
+		INTC2_DT_INST_CONNECT_INLINE(idx, DT_INST_IRQ(idx, priority), i2c_gecko_isr,      \
 			    DEVICE_DT_INST_GET(idx), 0);                                           \
-		irq_enable(DT_INST_IRQ(idx, irq));                                                 \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(idx));                                                 \
 	}
 #else
 #define GECKO_I2C_IRQ_HANDLER(idx)

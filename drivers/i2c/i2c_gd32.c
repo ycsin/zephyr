@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include <zephyr/drivers/clock_control.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control/gd32.h>
 #include <zephyr/kernel.h>
 #include <zephyr/devicetree.h>
@@ -685,19 +686,19 @@ static int i2c_gd32_init(const struct device *dev)
 	PINCTRL_DT_INST_DEFINE(inst);						\
 	static void i2c_gd32_irq_cfg_func_##inst(void)				\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(inst, event, irq),		\
+		INTC2_DT_INST_CONNECT_INLINE_BY_NAME(inst, event,		\
 			    DT_INST_IRQ_BY_NAME(inst, event, priority),		\
 			    i2c_gd32_event_isr,					\
 			    DEVICE_DT_INST_GET(inst),				\
 			    0);							\
-		irq_enable(DT_INST_IRQ_BY_NAME(inst, event, irq));		\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(inst, event));		\
 										\
-		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(inst, error, irq),		\
+		INTC2_DT_INST_CONNECT_INLINE_BY_NAME(inst, error,		\
 			    DT_INST_IRQ_BY_NAME(inst, error, priority),		\
 			    i2c_gd32_error_isr,					\
 			    DEVICE_DT_INST_GET(inst),				\
 			    0);							\
-		irq_enable(DT_INST_IRQ_BY_NAME(inst, error, irq));		\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(inst, error));		\
 	}									\
 	static struct i2c_gd32_data i2c_gd32_data_##inst;			\
 	const static struct i2c_gd32_config i2c_gd32_cfg_##inst = {		\

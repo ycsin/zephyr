@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT silabs_i2c
 
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -646,9 +647,9 @@ static DEVICE_API(i2c, i2c_silabs_dev_driver_api) = {
 	static void i2c_silabs_irq_config_##idx(void)                                              \
 	{                                                                                          \
 		COND_CODE_1(CONFIG_I2C_SILABS_DMA,                                                 \
-			    (IRQ_CONNECT(DT_INST_IRQ(idx, irq), DT_INST_IRQ(idx, priority),        \
+			    (INTC2_DT_INST_CONNECT_INLINE(idx, DT_INST_IRQ(idx, priority),        \
 					 i2c_silabs_isr_handler, DEVICE_DT_INST_GET(idx), 0);      \
-			     irq_enable(DT_INST_IRQ(idx, irq));),                                  \
+			     intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(idx));),                                  \
 			    ())									   \
 	}                                                                                          \
 	                                                                                           \

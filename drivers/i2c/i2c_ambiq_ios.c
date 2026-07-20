@@ -466,10 +466,10 @@ static DEVICE_API(i2c, i2c_ambiq_ios_api) = {
 	COND_CODE_1(DT_IRQ_HAS_IDX(DT_INST_PARENT(n), 1), (                            \
 		static void i2c_ambiq_ios_acc_irq_cfg_##n(void)                            \
 		{                                                                          \
-			IRQ_CONNECT(DT_IRQ_BY_IDX(DT_INST_PARENT(n), 1, irq),                  \
+			INTC2_DT_CONNECT_INLINE_BY_IDX(DT_INST_PARENT(n), 1,                  \
 				DT_IRQ_BY_IDX(DT_INST_PARENT(n), 1, priority),                     \
 				i2c_ambiq_ios_acc_isr, DEVICE_DT_INST_GET(n), 0);                  \
-			irq_enable(DT_IRQ_BY_IDX(DT_INST_PARENT(n), 1, irq));                  \
+			intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_IDX(DT_INST_PARENT(n), 1));                  \
 		}                                                                          \
 	), (/* no acc irq */))
 

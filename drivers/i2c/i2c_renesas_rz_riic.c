@@ -8,6 +8,7 @@
 
 #include <math.h>
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/pinctrl.h>
 
 #if defined(CONFIG_I2C_RENESAS_RZ_RIIC)
@@ -580,10 +581,10 @@ static DEVICE_API(i2c, i2c_rz_riic_driver_api) = {
 
 #define I2C_RZ_IRQ_CONNECT(index, irq_name, isr)                                                   \
 	do {                                                                                       \
-		IRQ_CONNECT(DT_INST_IRQ_BY_NAME(index, irq_name, irq),                             \
+		INTC2_DT_INST_CONNECT_INLINE_BY_NAME(index, irq_name,                             \
 			    DT_INST_IRQ_BY_NAME(index, irq_name, priority), isr,                   \
 			    DEVICE_DT_INST_GET(index), GET_IRQ_FLAGS(index, irq_name));            \
-		irq_enable(DT_INST_IRQ_BY_NAME(index, irq_name, irq));                             \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(index, irq_name));                             \
 	} while (0)
 
 #if defined(CONFIG_I2C_RENESAS_RZ_RIIC)

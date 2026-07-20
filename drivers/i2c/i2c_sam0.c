@@ -9,6 +9,7 @@
 
 #include <errno.h>
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/init.h>
 #include <soc.h>
 #include <zephyr/drivers/i2c.h>
@@ -784,11 +785,11 @@ static DEVICE_API(i2c, i2c_sam0_driver_api) = {
 
 #define SAM0_I2C_IRQ_CONNECT(n, m)					\
 	do {								\
-		IRQ_CONNECT(DT_INST_IRQ_BY_IDX(n, m, irq),		\
+		INTC2_DT_INST_CONNECT_INLINE_BY_IDX(n, m,		\
 			    DT_INST_IRQ_BY_IDX(n, m, priority),		\
 			    i2c_sam0_isr,				\
 			    DEVICE_DT_INST_GET(n), 0);			\
-		irq_enable(DT_INST_IRQ_BY_IDX(n, m, irq));		\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_IDX(n, m));		\
 	} while (false)
 
 #if DT_INST_IRQ_HAS_IDX(0, 3)

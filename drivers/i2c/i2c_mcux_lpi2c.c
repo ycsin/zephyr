@@ -10,6 +10,7 @@
 
 #include <errno.h>
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/reset.h>
 #include <zephyr/kernel.h>
@@ -647,11 +648,11 @@ static DEVICE_API(i2c, mcux_lpi2c_driver_api) = {
 
 #define I2C_MCUX_LPI2C_CONFIGURE_IRQ(idx, inst)	\
 	IF_ENABLED(DT_INST_IRQ_HAS_IDX(inst, idx), (	\
-		IRQ_CONNECT(DT_INST_IRQ_BY_IDX(inst, idx, irq),	\
+		INTC2_DT_INST_CONNECT_INLINE_BY_IDX(inst, idx,	\
 			DT_INST_IRQ_BY_IDX(inst, idx, priority),	\
 			mcux_lpi2c_isr,	\
 			DEVICE_DT_INST_GET(inst), 0);	\
-			irq_enable(DT_INST_IRQ_BY_IDX(inst, idx, irq));	\
+			intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_IDX(inst, idx));	\
 	))
 
 /* When using LP Flexcomm driver, register the interrupt handler

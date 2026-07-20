@@ -8,6 +8,7 @@
 
 #define LOG_LEVEL CONFIG_I2C_LOG_LEVEL
 #include <zephyr/logging/log.h>
+#include <zephyr/intc2.h>
 LOG_MODULE_REGISTER(i2c_wch);
 
 #include <zephyr/drivers/clock_control.h>
@@ -430,15 +431,15 @@ static DEVICE_API(i2c, i2c_wch_api) = {
 	{										\
 		ARG_UNUSED(dev);							\
 											\
-		IRQ_CONNECT(DT_INST_IRQ_BY_IDX(inst, 0, irq),				\
+		INTC2_DT_INST_CONNECT_INLINE_BY_IDX(inst, 0,				\
 			    DT_INST_IRQ_BY_IDX(inst, 0, priority),			\
 			    i2c_wch_event_isr, DEVICE_DT_INST_GET(inst), 0);		\
-		irq_enable(DT_INST_IRQ_BY_IDX(inst, 0, irq));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_IDX(inst, 0));				\
 											\
-		IRQ_CONNECT(DT_INST_IRQ_BY_IDX(inst, 1, irq),				\
+		INTC2_DT_INST_CONNECT_INLINE_BY_IDX(inst, 1,				\
 			    DT_INST_IRQ_BY_IDX(inst, 1, priority),			\
 			    i2c_wch_error_isr, DEVICE_DT_INST_GET(inst), 0);		\
-		irq_enable(DT_INST_IRQ_BY_IDX(inst, 1, irq));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_IDX(inst, 1));				\
 	}
 
 DT_INST_FOREACH_STATUS_OKAY(I2C_WCH_INIT)

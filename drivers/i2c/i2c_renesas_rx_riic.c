@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT renesas_rx_i2c
 
 #include <zephyr/devicetree.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <errno.h>
@@ -796,32 +797,32 @@ static DEVICE_API(i2c, i2c_rx_driver_api) = {
 
 #ifndef CONFIG_RENESAS_RX_GRP_INTC
 #define RX_I2C_IRQ_CONFIG_INIT(index)                                                              \
-	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(index, eei, irq),                                          \
+	INTC2_DT_INST_CONNECT_INLINE_BY_NAME(index, eei,                                          \
 		    DT_INST_IRQ_BY_NAME(index, eei, priority), riic_eei_isr,                       \
 		    DEVICE_DT_INST_GET(index), 0);                                                 \
-	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(index, rxi, irq),                                          \
+	INTC2_DT_INST_CONNECT_INLINE_BY_NAME(index, rxi,                                          \
 		    DT_INST_IRQ_BY_NAME(index, rxi, priority), riic_rxi_isr,                       \
 		    DEVICE_DT_INST_GET(index), 0);                                                 \
-	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(index, txi, irq),                                          \
+	INTC2_DT_INST_CONNECT_INLINE_BY_NAME(index, txi,                                          \
 		    DT_INST_IRQ_BY_NAME(index, txi, priority), riic_txi_isr,                       \
 		    DEVICE_DT_INST_GET(index), 0);                                                 \
-	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(index, tei, irq),                                          \
+	INTC2_DT_INST_CONNECT_INLINE_BY_NAME(index, tei,                                          \
 		    DT_INST_IRQ_BY_NAME(index, tei, priority), riic_tei_isr,                       \
 		    DEVICE_DT_INST_GET(index), 0);                                                 \
-	irq_enable(DT_INST_IRQ_BY_NAME(index, eei, irq));                                          \
-	irq_enable(DT_INST_IRQ_BY_NAME(index, rxi, irq));                                          \
-	irq_enable(DT_INST_IRQ_BY_NAME(index, txi, irq));                                          \
-	irq_enable(DT_INST_IRQ_BY_NAME(index, tei, irq))
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(index, eei));                                          \
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(index, rxi));                                          \
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(index, txi));                                          \
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(index, tei))
 #else
 #define RX_I2C_IRQ_CONFIG_INIT(index)                                                              \
-	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(index, rxi, irq),                                          \
+	INTC2_DT_INST_CONNECT_INLINE_BY_NAME(index, rxi,                                          \
 		    DT_INST_IRQ_BY_NAME(index, rxi, priority), riic_rxi_isr,                       \
 		    DEVICE_DT_INST_GET(index), 0);                                                 \
-	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(index, txi, irq),                                          \
+	INTC2_DT_INST_CONNECT_INLINE_BY_NAME(index, txi,                                          \
 		    DT_INST_IRQ_BY_NAME(index, txi, priority), riic_txi_isr,                       \
 		    DEVICE_DT_INST_GET(index), 0);                                                 \
-	irq_enable(DT_INST_IRQ_BY_NAME(index, rxi, irq));                                          \
-	irq_enable(DT_INST_IRQ_BY_NAME(index, txi, irq));                                          \
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(index, rxi));                                          \
+	intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(index, txi));                                          \
 	rx_i2c_tei_grp_int_init(DEVICE_DT_INST_GET(index));                                        \
 	rx_i2c_eei_grp_int_init(DEVICE_DT_INST_GET(index))
 #endif
