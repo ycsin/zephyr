@@ -16,6 +16,9 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/sw_isr_table.h>
 #include <zephyr/sys/util.h>
+#ifdef CONFIG_INTC2_APLIC_DIRECT
+#include <zephyr/intc2.h>
+#endif
 
 #include "intc_riscv_aplic_priv.h"
 
@@ -82,6 +85,14 @@ static int aplic_init(const struct device *dev)
 {
 #ifdef CONFIG_RISCV_APLIC_MSI
 	return aplic_msi_init(dev);
+#elif defined(CONFIG_INTC2_APLIC_DIRECT)
+	/*
+	 * The intc2 boot pass (PRE_KERNEL_1 priority 0) has already reset
+	 * the hardware via the node's init op and programmed the recorded
+	 * line priorities; re-initializing here would wipe them.
+	 */
+	ARG_UNUSED(dev);
+	return 0;
 #else
 	return aplic_direct_init(dev);
 #endif
@@ -94,7 +105,32 @@ uint32_t riscv_aplic_get_num_sources(const struct device *dev)
 	return cfg->num_sources;
 }
 
-#ifdef CONFIG_RISCV_APLIC_DIRECT
+#if defined(CONFIG_RISCV_APLIC_DIRECT) && defined(CONFIG_INTC2_APLIC_DIRECT)
+/*
+ * The generated chain slot on the CPU-root node dispatches this
+ * instance's intc2 node directly; there is no legacy handler to
+ * connect, and the intc2 boot pass enables the chain line.
+ */
+#define APLIC_INTC_IRQ_FUNC_DECLARE(inst)
+#define APLIC_INTC_IRQ_FUNC_DEFINE(inst)
+/* Line 0 is reserved/invalid; size the node for indices 0..num_sources */
+#define APLIC_NUM_LINES(inst)                                                                      \
+	MIN(DT_INST_PROP(inst, riscv_num_sources) + 1, CONFIG_MAX_IRQ_PER_AGGREGATOR)
+
+#define APLIC_INIT(inst)                                                                           \
+	BUILD_ASSERT(DT_INST_NODE_HAS_PROP(inst, riscv_max_priority),                              \
+		     "max_prio is required for APLIC direct-delivery mode but is not present");    \
+	static struct aplic_data aplic_data_##inst;                                                \
+	static const struct aplic_cfg aplic_cfg_##inst = {                                         \
+		.base = DT_INST_REG_ADDR(inst),                                                    \
+		.num_sources = DT_INST_PROP(inst, riscv_num_sources),                              \
+		.max_prio = DT_INST_PROP(inst, riscv_max_priority),                                \
+	};                                                                                         \
+	DEVICE_DT_INST_DEFINE(inst, aplic_init, NULL, &aplic_data_##inst, &aplic_cfg_##inst,       \
+			      PRE_KERNEL_1, CONFIG_INTC_INIT_PRIORITY, NULL);                     \
+	INTC2_NODE_DT_DEFINE(DT_DRV_INST(inst), &aplic_intc2_api, DEVICE_DT_INST_GET(inst),        \
+			     APLIC_NUM_LINES(inst), 0);
+#elif defined(CONFIG_RISCV_APLIC_DIRECT)
 /* With direct delivery mode enabled the APLIC must register an IRQ handler
  * on initialization
  */

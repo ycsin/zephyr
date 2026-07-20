@@ -14,6 +14,9 @@
 #include <zephyr/sys/util.h>
 #include <zephyr/sw_isr_table.h>
 #include <zephyr/irq.h>
+#ifdef CONFIG_INTC2_APLIC_DIRECT
+#include <zephyr/intc2.h>
+#endif
 
 #include "sw_isr_common.h"
 #include "intc_riscv_aplic_priv.h"
@@ -156,6 +159,7 @@ const struct device *riscv_aplic_get_saved_dev(void)
 	return save_dev[arch_curr_cpu()->id];
 }
 
+#ifndef CONFIG_INTC2_APLIC_DIRECT
 void aplic_irq_handler(const struct device *dev)
 {
 	const struct aplic_cfg *cfg = dev->config;
@@ -187,6 +191,7 @@ void aplic_irq_handler(const struct device *dev)
 	ite = &cfg->isr_table[local_irq];
 	ite->isr(ite->arg);
 }
+#endif /* !CONFIG_INTC2_APLIC_DIRECT */
 
 int aplic_direct_init(const struct device *dev)
 {
@@ -216,8 +221,92 @@ int aplic_direct_init(const struct device *dev)
 		wr32(cfg->base, aplic_ithreshold_off(cpu), APLIC_IDC_ITHRESHOLD);
 	}
 
+#ifndef CONFIG_INTC2_APLIC_DIRECT
 	/* Configure IRQ for APLIC driver */
 	cfg->irq_config_func();
+#endif
 
 	return 0;
 }
+
+#ifdef CONFIG_INTC2_APLIC_DIRECT
+
+static void aplic_intc2_enable(const struct intc2_node *node, uint32_t line)
+{
+	const struct device *dev = node->config;
+
+	riscv_aplic_enable_src(dev, line, true);
+}
+
+static void aplic_intc2_disable(const struct intc2_node *node, uint32_t line)
+{
+	const struct device *dev = node->config;
+
+	riscv_aplic_enable_src(dev, line, false);
+}
+
+static int aplic_intc2_is_enabled(const struct intc2_node *node, uint32_t line)
+{
+	ARG_UNUSED(node);
+
+	return riscv_aplic_is_enabled(line);
+}
+
+static int aplic_intc2_set_priority(const struct intc2_node *node, uint32_t line,
+				    uint32_t prio, uint32_t flags)
+{
+	const struct device *dev = node->config;
+
+	/*
+	 * Sources boot in APLIC_SM_INACTIVE (aplic_direct_init() resets
+	 * every source unconditionally); the trigger mode must be
+	 * programmed before the line can ever signal, mirroring
+	 * z_riscv_irq_priority_set()'s legacy AIA branch which does the
+	 * same from the DT-derived flags cell at connect time.
+	 */
+	if (flags != 0) {
+		int ret = riscv_aplic_config_src(dev, line, flags);
+
+		if (ret != 0) {
+			return ret;
+		}
+	}
+
+	return riscv_aplic_set_priority(dev, line, prio);
+}
+
+static int32_t aplic_intc2_get_pending(const struct intc2_node *node)
+{
+	const struct device *dev = node->config;
+	const struct aplic_cfg *cfg = dev->config;
+	uint32_t cpu_id = arch_curr_cpu()->id;
+	const uint32_t claimi_offset = aplic_claimi_off(arch_proc_id());
+	const uint32_t local_irq = rd32(cfg->base, claimi_offset) >> APLIC_INTERRUPT_IDENTITY_SHIFT;
+
+	if (local_irq == 0U) {
+		/* Nothing (left) to claim */
+		return -ENOENT;
+	}
+
+	/* Keep the legacy riscv_aplic_get_saved_irq()/get_saved_dev() working */
+	save_irq[cpu_id] = local_irq;
+	save_dev[cpu_id] = dev;
+
+	return (int32_t)local_irq;
+}
+
+static void aplic_intc2_init(const struct intc2_node *node)
+{
+	aplic_direct_init(node->config);
+}
+
+DEVICE_API(intc2, aplic_intc2_api) = {
+	.enable = aplic_intc2_enable,
+	.disable = aplic_intc2_disable,
+	.is_enabled = aplic_intc2_is_enabled,
+	.set_priority = aplic_intc2_set_priority,
+	.get_pending = aplic_intc2_get_pending,
+	.init = aplic_intc2_init,
+};
+
+#endif /* CONFIG_INTC2_APLIC_DIRECT */

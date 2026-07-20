@@ -46,6 +46,20 @@ config RISCV_APLIC_DIRECT_IRQ_AFFINITY
 	help
 	  Enable configuration of IRQ affinity.
 
+config INTC2_APLIC_DIRECT
+	bool "intc2 controller node for the RISC-V APLIC (direct delivery mode)"
+	default y
+	depends on INTC2 && RISCV_APLIC_DIRECT
+	depends on !ISR_TABLES_LOCAL_DECLARATION
+	help
+	  Convert the APLIC (direct delivery mode) into a real intc2
+	  controller node with claim/complete-style dispatch, instead of
+	  bridging through the legacy _sw_isr_table. Mirrors the PLIC
+	  conversion; direct-mode already routes wired interrupts to the
+	  hart's external interrupt line the same way PLIC does, so no
+	  arch-level bridging work is needed beyond what riscv_cpu_intc
+	  already provides.
+
 config RISCV_AIA
 	bool "RISC-V AIA unified coordinator"
 	default y

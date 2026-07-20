@@ -1,0 +1,16 @@
+common:
+  platform_allow:
+    - qemu_riscv32/qemu_virt_riscv32/aia-direct
+  integration_platforms:
+    - qemu_riscv32/qemu_virt_riscv32/aia-direct
+  tags:
+    - drivers
+    - interrupt
+    - aplic
+    - intc2
+
+tests:
+  drivers.interrupt_controller.intc_aplic_intc2.legacy: {}
+  drivers.interrupt_controller.intc_aplic_intc2.bridge:
+    extra_configs:
+      - CONFIG_INTC2=y
