@@ -17,6 +17,7 @@
 #include <zephyr/drivers/uart.h>
 #include <zephyr/sys/device_mmio.h>
 #include <zephyr/sys/barrier.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #if defined(CONFIG_PINCTRL)
 #include <zephyr/drivers/pinctrl.h>
@@ -742,14 +743,15 @@ void pl011_isr(const struct device *dev)
 }
 #endif /* PL011_USE_IRQ */
 
-#define PL011_IRQ_CONFIG_FUNC_BODY(n, prop, i)		\
-	{						\
-		IRQ_CONNECT(DT_IRQ_BY_IDX(n, i, irq),	\
-			DT_IRQ_BY_IDX(n, i, priority),	\
-			pl011_isr,			\
-			DEVICE_DT_GET(n),		\
-			0);				\
-		irq_enable(DT_IRQ_BY_IDX(n, i, irq));	\
+#define PL011_IRQ_CONFIG_FUNC_BODY(n, prop, i)			\
+	{							\
+		INTC2_DT_CONNECT_INLINE_BY_IDX(n, i,		\
+			DT_IRQ_BY_IDX(n, i, priority),		\
+			pl011_isr,				\
+			DEVICE_DT_GET(n),			\
+			0);					\
+		intc2_enable((struct intc2_spec)		\
+			     INTC2_DT_SPEC_GET_BY_IDX(n, i));	\
 	}
 
 #define PL011_NODE_USE_IRQ(n)                                                                      \
