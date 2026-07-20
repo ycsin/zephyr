@@ -79,6 +79,12 @@ ZTEST(intc_gicv3_intc2, test_spi_dispatch)
 	intc2_disable(spec);
 	zassert_false(irq_is_enabled(TEST_SPI_INTID));
 	intc2_enable(spec);
+
+	/* SGIs/PPIs are banked per PE, SPIs are shared */
+	struct intc2_spec ppi = {.node = gic, .line = TEST_PPI_INTID};
+
+	zassert_equal(intc2_line_flags(ppi), INTC2_LINE_BANKED);
+	zassert_equal(intc2_line_flags(spec), 0);
 #endif /* CONFIG_INTC2 */
 
 	irq_disable(TEST_SPI_INTID);

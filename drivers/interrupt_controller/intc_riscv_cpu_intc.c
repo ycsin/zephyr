@@ -38,10 +38,20 @@ static int riscv_cpu_intc2_is_enabled(const struct intc2_node *node, uint32_t li
 	return arch_irq_is_enabled(line);
 }
 
+static uint32_t riscv_cpu_intc2_line_flags(const struct intc2_node *node, uint32_t line)
+{
+	ARG_UNUSED(node);
+	ARG_UNUSED(line);
+
+	/* the mie/sie CSR is banked per hart */
+	return INTC2_LINE_BANKED;
+}
+
 static DEVICE_API(intc2, riscv_cpu_intc2_api) = {
 	.enable = riscv_cpu_intc2_enable,
 	.disable = riscv_cpu_intc2_disable,
 	.is_enabled = riscv_cpu_intc2_is_enabled,
+	.line_flags = riscv_cpu_intc2_line_flags,
 };
 
 INTC2_NODE_DT_DEFINE(DT_DRV_INST(0), &riscv_cpu_intc2_api, NULL, CONFIG_NUM_IRQS,

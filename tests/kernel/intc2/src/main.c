@@ -163,6 +163,21 @@ ZTEST(intc2_base, test_enable_disable)
 	zassert_true((emul_intc_regs(ROOT)->enable & BIT(1)) == 0U);
 }
 
+ZTEST(intc2_base, test_line_flags)
+{
+	struct intc2_spec spec = INTC2_DT_SPEC_GET(DEV_A_NODE);
+	struct intc2_spec l2spec = {.node = L2, .line = 0};
+
+	zassert_equal(intc2_line_flags(spec), 0);
+
+	emul_intc_regs(ROOT)->line_flags = INTC2_LINE_BANKED | INTC2_LINE_FIXED_ENABLE;
+	zassert_equal(intc2_line_flags(spec), INTC2_LINE_BANKED | INTC2_LINE_FIXED_ENABLE);
+	emul_intc_regs(ROOT)->line_flags = 0;
+
+	/* controllers without the op report no attributes */
+	zassert_equal(intc2_line_flags(l2spec), 0);
+}
+
 ZTEST(intc2_base, test_set_priority)
 {
 	struct intc2_spec spec_a = INTC2_DT_SPEC_GET(DEV_A_NODE);

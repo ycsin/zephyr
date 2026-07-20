@@ -858,6 +858,14 @@ static int gic_v3_intc2_is_enabled(const struct intc2_node *node, uint32_t line)
 	return arm_gic_irq_is_enabled(line);
 }
 
+static uint32_t gic_v3_intc2_line_flags(const struct intc2_node *node, uint32_t line)
+{
+	ARG_UNUSED(node);
+
+	/* SGIs and PPIs are banked per PE in the redistributor */
+	return (line < GIC_SPI_INT_BASE) ? INTC2_LINE_BANKED : 0;
+}
+
 #if defined(CONFIG_INTC2_AFFINITY) && GIC_V3_HAS_IROUTER
 static int gic_v3_intc2_set_affinity(const struct intc2_node *node, uint32_t line,
 				     uint32_t cpumask)
@@ -908,6 +916,7 @@ static DEVICE_API(intc2, gic_v3_intc2_api) = {
 	.enable = gic_v3_intc2_enable,
 	.disable = gic_v3_intc2_disable,
 	.is_enabled = gic_v3_intc2_is_enabled,
+	.line_flags = gic_v3_intc2_line_flags,
 #if defined(CONFIG_INTC2_AFFINITY) && GIC_V3_HAS_IROUTER
 	.set_affinity = gic_v3_intc2_set_affinity,
 	.get_affinity = gic_v3_intc2_get_affinity,

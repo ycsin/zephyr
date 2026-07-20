@@ -128,6 +128,15 @@ ZTEST(intc_plic_intc2, test_console_spec_resolves_to_plic_node)
 	 */
 	zassert_true(intc2_is_enabled(spec) > 0,
 		     "console line not enabled on the PLIC node");
+
+	/* PLIC lines are shared; the CPU-intc root lines are banked */
+	struct intc2_spec root = {
+		.node = INTC2_NODE_DT_GET(DT_NODELABEL(hlic0)),
+		.line = RISCV_IRQ_MEXT,
+	};
+
+	zassert_equal(intc2_line_flags(spec), 0);
+	zassert_equal(intc2_line_flags(root), INTC2_LINE_BANKED);
 }
 
 ZTEST(intc_plic_intc2, test_uart_irq_affinity_routing)

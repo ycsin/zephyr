@@ -134,6 +134,14 @@ static inline int intc2_get_affinity(struct intc2_spec spec, uint32_t *cpumask)
 	return -ENOSYS;
 }
 
+static inline uint32_t intc2_line_flags(struct intc2_spec spec)
+{
+	ARG_UNUSED(spec);
+
+	/* the legacy backend has no line attribute information */
+	return 0;
+}
+
 #ifdef CONFIG_DYNAMIC_INTERRUPTS
 static inline int intc2_connect_dynamic(struct intc2_spec spec, uint32_t prio,
 					void (*isr)(const void *arg), const void *arg,
@@ -186,6 +194,24 @@ struct intc2_node;
 /** @} */
 
 /**
+ * @name Line attributes, reported by the optional line_flags op
+ * @{
+ */
+/**
+ * @brief Banked per CPU: one connect entry is shared by all CPUs,
+ * enable/disable/is_enabled act on the calling CPU's bank, and
+ * dispatch reads the bank of the interrupted CPU (e.g. GIC SGIs/PPIs,
+ * RISC-V mie lines, per-CPU timers).
+ */
+#define INTC2_LINE_BANKED       BIT(0)
+/**
+ * @brief Always enabled: the hardware cannot mask the line, enable is
+ * a no-op and disable is ineffective.
+ */
+#define INTC2_LINE_FIXED_ENABLE BIT(1)
+/** @} */
+
+/**
  * @brief Interrupt specification: one input line of one controller node.
  *
  * Obtain with INTC2_DT_SPEC_GET(); resolvable entirely at compile time.
@@ -234,6 +260,8 @@ __subsystem struct intc2_driver_api {
 	void (*disable)(const struct intc2_node *node, uint32_t line);
 	/** Return non-zero when @a line is unmasked */
 	int (*is_enabled)(const struct intc2_node *node, uint32_t line);
+	/** Optional: INTC2_LINE_* attributes of @a line */
+	uint32_t (*line_flags)(const struct intc2_node *node, uint32_t line);
 	/** Optional: program priority/flags of @a line */
 	int (*set_priority)(const struct intc2_node *node, uint32_t line,
 			    uint32_t prio, uint32_t flags);
@@ -690,6 +718,24 @@ static inline int intc2_get_affinity(struct intc2_spec spec, uint32_t *cpumask)
 
 	return -ENOSYS;
 #endif
+}
+
+/**
+ * @brief Get the INTC2_LINE_* attributes of the interrupt line
+ * described by @a spec.
+ *
+ * Returns 0 (no attributes) when the controller does not report line
+ * attributes.
+ */
+static inline uint32_t intc2_line_flags(struct intc2_spec spec)
+{
+	const struct intc2_driver_api *api = spec.node->api;
+
+	if (api->line_flags == NULL) {
+		return 0;
+	}
+
+	return api->line_flags(spec.node, spec.line);
 }
 
 /** @cond INTERNAL_HIDDEN */

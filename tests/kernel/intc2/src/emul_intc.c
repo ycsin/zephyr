@@ -25,6 +25,13 @@ static int emul_intc_is_enabled(const struct intc2_node *node, uint32_t line)
 	return (emul_intc_regs(node)->enable & BIT(line)) != 0U;
 }
 
+static uint32_t emul_intc_line_flags(const struct intc2_node *node, uint32_t line)
+{
+	ARG_UNUSED(line);
+
+	return emul_intc_regs(node)->line_flags;
+}
+
 static int emul_intc_set_priority(const struct intc2_node *node, uint32_t line,
 				  uint32_t prio, uint32_t flags)
 {
@@ -109,6 +116,7 @@ static DEVICE_API(intc2, emul_intc_api) = {
 	.enable = emul_intc_enable,
 	.disable = emul_intc_disable,
 	.is_enabled = emul_intc_is_enabled,
+	.line_flags = emul_intc_line_flags,
 	.set_priority = emul_intc_set_priority,
 #ifdef CONFIG_INTC2_AFFINITY
 	.set_affinity = emul_intc_set_affinity,

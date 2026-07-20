@@ -19,6 +19,8 @@ struct emul_intc_regs {
 	uint8_t prio[EMUL_INTC_WIDE_NLINES];
 	bool inited;
 	uint32_t eoi_cnt;
+	/* INTC2_LINE_* attributes reported for every line */
+	uint32_t line_flags;
 #ifdef CONFIG_INTC2_AFFINITY
 	uint32_t cpumask[EMUL_INTC_WIDE_NLINES];
 #endif

@@ -773,7 +773,12 @@ runtime IRQ-to-CPU routing through :c:func:`intc2_set_affinity` and
 mutation: a call selects among the per-CPU delivery edges the node already
 has from the devicetree, within the node's advertised
 ``INTC2_NODE_AFFINITY_*`` capability class, and lines start out routed to
-:kconfig:option:`CONFIG_INTC2_AFFINITY_DEFAULT_MASK`.
+:kconfig:option:`CONFIG_INTC2_AFFINITY_DEFAULT_MASK`. Controllers report
+per-line attributes through :c:func:`intc2_line_flags`: banked lines
+(``INTC2_LINE_BANKED``, e.g. GIC SGIs/PPIs or RISC-V ``mie`` lines) share
+one connect entry across all CPUs while the enable operations act on the
+calling CPU's bank, and always-enabled lines (``INTC2_LINE_FIXED_ENABLE``)
+cannot be masked.
 
 .. doxygengroup:: intc2_apis
 
