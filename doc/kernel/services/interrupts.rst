@@ -780,6 +780,19 @@ one connect entry across all CPUs while the enable operations act on the
 calling CPU's bank, and always-enabled lines (``INTC2_LINE_FIXED_ENABLE``)
 cannot be masked.
 
+Controllers whose line space is allocated at runtime rather than fixed by
+devicetree - a CPU's dynamic vector pool, a message-signaled (MSI/MSI-X)
+doorbell - set ``INTC2_NODE_ALLOC`` and implement the optional ``alloc``
+op, reachable through :c:func:`intc2_line_alloc`
+(:kconfig:option:`CONFIG_INTC2_ALLOC`). It allocates and connects a line
+in one call and returns a spec whose line is meaningful only to that
+node. Message-signaled controllers additionally implement ``msi_alloc``,
+reachable through :c:func:`intc2_msi_alloc`
+(:kconfig:option:`CONFIG_INTC2_MSI`), which does the same and also
+yields the ``(address, data)`` pair the endpoint must be programmed
+with. :kconfig:option:`CONFIG_INTC2_X86_IRQ_ALLOC` wraps intel64's
+dynamic vector pool as a concrete allocator node.
+
 .. doxygengroup:: intc2_apis
 
 Suggested Uses
