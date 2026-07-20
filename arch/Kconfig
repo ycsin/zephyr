@@ -807,6 +807,19 @@ config INTC2_MSI
 	  (address, data) pair the endpoint's message capability
 	  registers must be programmed with.
 
+config INTC2_SHELL
+	bool "intc2 shell commands"
+	depends on INTC2
+	depends on SHELL
+	help
+	  Shell commands to inspect intc2 nodes and their lines by
+	  devicetree name (`intc2 list`), and to read/set runtime
+	  affinity (`intc2 affinity`, meaningful only on nodes and
+	  builds with CONFIG_INTC2_AFFINITY; reports -ENOSYS/-ENOTSUP
+	  otherwise, same as intc2_set_affinity()/intc2_get_affinity()
+	  do at the C API level). Generalizes the PLIC-specific
+	  affinity shell to any intc2 node.
+
 config IRQ_OFFLOAD_NESTED
 	bool "irq_offload() supports nested IRQs"
 	depends on IRQ_OFFLOAD

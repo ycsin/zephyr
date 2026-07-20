@@ -12,6 +12,10 @@
 #include <zephyr/intc2.h>
 #include <zephyr/irq_offload.h>
 #include <zephyr/ztest.h>
+#ifdef CONFIG_INTC2_SHELL
+#include <zephyr/shell/shell.h>
+#include <zephyr/shell/shell_dummy.h>
+#endif
 
 #define ROOT_NODE  DT_NODELABEL(intc2_root)
 #define L2_NODE    DT_NODELABEL(intc2_l2)
@@ -565,3 +569,60 @@ ZTEST(intc2_alloc, test_msi_alloc_not_supported_on_plain_alloc_node)
 }
 
 #endif /* CONFIG_INTC2_ALLOC */
+
+#ifdef CONFIG_INTC2_SHELL
+
+static void *intc2_shell_setup(void)
+{
+	/* let the shell backend initialize before the first command */
+	k_usleep(10);
+
+	return NULL;
+}
+
+ZTEST_SUITE(intc2_shell, NULL, intc2_shell_setup, NULL, NULL, NULL);
+
+static const char *exec(const char *cmd)
+{
+	const struct shell *sh = shell_backend_dummy_get_ptr();
+	size_t size;
+
+	shell_backend_dummy_clear_output(sh);
+	zassert_ok(shell_execute_cmd(sh, cmd), "shell command failed: %s", cmd);
+
+	return shell_backend_dummy_get_output(sh, &size);
+}
+
+ZTEST(intc2_shell, test_list)
+{
+	const char *out = exec("intc2 list");
+
+	zassert_not_null(strstr(out, "intc2-root"), "root node missing from 'intc2 list'");
+	zassert_not_null(strstr(out, "intc2-l2"), "l2 node missing from 'intc2 list'");
+}
+
+ZTEST(intc2_shell, test_affinity_get_set)
+{
+	if (!IS_ENABLED(CONFIG_INTC2_AFFINITY)) {
+		ztest_test_skip();
+	}
+
+	/* mask must stay within CONFIG_MP_MAX_NUM_CPUS (1 on this build) */
+	zassert_not_null(strstr(exec("intc2 affinity get intc2-root 1"), "0x1"));
+	zassert_not_null(strstr(exec("intc2 affinity set intc2-root 1 0x1"), "0x1"));
+	zassert_not_null(strstr(exec("intc2 affinity get intc2-root 1"), "0x1"));
+
+	/* the l2 node's api has no set_affinity/get_affinity ops */
+	const struct shell *sh = shell_backend_dummy_get_ptr();
+
+	zassert_not_equal(shell_execute_cmd(sh, "intc2 affinity get intc2-l2 0"), 0);
+}
+
+ZTEST(intc2_shell, test_unknown_node)
+{
+	const struct shell *sh = shell_backend_dummy_get_ptr();
+
+	zassert_not_equal(shell_execute_cmd(sh, "intc2 affinity get no-such-node 0"), 0);
+}
+
+#endif /* CONFIG_INTC2_SHELL */

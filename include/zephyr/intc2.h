@@ -30,6 +30,7 @@
 #include <stdint.h>
 
 #include <zephyr/devicetree.h>
+#include <zephyr/sys/iterable_sections.h>
 #include <zephyr/sys/util_macro.h>
 #include <zephyr/toolchain.h>
 
@@ -533,6 +534,41 @@ DT_FOREACH_STATUS_OKAY_NODE(Z_INTC2_MAYBE_NODE_DECLARE)
  */
 #define INTC2_NODE_DT_GET(node_id) (&INTC2_NODE_DT_NAME_GET(node_id))
 
+/** @cond INTERNAL_HIDDEN */
+
+/*
+ * intc2 shell node registry (CONFIG_INTC2_SHELL): a {name, node} record
+ * per devicetree-backed node, gathered into an iterable ROM section so
+ * the shell can resolve a node by the same name devicetree gives it,
+ * without needing a struct device (many intc2 nodes have none).
+ */
+struct intc2_shell_rec {
+	const char *name;
+	const struct intc2_node *node;
+};
+
+/*
+ * Terminates the preceding Z_INTC2_LIST_REC(...)'s unterminated '}' with
+ * a ';' (matching how that macro is designed to be used: the single
+ * trailing ';' every INTC2_NODE_DT_DEFINE(...) callsite already
+ * supplies terminates whatever this expands to), then optionally adds
+ * a second, likewise-unterminated declaration for that same trailing
+ * ';' to finish.
+ */
+#ifdef CONFIG_INTC2_SHELL
+#define Z_INTC2_SHELL_REC(node_id)                                                                 \
+	;                                                                                          \
+	static const STRUCT_SECTION_ITERABLE(                                                      \
+		intc2_shell_rec, _CONCAT(__intc2_shellrec_, Z_INTC2_NODE_SYM(node_id))) = {        \
+		.name = DT_NODE_FULL_NAME(node_id),                                                \
+		.node = &INTC2_NODE_DT_NAME_GET(node_id),                                          \
+	}
+#else
+#define Z_INTC2_SHELL_REC(node_id) ;
+#endif /* CONFIG_INTC2_SHELL */
+
+/** INTERNAL_HIDDEN @endcond */
+
 /**
  * @brief Define the intc2 node for a devicetree interrupt controller.
  *
@@ -562,7 +598,8 @@ DT_FOREACH_STATUS_OKAY_NODE(Z_INTC2_MAYBE_NODE_DECLARE)
 	Z_INTC2_LIST_REC(_CONCAT(__intc2_noderec_, Z_INTC2_NODE_SYM(node_id)),                     \
 			 Z_INTC2_REC_TAG_NODE, DT_DEP_ORD(node_id), (nlines_),                     \
 			 Z_INTC2_PARENT_PRIO(node_id), (flags_), Z_INTC2_PARENT_ORD(node_id),      \
-			 Z_INTC2_PARENT_LINE(node_id), 0)
+			 Z_INTC2_PARENT_LINE(node_id), 0)                                          \
+	Z_INTC2_SHELL_REC(node_id)
 
 /**
  * @brief Initializer for the intc2 spec of a device's interrupt by index.

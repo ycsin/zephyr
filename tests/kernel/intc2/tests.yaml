@@ -39,3 +39,13 @@ tests:
     extra_configs:
       - CONFIG_INTC2_ALLOC=y
       - CONFIG_INTC2_MSI=y
+  kernel.intc2.shell:
+    extra_configs:
+      - CONFIG_INTC2_SHELL=y
+      - CONFIG_INTC2_AFFINITY=y
+      - CONFIG_SHELL=y
+      - CONFIG_SHELL_BACKEND_SERIAL=n
+      - CONFIG_SHELL_BACKEND_DUMMY=y
+      # shell_print output is otherwise interleaved with deferred log
+      # processing and may not be flushed by the time the test reads it
+      - CONFIG_LOG=n

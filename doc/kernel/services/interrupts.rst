@@ -793,6 +793,17 @@ yields the ``(address, data)`` pair the endpoint must be programmed
 with. :kconfig:option:`CONFIG_INTC2_X86_IRQ_ALLOC` wraps intel64's
 dynamic vector pool as a concrete allocator node.
 
+:kconfig:option:`CONFIG_INTC2_SHELL` adds ``intc2`` shell commands: ``intc2
+list`` enumerates every devicetree-backed node by its devicetree name, and
+``intc2 affinity get/set <node> <line> [mask]`` reads or writes a line's
+runtime CPU affinity through the same :c:func:`intc2_get_affinity`/
+:c:func:`intc2_set_affinity` calls above (reporting -ENOSYS/-ENOTSUP the
+same way when unsupported). Unlike the PLIC-specific ``plic affinity``
+shell, this works against any node by name and has no dependency on a
+``struct device`` — allocator nodes in particular have none. Nodes with
+no devicetree representation (allocator nodes) are not enumerated, since
+they have no devicetree name for the shell to resolve.
+
 .. doxygengroup:: intc2_apis
 
 Suggested Uses

@@ -35,6 +35,7 @@ zephyr_library_sources_ifdef(
 zephyr_library_sources_ifdef(CONFIG_SHARED_INTERRUPTS shared_irq.c)
 
 zephyr_library_sources_ifdef(CONFIG_INTC2 intc2.c)
+zephyr_library_sources_ifdef(CONFIG_INTC2_SHELL intc2_shell.c)
 
 if(NOT CONFIG_ARCH_HAS_TIMING_FUNCTIONS AND
     NOT CONFIG_SOC_HAS_TIMING_FUNCTIONS AND
