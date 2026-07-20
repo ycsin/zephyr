@@ -36,18 +36,40 @@ import sys
 
 IDENT = re.compile(r"[A-Za-z0-9_]")
 
-# (outer callable, spec/connect head chooser by arg0 head)
+# (arg0 regex, connect head, spec head, drop trailing `irq` cell)
+#
+# Two accessor families select an interrupt line's number from
+# devicetree and both appear at IRQ_CONNECT()/irq_enable() call sites:
+#   - the IRQN spelling: DT_IRQN(node) / DT_INST_IRQN(inst) / *_BY_IDX
+#     -> the inner text is already the INTC2 macro's (node[, idx]) shape
+#   - the cell spelling: DT_IRQ(node, irq) / DT_INST_IRQ_BY_IDX(inst,
+#     idx, irq) / *_BY_NAME(node, name, irq) -> the trailing `irq` cell
+#     is stripped so the remainder matches the same (node[, idx|name])
+#     shape. Only the `irq` cell maps to an intc2 line; a different
+#     trailing cell is left as a residual.
 ARG0_MAP = [
     (re.compile(r"^DT_INST_IRQN_BY_IDX\s*\((.*)\)$", re.S),
-     "INTC2_DT_INST_CONNECT_INLINE_BY_IDX", "INTC2_DT_INST_SPEC_GET_BY_IDX"),
+     "INTC2_DT_INST_CONNECT_INLINE_BY_IDX", "INTC2_DT_INST_SPEC_GET_BY_IDX", False),
     (re.compile(r"^DT_INST_IRQN\s*\((.*)\)$", re.S),
-     "INTC2_DT_INST_CONNECT_INLINE", "INTC2_DT_INST_SPEC_GET"),
+     "INTC2_DT_INST_CONNECT_INLINE", "INTC2_DT_INST_SPEC_GET", False),
     (re.compile(r"^DT_IRQN_BY_IDX\s*\((.*)\)$", re.S),
-     "INTC2_DT_CONNECT_INLINE_BY_IDX", "INTC2_DT_SPEC_GET_BY_IDX"),
+     "INTC2_DT_CONNECT_INLINE_BY_IDX", "INTC2_DT_SPEC_GET_BY_IDX", False),
     (re.compile(r"^DT_IRQN_BY_NAME\s*\((.*)\)$", re.S),
-     "INTC2_DT_CONNECT_INLINE_BY_NAME", "INTC2_DT_SPEC_GET_BY_NAME"),
+     "INTC2_DT_CONNECT_INLINE_BY_NAME", "INTC2_DT_SPEC_GET_BY_NAME", False),
     (re.compile(r"^DT_IRQN\s*\((.*)\)$", re.S),
-     "INTC2_DT_CONNECT_INLINE", "INTC2_DT_SPEC_GET"),
+     "INTC2_DT_CONNECT_INLINE", "INTC2_DT_SPEC_GET", False),
+    (re.compile(r"^DT_INST_IRQ_BY_IDX\s*\((.*)\)$", re.S),
+     "INTC2_DT_INST_CONNECT_INLINE_BY_IDX", "INTC2_DT_INST_SPEC_GET_BY_IDX", True),
+    (re.compile(r"^DT_INST_IRQ_BY_NAME\s*\((.*)\)$", re.S),
+     "INTC2_DT_INST_CONNECT_INLINE_BY_NAME", "INTC2_DT_INST_SPEC_GET_BY_NAME", True),
+    (re.compile(r"^DT_INST_IRQ\s*\((.*)\)$", re.S),
+     "INTC2_DT_INST_CONNECT_INLINE", "INTC2_DT_INST_SPEC_GET", True),
+    (re.compile(r"^DT_IRQ_BY_IDX\s*\((.*)\)$", re.S),
+     "INTC2_DT_CONNECT_INLINE_BY_IDX", "INTC2_DT_SPEC_GET_BY_IDX", True),
+    (re.compile(r"^DT_IRQ_BY_NAME\s*\((.*)\)$", re.S),
+     "INTC2_DT_CONNECT_INLINE_BY_NAME", "INTC2_DT_SPEC_GET_BY_NAME", True),
+    (re.compile(r"^DT_IRQ\s*\((.*)\)$", re.S),
+     "INTC2_DT_CONNECT_INLINE", "INTC2_DT_SPEC_GET", True),
 ]
 
 ENABLE_MAP = {
@@ -113,10 +135,19 @@ def split_args(argtext):
 
 def match_arg0(arg0):
     stripped = arg0.strip().replace("\\\n", "").strip()
-    for (rx, connect_head, spec_head) in ARG0_MAP:
+    for (rx, connect_head, spec_head, drop_cell) in ARG0_MAP:
         m = rx.match(stripped)
-        if m:
-            return connect_head, spec_head, m.group(1).strip()
+        if not m:
+            continue
+        inner = m.group(1).strip()
+        if drop_cell:
+            parts = split_args(inner)
+            if len(parts) < 2 or parts[-1].strip() != "irq":
+                # only the `irq` cell maps to an intc2 line; a different
+                # trailing cell (or a bare node) is not a plain IRQ line
+                return None
+            inner = ",".join(parts[:-1]).strip()
+        return connect_head, spec_head, inner
     return None
 
 
