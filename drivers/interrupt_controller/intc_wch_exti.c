@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <zephyr/sys/util_macro.h>
 #include <zephyr/drivers/interrupt_controller/wch_exti.h>
@@ -118,7 +119,7 @@ void wch_exti_set_trigger(uint8_t line, enum wch_exti_trigger trigger)
 }
 
 #define WCH_EXTI_CONNECT_IRQ(node_id, interrupts, idx)                                             \
-	IRQ_CONNECT(DT_IRQ_BY_IDX(node_id, idx, irq), DT_IRQ_BY_IDX(node_id, idx, priority),       \
+	INTC2_DT_CONNECT_INLINE_BY_IDX(node_id, idx, DT_IRQ_BY_IDX(node_id, idx, priority),       \
 		    wch_exti_isr, &wch_exti_ranges[idx], 0);
 
 static int wch_exti_init(const struct device *dev)

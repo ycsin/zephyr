@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT infineon_xmc4xxx_intc
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/dt-bindings/interrupt-controller/infineon-xmc4xxx-intc.h>
@@ -195,9 +196,9 @@ static void intc_xmc4xxx_isr(void *arg)
 
 #define INTC_IRQ_CONNECT_ENABLE(name, line_number)                                                \
 	COND_CODE_1(DT_INST_IRQ_HAS_NAME(0, name),                                                \
-	(IRQ_CONNECT(DT_INST_IRQ_BY_NAME(0, name, irq),                                           \
+	(INTC2_DT_INST_CONNECT_INLINE_BY_NAME(0, name,                                           \
 		DT_INST_IRQ_BY_NAME(0, name, priority), intc_xmc4xxx_isr, (void *)line_number, 0); \
-		irq_enable(DT_INST_IRQ_BY_NAME(0, name, irq));), ())
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_NAME(0, name));), ())
 
 static int intc_xmc4xxx_init(const struct device *dev)
 {

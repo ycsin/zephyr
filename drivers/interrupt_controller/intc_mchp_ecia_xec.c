@@ -13,6 +13,7 @@
 #define DT_DRV_COMPAT microchip_xec_ecia
 
 #include <zephyr/arch/cpu.h>
+#include <zephyr/intc2.h>
 #include <cmsis_core.h>
 #include <zephyr/device.h>
 #include <soc.h>
@@ -582,12 +583,12 @@ static int xec_ecia_init(const struct device *dev)
 		mchp_xec_ecia_girq_aggr_en(				\
 			GIRQ_ID_TO_BITPOS(DT_PROP(n, girq_id)), 1);	\
 									\
-		IRQ_CONNECT(DT_IRQN(n),					\
+		INTC2_DT_CONNECT_INLINE(n,					\
 			    DT_IRQ(n, priority),			\
 			    xec_girq_isr,				\
 			    DEVICE_DT_GET(n), 0);			\
 									\
-		irq_enable(DT_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET(n));					\
 									\
 		return 0;						\
 	}

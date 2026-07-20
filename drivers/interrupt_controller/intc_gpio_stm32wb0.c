@@ -19,6 +19,7 @@
 #include <stm32_ll_system.h>
 
 #include <zephyr/irq.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/sys/__assert.h>
@@ -154,11 +155,11 @@ static struct stm32wb0_gpio_intc_data gpio_intc_data;
 				GPIO_PORT_TABLE_INDEX(pidx)		\
 		};							\
 									\
-	IRQ_CONNECT(DT_IRQN_BY_IDX(node, pidx),				\
+	INTC2_DT_CONNECT_INLINE_BY_IDX(node, pidx,				\
 		DT_IRQ_BY_IDX(node, pidx, priority),			\
 		stm32wb0_gpio_isr, &port ##pidx ##_argblock, 0);	\
 									\
-	irq_enable(DT_IRQN_BY_IDX(node, pidx))
+	intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_IDX(node, pidx))
 
 #define STM32WB0_INIT_INTC_FOR_PORT(_PORT)				\
 	INIT_INTC_PORT_INNER(INTC_NODE,					\

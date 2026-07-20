@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/shared_irq.h>
 #include <zephyr/init.h>
@@ -157,7 +158,7 @@ static int shared_irq_initialize(const struct device *dev)
 #define SHARED_IRQ_CONFIG_FUNC(n)					\
 void shared_irq_config_func_##n(void)					\
 {									\
-	IRQ_CONNECT(DT_INST_IRQN(n),					\
+	INTC2_DT_INST_CONNECT_INLINE(n,					\
 		    DT_INST_IRQ(n, priority),				\
 		    shared_irq_isr,					\
 		    DEVICE_DT_INST_GET(n),				\

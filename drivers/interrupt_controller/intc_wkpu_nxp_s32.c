@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT nxp_s32_wkpu
 
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/irq.h>
 #include <zephyr/sys/sys_io.h>
@@ -213,10 +214,10 @@ static int wkpu_nxp_s32_init(const struct device *dev)
 			return err;                                                                \
 		}                                                                                  \
                                                                                                    \
-		IRQ_CONNECT(DT_INST_IRQ(n, irq), DT_INST_IRQ(n, priority),                         \
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),                         \
 			    wkpu_nxp_s32_interrupt_handler, DEVICE_DT_INST_GET(n),                 \
 			    COND_CODE_1(CONFIG_GIC, (DT_INST_IRQ(n, flags)), (0U)));               \
-		irq_enable(DT_INST_IRQ(n, irq));                                                   \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));                                                   \
                                                                                                    \
 		return 0;                                                                          \
 	}                                                                                          \

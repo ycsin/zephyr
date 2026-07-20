@@ -8,6 +8,7 @@
 
 #include <soc.h>
 #include <zephyr/irq.h>
+#include <zephyr/intc2.h>
 #include <zephyr/sys/sys_io.h>
 #include <zephyr/sys/math_extras.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -220,10 +221,10 @@ static int nxp_siul2_eirq_init(const struct device *dev)
 
 #define _NXP_SIUl2_EIRQ_IRQ_CONFIG(idx, n)                                                         \
 	do {                                                                                       \
-		IRQ_CONNECT(DT_INST_IRQ_BY_IDX(n, idx, irq), DT_INST_IRQ_BY_IDX(n, idx, priority), \
+		INTC2_DT_INST_CONNECT_INLINE_BY_IDX(n, idx, DT_INST_IRQ_BY_IDX(n, idx, priority), \
 			    nxp_siul2_eirq_isr##idx##_##n, DEVICE_DT_INST_GET(n),                  \
 			    COND_CODE_1(CONFIG_GIC, (DT_INST_IRQ_BY_IDX(n, idx, flags)), (0)));    \
-		irq_enable(DT_INST_IRQ_BY_IDX(n, idx, irq));                                       \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_IDX(n, idx));                                       \
 	} while (false);
 
 #define NXP_SIUl2_EIRQ_IRQ_CONFIG(n)                                                               \

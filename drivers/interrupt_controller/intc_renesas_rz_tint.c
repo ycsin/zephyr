@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT renesas_rz_tint
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <zephyr/drivers/interrupt_controller/gic.h>
 #include <zephyr/drivers/interrupt_controller/intc_rz_tint.h>
@@ -236,7 +237,7 @@ int intc_rz_tint_set_callback(const struct device *dev, intc_rz_tint_callback_t 
 }
 
 #define TINT_RZ_IRQ_CONNECT(index, isr)                                                            \
-	IRQ_CONNECT(DT_INST_IRQ_BY_IDX(index, 0, irq), DT_INST_IRQ_BY_IDX(index, 0, priority),     \
+	INTC2_DT_INST_CONNECT_INLINE_BY_IDX(index, 0, DT_INST_IRQ_BY_IDX(index, 0, priority),     \
 		    isr, DEVICE_DT_INST_GET(index),                                                \
 		    COND_CODE_1(CONFIG_GIC, (DT_INST_IRQ_BY_IDX(index, 0, flags)), (0)));
 

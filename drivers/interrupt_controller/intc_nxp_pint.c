@@ -7,6 +7,7 @@
 /* Based on STM32 EXTI driver, which is (c) 2016 Open-RnD Sp. z o.o. */
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <errno.h>
 #include <zephyr/drivers/interrupt_controller/nxp_pint.h>
@@ -227,10 +228,10 @@ static int intc_nxp_pm_action(const struct device *dev, enum pm_device_action ac
 	IF_ENABLED(DT_IRQ_HAS_IDX(node_id, idx),				\
 	(static uint8_t nxp_pint_idx_##idx = idx;				\
 	do {									\
-		IRQ_CONNECT(DT_IRQ_BY_IDX(node_id, idx, irq),			\
+		INTC2_DT_CONNECT_INLINE_BY_IDX(node_id, idx,			\
 			    DT_IRQ_BY_IDX(node_id, idx, priority),		\
 			    nxp_pint_isr, &nxp_pint_idx_##idx, 0);		\
-		irq_enable(DT_IRQ_BY_IDX(node_id, idx, irq));			\
+		intc2_enable((struct intc2_spec)INTC2_DT_SPEC_GET_BY_IDX(node_id, idx));			\
 		pint_irq_cfg[idx].irq = DT_IRQ_BY_IDX(node_id, idx, irq);	\
 	} while (false)))
 

@@ -6,6 +6,7 @@
 
 #include <soc.h>
 #include <zephyr/irq.h>
+#include <zephyr/intc2.h>
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/logging/log.h>
@@ -412,10 +413,10 @@ static int eic_mchp_init(const struct device *dev)
 #define EIC_MCHP_IRQ_CONNECT(eic_line, inst)							\
 	IF_ENABLED(DT_INST_IRQ_HAS_IDX(inst, eic_line), (					\
 	do {											\
-		IRQ_CONNECT(DT_INST_IRQ_BY_IDX(inst, eic_line, irq),				\
+		INTC2_DT_INST_CONNECT_INLINE_BY_IDX(inst, eic_line,				\
 			    DT_INST_IRQ_BY_IDX(inst, eic_line, priority), eic_mchp_isr_##eic_line,\
 			    DEVICE_DT_INST_GET(inst), inst);					\
-		irq_enable(DT_INST_IRQ_BY_IDX(inst, eic_line, irq));				\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_IDX(inst, eic_line));				\
 	} while (false);									\
 			))
 

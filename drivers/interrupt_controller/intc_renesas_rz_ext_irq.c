@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT renesas_rz_ext_irq
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/pinctrl.h>
@@ -167,7 +168,7 @@ static void intc_rz_ext_irq_isr_handle(const struct device *dev)
 #endif
 
 #define EXT_IRQ_RZ_IRQ_CONNECT(index, isr)                                                         \
-	IRQ_CONNECT(DT_INST_IRQ_BY_IDX(index, 0, irq), DT_INST_IRQ_BY_IDX(index, 0, priority),     \
+	INTC2_DT_INST_CONNECT_INLINE_BY_IDX(index, 0, DT_INST_IRQ_BY_IDX(index, 0, priority),     \
 		    isr, DEVICE_DT_INST_GET(index), GET_IRQ_FLAGS(index))
 
 #define INTC_RZ_EXT_IRQ_INIT(index)                                                                \

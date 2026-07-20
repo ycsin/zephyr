@@ -13,6 +13,7 @@
  */
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <soc.h>
 #include <stm32_ll_bus.h>
 #include <stm32_ll_gpio.h> /* For STM32F1 series */
@@ -154,7 +155,7 @@ static void stm32_fill_irq_table(int8_t start, int8_t len, int32_t irqn)
 	stm32_fill_irq_table(line_range_##idx.start,				\
 			     line_range_##idx.len,				\
 			     DT_IRQ_BY_IDX(node_id, idx, irq));			\
-	IRQ_CONNECT(DT_IRQ_BY_IDX(node_id, idx, irq),				\
+	INTC2_DT_CONNECT_INLINE_BY_IDX(node_id, idx,				\
 		DT_IRQ_BY_IDX(node_id, idx, priority),				\
 		stm32_intc_gpio_isr, &line_range_##idx, 0);
 

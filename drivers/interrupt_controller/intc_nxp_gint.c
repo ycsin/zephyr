@@ -6,6 +6,7 @@
 
 #include <soc.h>
 #include <zephyr/kernel.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/logging/log.h>
@@ -286,12 +287,12 @@ static int nxp_gint_init(const struct device *dev)
 #define NXP_GINT_IRQ_CONFIG(n)							\
 	static void nxp_gint_irq_init_##n(void)					\
 	{									\
-		IRQ_CONNECT(DT_INST_IRQN(n),					\
+		INTC2_DT_INST_CONNECT_INLINE(n,					\
 			    DT_INST_IRQ(n, priority),				\
 			    nxp_gint_isr,					\
 			    DEVICE_DT_INST_GET(n),				\
 			    0);							\
-		irq_enable(DT_INST_IRQN(n));					\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(n));					\
 	}
 
 #define NXP_GINT_INIT(n)							\
