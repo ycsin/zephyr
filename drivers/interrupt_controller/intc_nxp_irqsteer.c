@@ -223,6 +223,7 @@
  */
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree/interrupt_controller.h>
 #include <zephyr/irq.h>
 #include <zephyr/cache.h>
@@ -253,7 +254,7 @@ LOG_MODULE_REGISTER(nxp_irqstr);
 
 /* macros used for DTS parsing */
 #define _IRQSTEER_REGISTER_DISPATCHER(node_id)				\
-	IRQ_CONNECT(DT_IRQN(node_id),					\
+	INTC2_DT_CONNECT_INLINE(node_id,					\
 		    DT_IRQ(node_id, priority),				\
 		    irqsteer_isr_dispatcher,				\
 		    &dispatchers[DT_REG_ADDR(node_id)],			\

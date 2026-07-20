@@ -14,6 +14,7 @@
  */
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/devicetree/interrupt_controller.h>
 #include <zephyr/irq_nextlevel.h>
 #include <zephyr/sw_isr_table.h>
@@ -148,9 +149,9 @@ static const struct irq_next_level_api dw_ictl_apis = {
                                                                                                    \
 	static void dw_ictl_config_irq_##inst(void)                                                \
 	{                                                                                          \
-		IRQ_CONNECT(DT_INST_IRQN(inst), DT_INST_IRQ(inst, priority), dw_ictl_isr,          \
+		INTC2_DT_INST_CONNECT_INLINE(inst, DT_INST_IRQ(inst, priority), dw_ictl_isr,          \
 			    DEVICE_DT_INST_GET(inst), INTC_DW_IRQ_FLAGS(inst));                    \
-		irq_enable(DT_INST_IRQN(inst));                                                    \
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET(inst));                                                    \
 	}                                                                                          \
 	IRQ_PARENT_ENTRY_DEFINE(intc_dw##inst, DEVICE_DT_INST_GET(inst), DT_INST_IRQN(inst),       \
 				INTC_INST_ISR_TBL_OFFSET(inst),                                    \

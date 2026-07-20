@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT intel_cavs_intc
 
 #include <zephyr/arch/cpu.h>
+#include <zephyr/intc2.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree/interrupt_controller.h>
 #include <zephyr/irq.h>
@@ -149,7 +150,7 @@ static const struct irq_next_level_api cavs_apis = {
 									\
 	static void cavs_config_##n##_irq(const struct device *port)	\
 	{								\
-		IRQ_CONNECT(DT_INST_IRQN(n), DT_INST_IRQ(n, priority),	\
+		INTC2_DT_INST_CONNECT_INLINE(n, DT_INST_IRQ(n, priority),	\
 			    cavs_ictl_isr, DEVICE_DT_INST_GET(n),	\
 			    DT_INST_IRQ(n, flags));			\
 	}								\
