@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/drivers/interrupt_controller/gd32_exti.h>
 #include <zephyr/sys/__assert.h>
 #include <zephyr/irq.h>
@@ -160,31 +161,31 @@ int gd32_exti_configure(uint8_t line, gd32_exti_cb_t cb, void *user)
 static int gd32_exti_init(const struct device *dev)
 {
 #ifdef CONFIG_GPIO_GD32
-	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(0, line0, irq),
+	INTC2_DT_INST_CONNECT_INLINE_BY_NAME(0, line0,
 		    DT_INST_IRQ_BY_NAME(0, line0, priority),
 		    gd32_exti_isr, &line0_range, 0);
 
-	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(0, line1, irq),
+	INTC2_DT_INST_CONNECT_INLINE_BY_NAME(0, line1,
 		    DT_INST_IRQ_BY_NAME(0, line1, priority),
 		    gd32_exti_isr, &line1_range, 0);
 
-	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(0, line2, irq),
+	INTC2_DT_INST_CONNECT_INLINE_BY_NAME(0, line2,
 		    DT_INST_IRQ_BY_NAME(0, line2, priority),
 		    gd32_exti_isr, &line2_range, 0);
 
-	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(0, line3, irq),
+	INTC2_DT_INST_CONNECT_INLINE_BY_NAME(0, line3,
 		    DT_INST_IRQ_BY_NAME(0, line3, priority),
 		    gd32_exti_isr, &line3_range, 0);
 
-	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(0, line4, irq),
+	INTC2_DT_INST_CONNECT_INLINE_BY_NAME(0, line4,
 		    DT_INST_IRQ_BY_NAME(0, line4, priority),
 		    gd32_exti_isr, &line4_range, 0);
 
-	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(0, line5_9, irq),
+	INTC2_DT_INST_CONNECT_INLINE_BY_NAME(0, line5_9,
 		    DT_INST_IRQ_BY_NAME(0, line5_9, priority),
 		    gd32_exti_isr, &line5_9_range, 0);
 
-	IRQ_CONNECT(DT_INST_IRQ_BY_NAME(0, line10_15, irq),
+	INTC2_DT_INST_CONNECT_INLINE_BY_NAME(0, line10_15,
 		    DT_INST_IRQ_BY_NAME(0, line10_15, priority),
 		    gd32_exti_isr, &line10_15_range, 0);
 #endif /* CONFIG_GPIO_GD32 */

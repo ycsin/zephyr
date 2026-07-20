@@ -7,6 +7,7 @@
 #define DT_DRV_COMPAT atmel_sam0_eic
 
 #include <zephyr/device.h>
+#include <zephyr/intc2.h>
 #include <zephyr/irq.h>
 #include <soc.h>
 #include <zephyr/drivers/interrupt_controller/sam0_eic.h>
@@ -326,10 +327,10 @@ uint32_t sam0_eic_interrupt_pending(int port)
 
 #define SAM0_EIC_IRQ_CONNECT(n)						\
 	do {								\
-		IRQ_CONNECT(DT_INST_IRQ_BY_IDX(0, n, irq),		\
+		INTC2_DT_INST_CONNECT_INLINE_BY_IDX(0, n,		\
 			    DT_INST_IRQ_BY_IDX(0, n, priority),		\
 			    sam0_eic_isr, DEVICE_DT_INST_GET(0), 0);	\
-		irq_enable(DT_INST_IRQ_BY_IDX(0, n, irq));		\
+		intc2_enable((struct intc2_spec)INTC2_DT_INST_SPEC_GET_BY_IDX(0, n));		\
 	} while (false)
 
 static int sam0_eic_init(const struct device *dev)
