@@ -723,6 +723,36 @@ config SRAM_SW_ISR_TABLE
 	  The option specifies that the software interrupts vector table will be
 	  placed inside SRAM instead of the flash.
 
+choice INTC_IMPLEMENTATION
+	prompt "Interrupt controller implementation"
+	default INTC_LEGACY
+	help
+	  Selects the interrupt subsystem backend. The legacy backend
+	  (multilevel-encoded IRQ numbers + the generated software ISR
+	  table) remains the default; intc2 is the devicetree-derived
+	  graph replacement (design doc / CONFIG_INTC2), opt-in while the
+	  tree-wide conversion is in progress.
+
+	  This choice is the downstream escape hatch (design §7.2): once
+	  the in-tree conversion completes and intc2 becomes the default,
+	  CONFIG_INTC_LEGACY will gain `select DEPRECATED` and the legacy
+	  machinery will be moved behind it (the "legacy quarantine"), so
+	  that downstream trees the forward shim cannot cover can restore
+	  the old implementation wholesale with a single switch. Neither
+	  the default flip nor the quarantine is done yet -- they land with
+	  the final conversion commits -- so today this only names the two
+	  backends without changing any behavior.
+
+config INTC_LEGACY
+	bool "Legacy (gen_isr_tables / software ISR table)"
+	help
+	  The traditional interrupt implementation: multilevel-encoded IRQ
+	  numbers, the gen_isr_tables.py-generated _sw_isr_table, and the
+	  per-SoC dispatch glue. This is the current default and the
+	  backend every unconverted architecture and driver still relies
+	  on. It stays available as the escape hatch throughout the intc2
+	  deprecation window.
+
 config INTC2
 	bool "DAG-based interrupt core (intc2) [EXPERIMENTAL]"
 	select EXPERIMENTAL
@@ -733,6 +763,8 @@ config INTC2
 	  numbers. Dispatch tables are per-node, generated at build time by
 	  gen_intc2_tables.py, and fully ROM-resident in the base
 	  configuration. Currently supported with GNU ld only.
+
+endchoice
 
 config INTC2_SHARED
 	bool "intc2 static shared-line (fan-in) support"
