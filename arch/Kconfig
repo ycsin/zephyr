@@ -765,6 +765,28 @@ config INTC2_DYNAMIC
 	  devicetree properties that describe software policy rather than
 	  hardware.
 
+config INTC2_ARCH_VECTORED
+	bool
+	depends on INTC2
+	select INTC2_DYNAMIC
+	help
+	  Selected by architectures whose interrupt controllers are
+	  self-dispatching -- the CPU vectors to the ISR in hardware (an
+	  IDT/vector table) rather than through an intc2 software dispatch
+	  table (x86 IOAPIC/LOAPIC). Lowers every INTC2_DT_CONNECT() to a
+	  runtime intc2_connect_dynamic(), which delegates to the node's
+	  connect op (the arch's dynamic vector machinery), since there is
+	  no compile-time table for a static entry to live in.
+
+config INTC2_ARCH_VECTORED_CONNECT_PRIO
+	int
+	default 50
+	depends on INTC2_ARCH_VECTORED
+	help
+	  SYS_INIT priority (within PRE_KERNEL_1) for file-scope
+	  INTC2_DT_CONNECT() boot hooks on self-dispatching controllers.
+	  Must run after the interrupt controller's own device init.
+
 config INTC2_AFFINITY
 	bool "intc2 runtime IRQ-to-CPU routing"
 	depends on INTC2

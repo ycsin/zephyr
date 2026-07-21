@@ -309,6 +309,21 @@ __subsystem struct intc2_driver_api {
 			 void (*isr)(const void *arg), const void *arg,
 			 struct intc2_spec *spec, struct intc2_msi *msg);
 #endif
+#ifdef CONFIG_INTC2_DYNAMIC
+	/**
+	 * Optional: install @a isr on @a line at runtime.
+	 *
+	 * For self-dispatching controllers whose ISRs do not live in an
+	 * intc2 software dispatch table (node->table == NULL) -- e.g. the
+	 * x86 IOAPIC/LOAPIC, where the CPU vectors through the IDT to a
+	 * runtime-allocated vector. When present, intc2_connect_dynamic()
+	 * delegates here instead of writing the core dispatch table.
+	 */
+	int (*connect)(const struct intc2_node *node, uint32_t line, uint32_t prio,
+		       void (*isr)(const void *arg), const void *arg, uint32_t flags);
+	/** Optional: tear down a connect() installation of @a line */
+	int (*disconnect)(const struct intc2_node *node, uint32_t line);
+#endif
 	/** Claim the highest-precedence pending line, or a negative value */
 	int32_t (*get_pending)(const struct intc2_node *node);
 	/** Optional: complete/EOI a claimed @a line */
@@ -673,6 +688,59 @@ struct intc2_shell_rec {
 	INTC2_DT_CONNECT_BY_NAME(node_id, name, prio, isr, arg, flags)
 #define INTC2_DT_CONNECT_INLINE(node_id, prio, isr, arg, flags)                                    \
 	INTC2_DT_CONNECT(node_id, prio, isr, arg, flags)
+
+#ifdef CONFIG_INTC2_ARCH_VECTORED
+/*
+ * Self-dispatching controllers (x86 IOAPIC/LOAPIC): the CPU vectors to
+ * the ISR through the IDT at a runtime-allocated vector, so there is no
+ * compile-time intc2 dispatch table to place a static entry in. Lower
+ * every connect to a runtime intc2_connect_dynamic() (which delegates
+ * to the node's connect op): file-scope connects run from a SYS_INIT,
+ * function-position (INLINE) connects run in place. Requires the
+ * dynamic connect path (selected via CONFIG_INTC2_DYNAMIC).
+ */
+#include <zephyr/init.h>
+
+/*
+ * The spec initializer expands to a brace list {.node=..., .line=...}
+ * whose internal comma would split it across macro arguments, so it is
+ * passed last and absorbed by the variadic tail.
+ */
+#define Z_INTC2_VEC_CONNECT_STMT(prio_, isr_, arg_, flags_, ...)                                   \
+	(void)intc2_connect_dynamic((struct intc2_spec)__VA_ARGS__, prio_,                         \
+				    (void (*)(const void *))(isr_), arg_, flags_)
+
+#define Z_INTC2_VEC_CONNECT_FILE(counter_, prio_, isr_, arg_, flags_, ...)                         \
+	static int _CONCAT(__intc2_vec_init_, counter_)(void)                                      \
+	{                                                                                          \
+		Z_INTC2_VEC_CONNECT_STMT(prio_, isr_, arg_, flags_, __VA_ARGS__);                  \
+		return 0;                                                                          \
+	}                                                                                          \
+	SYS_INIT(_CONCAT(__intc2_vec_init_, counter_), PRE_KERNEL_1,                               \
+		 CONFIG_INTC2_ARCH_VECTORED_CONNECT_PRIO)
+
+#undef INTC2_DT_CONNECT_BY_IDX
+#define INTC2_DT_CONNECT_BY_IDX(node_id, idx, prio, isr, arg, flags)                               \
+	Z_INTC2_VEC_CONNECT_FILE(__COUNTER__, prio, isr, arg, flags,                               \
+				 INTC2_DT_SPEC_GET_BY_IDX(node_id, idx))
+#undef INTC2_DT_CONNECT_BY_NAME
+#define INTC2_DT_CONNECT_BY_NAME(node_id, name, prio, isr, arg, flags)                             \
+	Z_INTC2_VEC_CONNECT_FILE(__COUNTER__, prio, isr, arg, flags,                               \
+				 INTC2_DT_SPEC_GET_BY_NAME(node_id, name))
+#undef INTC2_DT_CONNECT
+#define INTC2_DT_CONNECT(node_id, prio, isr, arg, flags)                                           \
+	INTC2_DT_CONNECT_BY_IDX(node_id, 0, prio, isr, arg, flags)
+
+#undef INTC2_DT_CONNECT_INLINE_BY_IDX
+#define INTC2_DT_CONNECT_INLINE_BY_IDX(node_id, idx, prio, isr, arg, flags)                        \
+	Z_INTC2_VEC_CONNECT_STMT(prio, isr, arg, flags, INTC2_DT_SPEC_GET_BY_IDX(node_id, idx))
+#undef INTC2_DT_CONNECT_INLINE_BY_NAME
+#define INTC2_DT_CONNECT_INLINE_BY_NAME(node_id, name, prio, isr, arg, flags)                      \
+	Z_INTC2_VEC_CONNECT_STMT(prio, isr, arg, flags, INTC2_DT_SPEC_GET_BY_NAME(node_id, name))
+#undef INTC2_DT_CONNECT_INLINE
+#define INTC2_DT_CONNECT_INLINE(node_id, prio, isr, arg, flags)                                    \
+	Z_INTC2_VEC_CONNECT_STMT(prio, isr, arg, flags, INTC2_DT_SPEC_GET(node_id))
+#endif /* CONFIG_INTC2_ARCH_VECTORED */
 
 /**
  * @brief Spurious interrupt handler, __weak for test/SoC override.

@@ -1,0 +1,16 @@
+common:
+  platform_allow:
+    - qemu_x86_64
+    - qemu_x86
+  integration_platforms:
+    - qemu_x86_64
+  tags:
+    - drivers
+    - interrupt
+    - intc2
+
+tests:
+  drivers.interrupt_controller.intc_x86_apic_intc2.legacy: {}
+  drivers.interrupt_controller.intc_x86_apic_intc2.bridge:
+    extra_configs:
+      - CONFIG_INTC2=y

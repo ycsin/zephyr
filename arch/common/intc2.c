@@ -116,6 +116,15 @@ int intc2_connect_dynamic(struct intc2_spec spec, uint32_t prio,
 	struct intc2_entry *entry;
 	k_spinlock_key_t key;
 
+	/*
+	 * Self-dispatching controllers (e.g. x86 IOAPIC/LOAPIC) have no
+	 * intc2 software table; they install the ISR through their own
+	 * connect op (typically the arch's runtime vector machinery).
+	 */
+	if (node->api->connect != NULL) {
+		return node->api->connect(node, spec.line, prio, isr, arg, flags);
+	}
+
 	if ((node->table == NULL) || (node->lines != NULL)) {
 		/* No generated table, or sparse (dynamic requires dense) */
 		return -ENOTSUP;
@@ -152,6 +161,12 @@ int intc2_disconnect_dynamic(struct intc2_spec spec, void (*isr)(const void *arg
 	struct intc2_entry *entry;
 	k_spinlock_key_t key;
 	int ret = 0;
+
+	if (node->api->disconnect != NULL) {
+		ARG_UNUSED(isr);
+		ARG_UNUSED(arg);
+		return node->api->disconnect(node, spec.line);
+	}
 
 	if ((node->table == NULL) || (node->lines != NULL)) {
 		return -ENOTSUP;

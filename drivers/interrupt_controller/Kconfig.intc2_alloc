@@ -1,6 +1,22 @@
 # Copyright (c) 2026 Yong Cong Sin <yongcong.sin@gmail.com>
 # SPDX-License-Identifier: Apache-2.0
 
+config INTC2_X86_APIC
+	bool "intc2 nodes for the x86 IOAPIC/LOAPIC"
+	default y
+	depends on INTC2 && X86
+	depends on DT_HAS_INTEL_IOAPIC_ENABLED || DT_HAS_INTEL_LOAPIC_ENABLED
+	select INTC2_ARCH_VECTORED
+	select DYNAMIC_INTERRUPTS
+	help
+	  Represent the x86 IOAPIC and LOAPIC as intc2 controller nodes so
+	  that devices behind them can use the intc2 (node, line) API on
+	  the graph backend. x86 is self-dispatching (the IDT vectors
+	  directly), so these nodes have no intc2 dispatch table; connects
+	  install the ISR through the arch's runtime vector machinery via
+	  INTC2_ARCH_VECTORED. Without this, a converted driver whose DT
+	  interrupt parent is the IOAPIC fails to link under CONFIG_INTC2.
+
 config INTC2_X86_IRQ_ALLOC
 	bool "intc2 allocator node for the x86 dynamic IRQ/vector pool"
 	depends on INTC2_ALLOC && X86_64
